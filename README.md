@@ -26,22 +26,29 @@ des réponses possibles pour continuer.
 - 📋 **Résumé de session** : vocabulaire vu, erreurs commises et phrases à réviser, généré en fin
   de session.
 
-## Démarrage rapide
+## Démarrage rapide (recommandé : clé gérée par le serveur)
 
 1. **Obtenir une clé API Anthropic** : [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
-2. **Servir l'application en local** (nécessaire pour l'accès au micro) :
+2. **Lancer le serveur local** avec la clé (aucune dépendance, Python standard uniquement) :
 
    ```bash
    cd hello-world
-   python3 -m http.server 8080
+   echo 'ANTHROPIC_API_KEY=sk-ant-…' > .env   # ou : export ANTHROPIC_API_KEY=sk-ant-…
+   python3 server.py
    ```
 
+   La clé reste côté serveur (le fichier `.env` est ignoré par git) ; le navigateur passe par le
+   proxy `/api/chat` et il n'y a **rien à configurer dans l'interface**.
 3. Ouvrir <http://localhost:8080> dans **Chrome ou Edge** (la reconnaissance vocale n'est pas
    disponible dans Firefox ; Safari fonctionne partiellement).
-4. Cliquer sur ⚙️, coller la clé API (elle reste dans le `localStorage` du navigateur, elle n'est
-   envoyée qu'à l'API Anthropic).
-5. Choisir un niveau et un scénario, puis **« Commencer la conversation »**. Autoriser le micro
+4. Choisir un niveau et un scénario, puis **« Commencer la conversation »**. Autoriser le micro
    quand le navigateur le demande.
+
+### Variante sans serveur (hébergement statique)
+
+L'application fonctionne aussi servie en statique (`python3 -m http.server 8080`, GitHub Pages, …) :
+dans ce cas, coller la clé API dans les réglages ⚙️ — elle reste dans le `localStorage` du
+navigateur et n'est envoyée qu'à l'API Anthropic. À réserver à un usage personnel.
 
 ## Conseils pour la voix catalane
 
@@ -64,12 +71,14 @@ Application 100 % statique, sans backend ni dépendance :
 | `index.html` | Structure de la page (accueil, chat, modales réglages/résumé) |
 | `css/style.css` | Styles (thème terre cuite catalane) |
 | `js/app.js` | Logique : Web Speech API (STT/TTS), appels à l'API Claude, conversation |
+| `server.py` | Serveur local optionnel : fichiers statiques + proxy `/api/chat` gardant la clé côté serveur |
 
 Détails techniques notables :
 
-- Appels **directs navigateur → API Anthropic** (`anthropic-dangerous-direct-browser-access`) :
-  pas de serveur, la clé reste chez l'utilisateur. Pour un déploiement public multi-utilisateurs,
-  il faudrait un petit proxy backend.
+- **Deux modes de clé API, détectés automatiquement** au chargement (`GET /api/health`) :
+  proxy local (`server.py` + `ANTHROPIC_API_KEY` — la clé ne quitte jamais le serveur) ou, à
+  défaut, appels directs navigateur → API Anthropic (`anthropic-dangerous-direct-browser-access`)
+  avec la clé saisie dans les réglages.
 - **Sorties structurées** (`output_config.format` avec un schéma JSON) : chaque tour renvoie
   `{ reply, translation, correction, suggestions }`, ce qui garantit un parsing fiable côté client.
 - Modèle par défaut : `claude-opus-5` (avec repli serveur `fallbacks: "default"` en cas de refus
@@ -83,4 +92,5 @@ Détails techniques notables :
 - Répétition espacée du vocabulaire rencontré (export du résumé vers un deck Anki).
 - Évaluation de la prononciation (comparaison transcription attendue / reconnue).
 - Streaming des réponses avec lecture vocale phrase par phrase pour réduire la latence.
-- Petit backend proxy pour partager l'application sans exposer de clé API.
+- Déploiement partagé de `server.py` (authentification + limite de débit) pour utiliser
+  l'application à plusieurs sans distribuer de clé.

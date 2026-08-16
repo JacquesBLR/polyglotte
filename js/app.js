@@ -25,6 +25,8 @@ const el = {
   settingsModal: document.getElementById("settings-modal"),
   btnSettingsClose: document.getElementById("btn-settings-close"),
   apiKey: document.getElementById("api-key"),
+  apiKeyLabel: document.getElementById("api-key-label"),
+  proxyInfo: document.getElementById("proxy-info"),
   model: document.getElementById("model"),
   voiceRate: document.getElementById("voice-rate"),
   rateValue: document.getElementById("rate-value"),
@@ -45,7 +47,29 @@ const state = {
   listening: false,
   recognition: null,
   catalanVoice: null,
+  proxyMode: false,   // true si server.py tourne avec une clé API configurée
 };
+
+function hasCredentials() {
+  return state.proxyMode || !!el.apiKey.value.trim();
+}
+
+// Détecte le serveur local (server.py) : s'il gère la clé, on passe par lui
+// et l'utilisateur n'a rien à configurer dans le navigateur.
+async function detectProxy() {
+  try {
+    const resp = await fetch("/api/health");
+    if (!resp.ok) return;
+    const health = await resp.json();
+    if (health.ok && health.hasKey) {
+      state.proxyMode = true;
+      el.apiKeyLabel.classList.add("hidden");
+      el.proxyInfo.classList.remove("hidden");
+    }
+  } catch (_) {
+    // Pas de serveur local (ex. hébergement statique) : mode direct avec clé dans les réglages.
+  }
+}
 
 // ---------- Réglages persistés ----------
 const SETTINGS_KEY = "parla-settings";
@@ -316,14 +340,16 @@ const RESPONSE_SCHEMA = {
 };
 
 function apiHeaders(model) {
-  const headers = {
-    "content-type": "application/json",
-    "x-api-key": el.apiKey.value.trim(),
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true",
-  };
+  const headers = { "content-type": "application/json" };
+  if (!state.proxyMode) {
+    // Mode direct navigateur → API Anthropic (la clé vient des réglages).
+    headers["x-api-key"] = el.apiKey.value.trim();
+    headers["anthropic-version"] = "2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"] = "true";
+  }
   // Repli serveur recommandé sur Opus 5 : en cas de refus des classificateurs,
   // la requête est rejouée automatiquement sur le modèle de repli.
+  // (En mode proxy, server.py transmet ce header à l'API.)
   if (model === "claude-opus-5") {
     headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
   }
@@ -347,7 +373,7 @@ async function callClaude({ messages, structured }) {
   if (structured) outputConfig.format = { type: "json_schema", schema: RESPONSE_SCHEMA };
   if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
-  const resp = await fetch(API_URL, {
+  const resp = await fetch(state.proxyMode ? "/api/chat" : API_URL, {
     method: "POST",
     headers: apiHeaders(model),
     body: JSON.stringify(body),
@@ -373,8 +399,8 @@ async function callClaude({ messages, structured }) {
 // ---------- Logique de conversation ----------
 async function sendMessage(userText, { display = true } = {}) {
   if (state.busy) return;
-  if (!el.apiKey.value.trim()) {
-    setStatus("Ajoute d'abord ta clé API Anthropic dans les réglages ⚙️.", true);
+  if (!hasCredentials()) {
+    setStatus("Ajoute d'abord ta clé API Anthropic dans les réglages ⚙️ (ou lance server.py avec ANTHROPIC_API_KEY).", true);
     openModal(el.settingsModal);
     return;
   }
@@ -443,7 +469,7 @@ function closeModal(modal) { modal.classList.add("hidden"); }
 
 // ---------- Démarrage ----------
 function startConversation() {
-  if (!el.apiKey.value.trim()) {
+  if (!hasCredentials()) {
     openModal(el.settingsModal);
     setStatus("Ajoute d'abord ta clé API Anthropic, puis relance la conversation.", true);
     return;
@@ -459,6 +485,7 @@ function startConversation() {
 
 function init() {
   loadSettings();
+  detectProxy();
 
   // Compatibilité navigateur
   state.recognition = initRecognition();

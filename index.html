@@ -69,9 +69,12 @@
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
       <h2>⚙️ Réglages</h2>
-      <label>Clé API Anthropic
+      <p id="proxy-info" class="proxy-info hidden">🔑 Clé API gérée par le serveur local — rien à configurer ici.</p>
+      <label id="api-key-label">Clé API Anthropic
         <input type="password" id="api-key" placeholder="sk-ant-…">
-        <small>Stockée uniquement dans ton navigateur (localStorage).
+        <small>Stockée uniquement dans ton navigateur (localStorage). Astuce : lance
+        <code>python3 server.py</code> avec la variable <code>ANTHROPIC_API_KEY</code> pour ne plus
+        avoir à la saisir ici.
         <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Obtenir une clé</a></small>
       </label>
       <label>Modèle
