@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [0.5.0] — 2026-08-16
+
+### Added
+- Bibliothèque de scénarios culturels : 3 jeux de rôle ancrés par langue (calçotada et Sant
+  Jordi, izakaya et onsen, Biergarten et Bürgeramt, souk et iftar, fado et tram 28…),
+  ajoutés au sélecteur selon la langue choisie (#23)
+- Notes culturelles 💡 : le tuteur glisse occasionnellement une brève note en français liée
+  à l'échange, dans une bulle dédiée non vocalisée (#24)
+- Mode 🌊 Immersion totale : langue cible uniquement, corrections par reformulation
+  naturelle (aucune bulle de correction), traductions masquées, translittérations
+  conservées (#25)
+
 ## [0.4.0] — 2026-08-16
 
 ### Added

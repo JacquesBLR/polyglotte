@@ -61,7 +61,8 @@ expliquées, **cartes mentales interactives** (visualisation des systèmes verba
 de mots, structures de phrase) ; mode compréhension orale ; mode dictée ; retour sur la
 prononciation (écart entre l'attendu et le reconnu).
 
-### v0.5.0 — Contenu et immersion
+### v0.5.0 — Contenu et immersion (livrée)
+Issues [#23](../../issues/23) à [#25](../../issues/25).
 Bibliothèque de scénarios ancrés culturellement par langue ; notes culturelles ; mode
 immersion totale (zéro français, corrections par reformulation).
 
