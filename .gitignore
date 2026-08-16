@@ -1,2 +1,3 @@
 # Clé API locale — ne jamais committer
 .env
+__pycache__/
