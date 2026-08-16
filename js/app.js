@@ -468,7 +468,17 @@ function openModal(modal) { modal.classList.remove("hidden"); }
 function closeModal(modal) { modal.classList.add("hidden"); }
 
 // ---------- Démarrage ----------
+// Safari iOS n'autorise la synthèse vocale qu'après un geste de l'utilisateur :
+// on la « débloque » avec une énonciation vide lors du clic sur Commencer.
+function unlockSpeechSynthesis() {
+  if (!window.speechSynthesis) return;
+  const utter = new SpeechSynthesisUtterance("");
+  utter.volume = 0;
+  speechSynthesis.speak(utter);
+}
+
 function startConversation() {
+  unlockSpeechSynthesis();
   if (!hasCredentials()) {
     openModal(el.settingsModal);
     setStatus("Ajoute d'abord ta clé API Anthropic, puis relance la conversation.", true);
