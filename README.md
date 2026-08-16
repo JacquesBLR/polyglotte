@@ -79,9 +79,12 @@ Dans ⚙️ → **Moteur IA** → « Serveur compatible OpenAI (local ou héberg
 1. **URL de base** : `https://inference-api.nousresearch.com/v1`
 2. **Clé API** : créée sur [portal.nousresearch.com](https://portal.nousresearch.com)
    (envoyée en `Authorization: Bearer`, uniquement vers l'URL configurée)
-3. **Modèle** : le portail est un agrégateur de ~250 modèles au format `fournisseur/modèle` —
-   `Hermes-4-405B`, `anthropic/claude-sonnet-4.6`, `anthropic/claude-haiku-4.5`… Catalogue
-   complet sur `https://inference-api.nousresearch.com/v1/models` (public).
+3. **Modèle** : le portail est un agrégateur (368 modèles au format `fournisseur/modèle`,
+   catalogue vérifié) — `anthropic/claude-sonnet-4.6`, `anthropic/claude-haiku-4.5`,
+   `anthropic/claude-opus-5`, `nousresearch/hermes-4-405b`, `openai/gpt-oss-120b`…
+   Catalogue complet public : `https://inference-api.nousresearch.com/v1/models`.
+4. **🔌 Tester la connexion** : le bouton des réglages vérifie la joignabilité, la présence
+   du modèle au catalogue, puis la clé de bout en bout.
 
 **Serveur local — ex. gpt-oss-120b sur un DGX :**
 
