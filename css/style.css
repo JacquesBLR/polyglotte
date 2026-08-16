@@ -392,6 +392,8 @@ select, input[type="text"], input[type="password"] {
 /* ---------- v0.4.0 : pédagogie ---------- */
 .welcome-alt { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.7rem; flex-wrap: wrap; }
 
+.settings-sep { border: none; border-top: 1px dashed #e2d9cd; margin: 1rem 0; }
+
 /* ---------- v0.5.0 : contenu et immersion ---------- */
 .immersion-toggle { justify-content: center; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.8rem; }
 .culture-note {

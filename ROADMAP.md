@@ -66,8 +66,17 @@ Issues [#23](../../issues/23) à [#25](../../issues/25).
 Bibliothèque de scénarios ancrés culturellement par langue ; notes culturelles ; mode
 immersion totale (zéro français, corrections par reformulation).
 
-### v1.0.0 — Plateforme
+### v1.0.0 — Plateforme (livrée)
+Issues [#26](../../issues/26) à [#29](../../issues/29).
 PWA installable (iPad) ; profils multiples ; **backend local** (serveur compatible OpenAI,
-ex. gpt-oss-120b sur DGX) avec modèle configurable par fonction (conversation / corrections /
-résumés) ; configuration hybride local + Claude ; STT/TTS améliorés via serveur local
-(Whisper, voix dédiées) pour les langues à support vocal partiel.
+ex. gpt-oss-120b sur DGX) avec modèle principal + modèle fiches/résumés, et bascule
+Claude ↔ local sans rechargement.
+
+## Après la 1.0 (pistes)
+
+- STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support
+  vocal partiel — l'amélioration la plus forte pour le suisse allemand et le tunisien.
+- Streaming des réponses avec lecture phrase par phrase (latence).
+- Configuration hybride fine (conversation en local, corrections via Claude).
+- Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible).
+- Renommage du dépôt (`hello-world` → `polyglotte`) et de l'URL Pages.

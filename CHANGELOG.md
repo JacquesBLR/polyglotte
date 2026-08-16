@@ -5,6 +5,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [1.0.0] — 2026-08-16
+
+### Added
+- **PWA installable** : manifeste, icônes, service worker (coquille applicative en cache
+  stale-while-revalidate, jamais les appels API) — installable sur l'écran d'accueil iPad
+  via Partager → « Sur l'écran d'accueil » (#26)
+- **Moteur local compatible OpenAI** : réglage « Moteur IA » avec URL de base et modèle
+  (ex. gpt-oss-120b sur vLLM/Ollama), modèle optionnel distinct pour fiches et résumés,
+  sorties structurées via `response_format` avec repli automatique (consigne JSON +
+  extraction) si le serveur ne supporte pas les schémas (#27)
+- **Profils multiples** : réglages, carnet, révisions et historique par profil ; le profil
+  « défaut » conserve les données existantes (#28)
+- Documentation 1.0 : installation PWA, configuration du serveur local, profils (#29)
+
 ## [0.5.0] — 2026-08-16
 
 ### Added

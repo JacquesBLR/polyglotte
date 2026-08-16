@@ -23,7 +23,7 @@ jobs:
       - name: Préparer le site statique
         run: |
           mkdir -p _site
-          cp -r index.html css js README.md _site/
+          cp -r index.html css js icons manifest.webmanifest sw.js README.md _site/
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
