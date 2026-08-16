@@ -74,12 +74,14 @@ mise en cache pour un démarrage instantané (les conversations, elles, nécessi
 
 Dans ⚙️ → **Moteur IA** → « Serveur compatible OpenAI (local ou hébergé) » :
 
-**API hébergée — ex. Nous Research (modèles Hermes) :**
+**API hébergée — ex. Nous Portal (Hermes, mais aussi Claude, GPT, Gemini…) :**
 
 1. **URL de base** : `https://inference-api.nousresearch.com/v1`
 2. **Clé API** : créée sur [portal.nousresearch.com](https://portal.nousresearch.com)
    (envoyée en `Authorization: Bearer`, uniquement vers l'URL configurée)
-3. **Modèle** : `Hermes-4-405B`, `Hermes-4-70B` ou `Hermes-4.3-36B`
+3. **Modèle** : le portail est un agrégateur de ~250 modèles au format `fournisseur/modèle` —
+   `Hermes-4-405B`, `anthropic/claude-sonnet-4.6`, `anthropic/claude-haiku-4.5`… Catalogue
+   complet sur `https://inference-api.nousresearch.com/v1/models` (public).
 
 **Serveur local — ex. gpt-oss-120b sur un DGX :**
 
