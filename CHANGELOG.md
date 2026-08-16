@@ -7,6 +7,8 @@ Releases GitHub (commit de chaque version indiqué ci-dessous).
 
 ## [0.2.0] — 2026-08-16
 
+Commit : `db178da`.
+
 ### Added
 - Neuf nouvelles langues aux côtés du catalan : espagnol, anglais (GB), allemand, suisse
   allemand, portugais (Portugal), portugais (Brésil), japonais, arabe standard, tunisien
