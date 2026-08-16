@@ -15,6 +15,7 @@
     </div>
     <div class="header-actions">
       <button id="btn-new-session" class="btn-secondary hidden" title="Changer de langue ou de scénario">🔄 Nouvelle session</button>
+      <button id="btn-grammar" class="btn-secondary" title="Grammaire et conjugaison">🧠</button>
       <button id="btn-progress" class="btn-secondary" title="Progrès et révisions">📚<span id="due-badge" class="due-badge hidden"></span></button>
       <button id="btn-summary" class="btn-secondary" title="Résumé de la session" disabled>📋 Résumé</button>
       <button id="btn-settings" class="btn-secondary" title="Réglages">⚙️</button>
@@ -69,6 +70,10 @@
         </div>
         <p id="support-note" class="support-note hidden"></p>
         <button id="btn-start" class="btn-primary">🎬 Commencer la conversation</button>
+        <div class="welcome-alt">
+          <button id="btn-assess" class="btn-secondary" title="Estime ton niveau CECRL en quelques échanges">🎯 Test de niveau</button>
+          <button id="btn-exercises" class="btn-secondary" title="Dictée et prononciation">✍️ Exercices</button>
+        </div>
         <p id="compat-warning" class="compat-warning hidden"></p>
       </div>
     </div>
@@ -115,10 +120,72 @@
       <label class="checkbox-label">
         <input type="checkbox" id="show-translations" checked> Afficher les traductions françaises
       </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="listen-mode"> Compréhension orale : masquer le texte des réponses (👁 pour révéler)
+      </label>
       <p id="voice-info" class="voice-info"></p>
       <p class="app-version">Polyglotte <span id="app-version"></span></p>
       <div class="modal-actions">
         <button id="btn-settings-close" class="btn-primary">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Grammaire -->
+  <div id="grammar-modal" class="modal hidden">
+    <div class="modal-content modal-wide">
+      <h2>🧠 Grammaire & conjugaison</h2>
+      <label>Sujet (dans la langue en cours)
+        <input type="text" id="grammar-topic" placeholder="Ex. : conjugaison de « ser » au présent, les pronoms COD…">
+      </label>
+      <div class="progress-actions">
+        <button id="btn-grammar-fiche" class="btn-primary">📄 Fiche</button>
+        <button id="btn-grammar-map" class="btn-primary">🕸️ Carte mentale</button>
+      </div>
+      <p id="grammar-status" class="status-bar hidden"></p>
+      <h3 id="grammar-title" class="deck-title hidden"></h3>
+      <div id="grammar-result" class="grammar-result hidden"></div>
+      <div id="mindmap-wrap" class="mindmap-wrap hidden"></div>
+      <div class="modal-actions">
+        <button id="btn-grammar-close" class="btn-primary">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Exercices -->
+  <div id="exo-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>✍️ Exercices</h2>
+      <div id="exo-setup">
+        <p class="deck-hint">Cinq phrases adaptées à la langue et au niveau choisis sur l'accueil.
+        Dictée : écoute puis écris. Prononciation : lis la phrase à voix haute, la reconnaissance
+        vocale compare — c'est un indicateur, pas un juge absolu.</p>
+        <div class="progress-actions">
+          <button id="btn-exo-dictee" class="btn-primary">📝 Dictée</button>
+          <button id="btn-exo-prononciation" class="btn-primary">🗣️ Prononciation</button>
+        </div>
+      </div>
+      <div id="exo-area" class="hidden">
+        <p id="exo-progress" class="review-progress"></p>
+        <div class="review-card">
+          <div id="exo-sentence" class="review-term" dir="auto"></div>
+          <div id="exo-reading" class="review-reading"></div>
+        </div>
+        <div class="review-actions">
+          <button id="btn-exo-speak" class="btn-secondary">🔊 Écouter</button>
+          <button id="btn-exo-mic" class="btn-mic btn-mic-small hidden">🎤</button>
+        </div>
+        <input type="text" id="exo-input" dir="auto" placeholder="Écris ce que tu entends…" class="exo-input hidden" autocomplete="off">
+        <div class="review-actions">
+          <button id="btn-exo-check" class="btn-primary hidden">Corriger</button>
+          <button id="btn-exo-retry" class="btn-secondary hidden">↩️ Réessayer</button>
+          <button id="btn-exo-next" class="btn-primary hidden">Suivant →</button>
+        </div>
+        <div id="exo-feedback" class="exo-feedback hidden"></div>
+      </div>
+      <p id="exo-status" class="status-bar hidden"></p>
+      <div class="modal-actions">
+        <button id="btn-exo-close" class="btn-primary">Fermer</button>
       </div>
     </div>
   </div>

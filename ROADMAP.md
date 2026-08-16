@@ -41,18 +41,20 @@ Tuteur de catalan « Parla! » : conversation orale (Web Speech API), correction
 traductions, suggestions, scénarios, résumé de session, proxy local optionnel pour la clé
 API, déploiement GitHub Pages.
 
-### v0.2.0 — Cœur multilingue (en cours)
+### v0.2.0 — Cœur multilingue (livrée)
 Issues [#3](../../issues/3) à [#10](../../issues/10).
 Renommage en **Polyglotte** ; registre de 10 langues et sélecteur ; personas et prompts par
 langue ; paramétrage vocal par langue avec matrice de support ; RTL ; translittérations
 (rōmaji, arabizi) ; versionnage et changelog ; documentation.
 
-### v0.3.0 — Mémoire et progression
+### v0.3.0 — Mémoire et progression (livrée)
+Issues [#11](../../issues/11) à [#16](../../issues/16).
 Vocabulaire personnel (mots rencontrés sauvegardés) ; **répétition espacée** (type Leitner) ;
 export Anki ; historique des sessions et statistiques (régularité, temps par langue) ;
 persistance locale multi-langues.
 
-### v0.4.0 — Profondeur pédagogique
+### v0.4.0 — Profondeur pédagogique (livrée)
+Issues [#17](../../issues/17) à [#22](../../issues/22).
 Test de positionnement (niveau CECRL estimé en conversation) ; difficulté adaptative ;
 **grammaire et conjugaison** : fiches de conjugaison à la demande, règles grammaticales
 expliquées, **cartes mentales interactives** (visualisation des systèmes verbaux, familles

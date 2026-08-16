@@ -388,6 +388,73 @@ select, input[type="text"], input[type="password"] {
 .review-answer { font-size: 1.05rem; color: var(--primary-dark); margin-top: 0.7rem; border-top: 1px dashed #e2d9cd; padding-top: 0.7rem; }
 .review-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
 .review-progress { text-align: center; font-size: 0.8rem; color: var(--muted); }
+
+/* ---------- v0.4.0 : pédagogie ---------- */
+.welcome-alt { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.7rem; flex-wrap: wrap; }
+
+/* Compréhension orale : texte flouté jusqu'à révélation */
+.msg.masked .target-text,
+.msg.masked .reading,
+.msg.masked .translation { filter: blur(7px); user-select: none; }
+.btn-reveal-text {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.5rem;
+  margin-left: 0.4rem;
+}
+
+.btn-deepen {
+  display: block;
+  margin-top: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--correction-border);
+  color: #854d0e;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.6rem;
+}
+
+/* Grammaire */
+.modal-wide { max-width: 640px; }
+.grammar-result {
+  white-space: pre-wrap;
+  font-family: "Courier New", monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.8rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.mindmap-wrap { overflow-x: auto; background: var(--bg); border-radius: 10px; padding: 0.5rem; }
+.mindmap-wrap svg { display: block; }
+.mm-node { fill: #fff; stroke: var(--accent); stroke-width: 1.2; }
+.mm-depth-0 { fill: var(--primary); stroke: var(--primary-dark); }
+.mm-depth-1 { fill: #fff7ed; }
+.mm-depth-2 { fill: #ffffff; }
+.mm-depth-3 { fill: #faf6f0; }
+.mindmap-wrap text { font-size: 12px; font-family: Georgia, serif; fill: var(--ink); }
+.mm-root-text { fill: #fff; }
+.mm-link { fill: none; stroke: #d6cdc2; stroke-width: 1.4; }
+
+/* Exercices */
+.btn-mic-small { width: 44px; height: 44px; font-size: 1.1rem; }
+.exo-input { width: 100%; margin-bottom: 0.6rem; }
+.exo-feedback {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.exo-line { margin-bottom: 0.3rem; }
+.exo-ok { color: #15803d; }
+.exo-miss { color: #b91c1c; text-decoration: underline wavy; }
+.exo-score { font-weight: bold; color: var(--primary-dark); margin: 0.3rem 0; }
 .proxy-info {
   background: #ecfdf5;
   border-left: 4px solid #059669;

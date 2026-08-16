@@ -5,6 +5,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [0.4.0] — 2026-08-16
+
+### Added
+- Test de positionnement CECRL conversationnel : 5 à 8 échanges, verdict A1–C1 justifié en
+  français, niveau appliqué automatiquement (#17)
+- Difficulté adaptative : le tuteur enrichit ou simplifie en continu selon l'aisance de
+  l'élève, dans les limites du niveau choisi (#18)
+- Écran « 🧠 Grammaire & conjugaison » : fiches à la demande (explications, tableaux de
+  conjugaison, exemples traduits) et cartes mentales rendues en SVG avec info-bulles ;
+  bouton « Approfondir » sur chaque correction (#19)
+- Mode compréhension orale : texte des réponses flouté, révélation via 👁 (#20)
+- Exercices de dictée : 5 phrases adaptées au niveau, correction mot à mot par alignement
+  LCS (normalisation casse/ponctuation/diacritiques arabes, comparaison par caractère en
+  japonais), score par phrase et bilan (#21)
+- Exercice de prononciation : lecture à voix haute comparée à la phrase attendue via la
+  reconnaissance vocale, avec réessais (#22)
+
 ## [0.3.0] — 2026-08-16
 
 ### Added
