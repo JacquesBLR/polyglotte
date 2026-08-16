@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.4.0";
 
 // ---------- Registre des langues ----------
 // Ajouter une langue = ajouter une entrée ici (et une <option> dans index.html).
@@ -166,15 +166,50 @@ const el = {
   reviewProgress: document.getElementById("review-progress"),
   btnReviewBack: document.getElementById("btn-review-back"),
   btnProgressClose: document.getElementById("btn-progress-close"),
+  // Test de niveau, compréhension orale
+  btnAssess: document.getElementById("btn-assess"),
+  listenMode: document.getElementById("listen-mode"),
+  // Grammaire
+  btnGrammar: document.getElementById("btn-grammar"),
+  grammarModal: document.getElementById("grammar-modal"),
+  grammarTopic: document.getElementById("grammar-topic"),
+  btnGrammarFiche: document.getElementById("btn-grammar-fiche"),
+  btnGrammarMap: document.getElementById("btn-grammar-map"),
+  grammarStatus: document.getElementById("grammar-status"),
+  grammarTitle: document.getElementById("grammar-title"),
+  grammarResult: document.getElementById("grammar-result"),
+  mindmapWrap: document.getElementById("mindmap-wrap"),
+  btnGrammarClose: document.getElementById("btn-grammar-close"),
+  // Exercices
+  btnExercises: document.getElementById("btn-exercises"),
+  exoModal: document.getElementById("exo-modal"),
+  exoSetup: document.getElementById("exo-setup"),
+  btnExoDictee: document.getElementById("btn-exo-dictee"),
+  btnExoPrononciation: document.getElementById("btn-exo-prononciation"),
+  exoArea: document.getElementById("exo-area"),
+  exoProgress: document.getElementById("exo-progress"),
+  exoSentence: document.getElementById("exo-sentence"),
+  exoReading: document.getElementById("exo-reading"),
+  btnExoSpeak: document.getElementById("btn-exo-speak"),
+  btnExoMic: document.getElementById("btn-exo-mic"),
+  exoInput: document.getElementById("exo-input"),
+  btnExoCheck: document.getElementById("btn-exo-check"),
+  btnExoRetry: document.getElementById("btn-exo-retry"),
+  btnExoNext: document.getElementById("btn-exo-next"),
+  exoFeedback: document.getElementById("exo-feedback"),
+  exoStatus: document.getElementById("exo-status"),
+  btnExoClose: document.getElementById("btn-exo-close"),
 };
 
 // ---------- État ----------
 const state = {
   history: [],          // [{role, content}] — côté assistant, seulement la réplique en langue cible
   started: false,
+  mode: "chat",         // "chat" (conversation) | "eval" (test de niveau)
   busy: false,
   listening: false,
   recognition: null,
+  transcriptHandler: null, // détourne la reconnaissance vocale (ex. exercice de prononciation)
   voice: null,          // voix de synthèse retenue pour la langue courante
   voiceNative: false,   // true si la voix correspond au premier préfixe (langue native)
   proxyMode: false,     // true si server.py tourne avec une clé API configurée
@@ -215,6 +250,7 @@ function loadSettings() {
   el.rateValue.textContent = el.voiceRate.value;
   el.autospeak.checked = saved.autospeak !== false;
   el.showTranslations.checked = saved.showTranslations !== false;
+  el.listenMode.checked = saved.listenMode === true;
   if (saved.language && LANGUAGES[saved.language]) el.language.value = saved.language;
   if (saved.tnScript) el.tnScript.value = saved.tnScript;
 }
@@ -226,6 +262,7 @@ function saveSettings() {
     voiceRate: parseFloat(el.voiceRate.value),
     autospeak: el.autospeak.checked,
     showTranslations: el.showTranslations.checked,
+    listenMode: el.listenMode.checked,
     language: el.language.value,
     tnScript: el.tnScript.value,
   }));
@@ -299,6 +336,7 @@ function initRecognition(sttLang) {
   rec.onstart = () => {
     state.listening = true;
     el.btnMic.classList.add("listening");
+    if (state.transcriptHandler) el.btnExoMic.classList.add("listening");
     setStatus(`🎤 Je t'écoute… parle en ${langConfig().label.toLowerCase()} !`);
   };
   rec.onresult = (event) => {
@@ -308,7 +346,7 @@ function initRecognition(sttLang) {
       else interim += result[0].transcript;
     }
     if (interim) setStatus(`🎤 « ${interim} »`);
-    if (final.trim()) sendMessage(final.trim());
+    if (final.trim()) (state.transcriptHandler || sendMessage)(final.trim());
   };
   rec.onerror = (event) => {
     stopListeningUI();
@@ -329,6 +367,7 @@ function initRecognition(sttLang) {
 function stopListeningUI() {
   state.listening = false;
   el.btnMic.classList.remove("listening");
+  el.btnExoMic.classList.remove("listening");
 }
 
 function startListening() {
@@ -367,6 +406,15 @@ function addTutorBubble(reply, translation, reading) {
   div.className = "msg tutor";
   div.innerHTML = `<div class="speaker"></div><div class="target-text" dir="auto"></div>`;
   div.querySelector(".speaker").textContent = cfg.tutor.name;
+  // Mode compréhension orale : le texte est flouté jusqu'à révélation (#20).
+  if (el.listenMode.checked) {
+    div.classList.add("masked");
+    const reveal = document.createElement("button");
+    reveal.className = "btn-reveal-text";
+    reveal.textContent = "👁 Afficher";
+    reveal.addEventListener("click", () => { div.classList.remove("masked"); reveal.remove(); });
+    div.querySelector(".speaker").appendChild(reveal);
+  }
   const target = div.querySelector(".target-text");
   target.textContent = reply + " ";
   const btn = document.createElement("button");
@@ -400,6 +448,15 @@ function addCorrection(correction) {
   const expl = document.createElement("span");
   expl.textContent = correction.explanation;
   div.appendChild(expl);
+  const deepen = document.createElement("button");
+  deepen.className = "btn-deepen";
+  deepen.textContent = "🧠 Approfondir";
+  deepen.addEventListener("click", () => {
+    el.grammarTopic.value =
+      `Explique en détail cette erreur : « ${correction.original} » → « ${correction.corrected} » (${correction.explanation})`;
+    openModal(el.grammarModal);
+  });
+  div.appendChild(deepen);
   el.chat.appendChild(div);
   scrollChat();
 }
@@ -445,6 +502,11 @@ temps du passé et du futur inclus. Introduis progressivement du vocabulaire nou
 idiomatiques, structures complexes, sujets riches. Corrige aussi les nuances de style et les calques du français.`,
 };
 
+// Difficulté adaptative (#18) : ajoutée aux instructions de niveau.
+const ADAPTIVE_INSTRUCTION = `Dans les limites de ce niveau, adapte la difficulté en continu :
+si l'élève répond avec aisance sur plusieurs tours, enrichis progressivement vocabulaire et structures ;
+s'il peine (réponses très courtes, erreurs fréquentes, signes d'incompréhension), simplifie immédiatement.`;
+
 function scenarioInstructions(cfg) {
   const city = cfg.tutor.city;
   const server = cfg.tutor.f ? "serveuse" : "serveur";
@@ -460,7 +522,33 @@ function scenarioInstructions(cfg) {
   }[el.scenario.value];
 }
 
+// Prompt du test de positionnement (#17).
+function buildAssessmentPrompt() {
+  const cfg = langConfig();
+  const role = cfg.tutor.f ? "une évaluatrice bienveillante" : "un évaluateur bienveillant";
+  return `Tu es ${cfg.tutor.name}, ${role} de ${cfg.langFr}, chargé(e) d'estimer le niveau CECRL d'un élève
+francophone par une courte conversation. Tes réponses seront lues à voix haute : texte prononçable uniquement.
+
+Déroulé :
+- Le message spécial "[START]" démarre le test : explique le principe en UNE phrase en français, puis pose
+  ta première question, très simple (niveau A1), en ${cfg.langFr}.
+- Une seule question à la fois. Augmente ou diminue progressivement la difficulté selon la qualité des
+  réponses (richesse, précision grammaticale, aisance). Ne corrige pas pendant le test.
+- Spécificités de la langue : ${cfg.promptExtra}
+- Après 5 à 8 échanges, quand ton estimation est stable, conclus.
+
+Champs :
+- "reply" : ta question ou ta conclusion en ${cfg.langFr} (1 à 2 phrases).
+- "translation" : traduction française de reply.
+- "reading" : ${cfg.reading ? cfg.reading : "toujours null"}.
+- "done" : false tant que le test continue ; true quand tu conclus.
+- "level" : null tant que done est false ; sinon le niveau estimé parmi "A1", "A2", "B1", "B2", "C1".
+- "explanation" : null tant que done est false ; sinon 2 à 3 phrases EN FRANÇAIS justifiant le niveau
+  (points forts, points à travailler).`;
+}
+
 function buildSystemPrompt() {
+  if (state.mode === "eval") return buildAssessmentPrompt();
   const cfg = langConfig();
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   const readingRule = cfg.reading
@@ -471,6 +559,7 @@ Ton élève est francophone et apprend ${cfg.langFr} par la CONVERSATION ORALE. 
 par une synthèse vocale : écris uniquement du texte prononçable (pas de listes, pas d'astérisques, pas d'emojis dans "reply").
 
 ${LEVEL_INSTRUCTIONS[el.level.value]}
+${ADAPTIVE_INSTRUCTION}
 
 ${scenarioInstructions(cfg)}
 
@@ -552,6 +641,98 @@ const RESPONSE_SCHEMA = {
   additionalProperties: false,
 };
 
+const READING_FIELD = {
+  anyOf: [
+    { type: "null" },
+    { type: "string", description: "Translittération latine si écriture non latine." },
+  ],
+};
+
+// Schéma du test de positionnement (#17).
+const ASSESS_SCHEMA = {
+  type: "object",
+  properties: {
+    reply: { type: "string", description: "Question ou conclusion en langue cible, prononçable." },
+    translation: { type: "string", description: "Traduction française de reply." },
+    reading: READING_FIELD,
+    done: { type: "boolean", description: "true quand le test est terminé." },
+    level: {
+      anyOf: [
+        { type: "null" },
+        { type: "string", enum: ["A1", "A2", "B1", "B2", "C1"] },
+      ],
+    },
+    explanation: {
+      anyOf: [{ type: "null" }, { type: "string", description: "Justification en français." }],
+    },
+  },
+  required: ["reply", "translation", "reading", "done", "level", "explanation"],
+  additionalProperties: false,
+};
+
+// Schémas de l'écran Grammaire (#19). Pas de récursion : la carte mentale est une
+// liste plate id/parent (parent 0 = racine), reconstruite côté client.
+const GRAMMAR_FICHE_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Titre court de la fiche." },
+    content: {
+      type: "string",
+      description: "Fiche en texte simple : explication en français, tableaux de conjugaison alignés en texte, exemples en langue cible avec traduction. Sauts de ligne pour la structure, pas de Markdown.",
+    },
+  },
+  required: ["title", "content"],
+  additionalProperties: false,
+};
+
+const GRAMMAR_MAP_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Concept central de la carte mentale (court)." },
+    nodes: {
+      type: "array",
+      description: "10 à 20 nœuds. parent = 0 pour les branches principales, sinon l'id d'un nœud déjà défini. Profondeur maximale : 3 niveaux.",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "integer", description: "Identifiant unique ≥ 1, croissant." },
+          parent: { type: "integer", description: "0 pour la racine, sinon id du parent." },
+          label: { type: "string", description: "Libellé très court (4 mots max)." },
+          note: {
+            anyOf: [{ type: "null" }, { type: "string", description: "Détail ou exemple (info-bulle)." }],
+          },
+        },
+        required: ["id", "parent", "label", "note"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["title", "nodes"],
+  additionalProperties: false,
+};
+
+// Schéma des exercices (#21, #22).
+const EXO_SCHEMA = {
+  type: "object",
+  properties: {
+    sentences: {
+      type: "array",
+      description: "Exactement 5 phrases variées de la vie quotidienne, adaptées au niveau, prononçables.",
+      items: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Phrase en langue cible." },
+          reading: READING_FIELD,
+        },
+        required: ["text", "reading"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["sentences"],
+  additionalProperties: false,
+};
+
 function apiHeaders(model) {
   const headers = { "content-type": "application/json" };
   if (!state.proxyMode) {
@@ -566,12 +747,12 @@ function apiHeaders(model) {
   return headers;
 }
 
-async function callClaude({ messages, structured }) {
+async function callClaude({ messages, system, schema, maxTokens = 2048 }) {
   const model = el.model.value;
   const body = {
     model,
-    max_tokens: 2048,
-    system: buildSystemPrompt(),
+    max_tokens: maxTokens,
+    system,
     messages,
   };
   if (model === "claude-opus-5") {
@@ -580,7 +761,7 @@ async function callClaude({ messages, structured }) {
   const outputConfig = {};
   // "effort" n'est pas supporté par Haiku 4.5 (la requête serait rejetée).
   if (model !== "claude-haiku-4-5") outputConfig.effort = "low";
-  if (structured) outputConfig.format = { type: "json_schema", schema: RESPONSE_SCHEMA };
+  if (schema) outputConfig.format = { type: "json_schema", schema };
   if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
   const resp = await fetch(state.proxyMode ? "/api/chat" : API_URL, {
@@ -629,7 +810,11 @@ async function sendMessage(userText, { display = true } = {}) {
   state.history.push({ role: "user", content: userText });
 
   try {
-    const raw = await callClaude({ messages: state.history, structured: true });
+    const raw = await callClaude({
+      messages: state.history,
+      system: buildSystemPrompt(),
+      schema: state.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
+    });
     const parsed = JSON.parse(raw);
 
     // On ne garde dans l'historique que la réplique en langue cible (concis + naturel).
@@ -647,6 +832,15 @@ async function sendMessage(userText, { display = true } = {}) {
     updateDueBadge();
     setStatus("");
     el.btnSummary.disabled = false;
+
+    // Fin du test de positionnement : applique le niveau estimé (#17).
+    if (state.mode === "eval" && parsed.done && parsed.level) {
+      const mapped = { A1: "debutant", A2: "debutant", B1: "intermediaire", B2: "intermediaire", C1: "avance" }[parsed.level];
+      if (mapped) el.level.value = mapped;
+      saveSettings();
+      addSystemNote(`🎯 Niveau estimé : ${parsed.level} — ${parsed.explanation || ""}`);
+      addSystemNote(`Le niveau « ${el.level.options[el.level.selectedIndex].text} » est appliqué. Lance une 🔄 Nouvelle session pour converser.`);
+    }
 
     speak(parsed.reply, () => {
       if (el.handsfree.checked && state.started) startListening();
@@ -678,7 +872,7 @@ async function generateSummary() {
 Réponds en texte simple, sans tableau.`,
       },
     ];
-    el.summaryContent.textContent = await callClaude({ messages, structured: false });
+    el.summaryContent.textContent = await callClaude({ messages, system: buildSystemPrompt() });
   } catch (err) {
     el.summaryContent.textContent = "Erreur : " + err.message;
   }
@@ -897,6 +1091,340 @@ function endReview(finished = false) {
   if (finished) setStatus("Révision terminée 🎉");
 }
 
+// ---------- Grammaire & conjugaison (#19) ----------
+function setGrammarStatus(text, isError = false) {
+  el.grammarStatus.textContent = text || "";
+  el.grammarStatus.classList.toggle("hidden", !text);
+  el.grammarStatus.classList.toggle("error", isError);
+}
+
+function grammarSystemPrompt() {
+  const cfg = langConfig();
+  return `Tu es professeur de ${cfg.langFr} pour francophones. Réponds au niveau de l'élève :
+${LEVEL_INSTRUCTIONS[el.level.value]}
+Explications EN FRANÇAIS ; tous les exemples sont en ${cfg.langFr}, chacun suivi de sa traduction française
+${cfg.reading ? "et d'une translittération latine" : ""}. Spécificités : ${cfg.promptExtra}`;
+}
+
+async function requestGrammar(kind) {
+  const topic = el.grammarTopic.value.trim();
+  if (!topic) { setGrammarStatus("Indique d'abord un sujet.", true); return; }
+  if (!hasCredentials()) { setGrammarStatus("Ajoute d'abord ta clé API dans les réglages ⚙️.", true); return; }
+  el.btnGrammarFiche.disabled = el.btnGrammarMap.disabled = true;
+  el.grammarResult.classList.add("hidden");
+  el.mindmapWrap.classList.add("hidden");
+  el.grammarTitle.classList.add("hidden");
+  setGrammarStatus(kind === "map" ? "Construction de la carte mentale…" : "Rédaction de la fiche…");
+  try {
+    const request = kind === "map"
+      ? `Construis une carte mentale pédagogique sur : ${topic}`
+      : `Rédige une fiche pédagogique complète sur : ${topic}`;
+    const raw = await callClaude({
+      messages: [{ role: "user", content: request }],
+      system: grammarSystemPrompt(),
+      schema: kind === "map" ? GRAMMAR_MAP_SCHEMA : GRAMMAR_FICHE_SCHEMA,
+      maxTokens: 4096,
+    });
+    const parsed = JSON.parse(raw);
+    el.grammarTitle.textContent = parsed.title;
+    el.grammarTitle.classList.remove("hidden");
+    if (kind === "map") {
+      renderMindmap(el.mindmapWrap, parsed.title, parsed.nodes);
+      el.mindmapWrap.classList.remove("hidden");
+    } else {
+      el.grammarResult.textContent = parsed.content;
+      el.grammarResult.classList.remove("hidden");
+    }
+    setGrammarStatus("");
+  } catch (err) {
+    setGrammarStatus(err.message, true);
+  } finally {
+    el.btnGrammarFiche.disabled = el.btnGrammarMap.disabled = false;
+  }
+}
+
+// Rendu SVG d'un arbre horizontal (racine à gauche). Liste plate id/parent,
+// profondeur bornée, protection contre les cycles.
+function renderMindmap(container, title, nodes) {
+  const SVG = "http://www.w3.org/2000/svg";
+  const COL_W = 200, ROW_H = 46, PAD = 14;
+  const children = new Map([[0, []]]);
+  for (const n of nodes) if (!children.has(n.id)) children.set(n.id, []);
+  for (const n of nodes) {
+    const parent = children.has(n.parent) ? n.parent : 0;
+    children.get(parent).push(n);
+  }
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const pos = new Map();
+  let leaf = 0, maxDepth = 0;
+  const visited = new Set();
+  function layout(id, depth) {
+    if (visited.has(id)) return leaf;               // garde anti-cycle
+    visited.add(id);
+    maxDepth = Math.max(maxDepth, depth);
+    const kids = (children.get(id) || []).slice(0, 8);
+    if (!kids.length || depth >= 3) { pos.set(id, { depth, row: leaf }); return leaf++; }
+    const rows = kids.map(k => layout(k.id, depth + 1));
+    const row = (Math.min(...rows) + Math.max(...rows)) / 2;
+    pos.set(id, { depth, row });
+    return row;
+  }
+  layout(0, 0);
+
+  const width = (maxDepth + 1) * COL_W + PAD * 2;
+  const height = Math.max(leaf, 1) * ROW_H + PAD * 2;
+  const svg = document.createElementNS(SVG, "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("width", width);
+  svg.setAttribute("height", height);
+
+  const x = d => PAD + d * COL_W;
+  const y = r => PAD + r * ROW_H + ROW_H / 2;
+
+  function drawNode(id, label, note) {
+    const p = pos.get(id);
+    if (!p) return;
+    const g = document.createElementNS(SVG, "g");
+    const textW = Math.min(24, Math.max(6, label.length)) * 7.2 + 18;
+    const rect = document.createElementNS(SVG, "rect");
+    rect.setAttribute("x", x(p.depth));
+    rect.setAttribute("y", y(p.row) - 15);
+    rect.setAttribute("width", textW);
+    rect.setAttribute("height", 30);
+    rect.setAttribute("rx", 9);
+    rect.setAttribute("class", `mm-node mm-depth-${p.depth}`);
+    const text = document.createElementNS(SVG, "text");
+    text.setAttribute("x", x(p.depth) + textW / 2);
+    text.setAttribute("y", y(p.row) + 4);
+    text.setAttribute("text-anchor", "middle");
+    if (id === 0) text.setAttribute("class", "mm-root-text");
+    text.textContent = label.length > 26 ? label.slice(0, 25) + "…" : label;
+    g.appendChild(rect);
+    g.appendChild(text);
+    if (note) {
+      const tip = document.createElementNS(SVG, "title");
+      tip.textContent = note;
+      g.appendChild(tip);
+    }
+    svg.appendChild(g);
+  }
+
+  function drawLink(fromId, toId) {
+    const a = pos.get(fromId), b = pos.get(toId);
+    if (!a || !b) return;
+    const x1 = x(a.depth) + 150, y1 = y(a.row), x2 = x(b.depth), y2 = y(b.row);
+    const path = document.createElementNS(SVG, "path");
+    path.setAttribute("d", `M ${x1} ${y1} C ${x1 + 28} ${y1}, ${x2 - 28} ${y2}, ${x2} ${y2}`);
+    path.setAttribute("class", "mm-link");
+    svg.appendChild(path);
+  }
+
+  for (const id of visited) {
+    if (id === 0) continue;
+    const n = byId.get(id);
+    if (n) drawLink(children.has(n.parent) && visited.has(n.parent) ? n.parent : 0, id);
+  }
+  drawNode(0, title, null);
+  for (const id of visited) {
+    if (id === 0) continue;
+    const n = byId.get(id);
+    if (n) drawNode(id, n.label, n.note);
+  }
+
+  container.innerHTML = "";
+  container.appendChild(svg);
+}
+
+// ---------- Exercices : dictée (#21) et prononciation (#22) ----------
+const exo = { kind: null, sentences: [], index: 0, scores: [] };
+
+function setExoStatus(text, isError = false) {
+  el.exoStatus.textContent = text || "";
+  el.exoStatus.classList.toggle("hidden", !text);
+  el.exoStatus.classList.toggle("error", isError);
+}
+
+function exoSystemPrompt() {
+  const cfg = langConfig();
+  return `Tu es ${cfg.tutor.name}, professeur de ${cfg.langFr} pour francophones.
+${LEVEL_INSTRUCTIONS[el.level.value]}
+Spécificités de la langue : ${cfg.promptExtra}`;
+}
+
+async function startExercise(kind) {
+  if (!hasCredentials()) { setExoStatus("Ajoute d'abord ta clé API dans les réglages ⚙️.", true); return; }
+  const cfg = langConfig();
+  unlockSpeechSynthesis();
+  exo.kind = kind;
+  exo.sentences = [];
+  exo.index = 0;
+  exo.scores = [];
+  el.btnExoDictee.disabled = el.btnExoPrononciation.disabled = true;
+  setExoStatus("Préparation des phrases…");
+  try {
+    const raw = await callClaude({
+      messages: [{ role: "user", content: "Génère les 5 phrases de l'exercice." }],
+      system: exoSystemPrompt(),
+      schema: EXO_SCHEMA,
+    });
+    exo.sentences = JSON.parse(raw).sentences.slice(0, 5);
+    if (!exo.sentences.length) throw new Error("Aucune phrase générée.");
+    // Reconnaissance pour la prononciation (indépendante d'une conversation en cours).
+    if (kind === "prononciation") {
+      state.recognition = initRecognition(cfg.stt);
+      state.transcriptHandler = (text) => gradeExoAttempt(text);
+      if (!state.recognition) {
+        setExoStatus("Reconnaissance vocale indisponible dans ce navigateur — utilise la dictée à la place.", true);
+        el.btnExoDictee.disabled = el.btnExoPrononciation.disabled = false;
+        return;
+      }
+    }
+    refreshVoices();
+    el.exoSetup.classList.add("hidden");
+    el.exoArea.classList.remove("hidden");
+    setExoStatus("");
+    showExoSentence();
+  } catch (err) {
+    setExoStatus(err.message, true);
+  } finally {
+    el.btnExoDictee.disabled = el.btnExoPrononciation.disabled = false;
+  }
+}
+
+function currentExoSentence() { return exo.sentences[exo.index]; }
+
+function speakExoSentence() {
+  const s = currentExoSentence();
+  if (s) speakIgnoringAutospeak(s.text);
+}
+
+function showExoSentence() {
+  const s = currentExoSentence();
+  if (!s) { endExercise(); return; }
+  el.exoProgress.textContent = `Phrase ${exo.index + 1} / ${exo.sentences.length}`;
+  el.exoFeedback.classList.add("hidden");
+  el.btnExoRetry.classList.add("hidden");
+  el.btnExoNext.classList.add("hidden");
+  if (exo.kind === "dictee") {
+    el.exoSentence.textContent = "🎧 Écoute, puis écris la phrase.";
+    el.exoReading.textContent = "";
+    el.exoInput.value = "";
+    el.exoInput.classList.remove("hidden");
+    el.btnExoCheck.classList.remove("hidden");
+    el.btnExoMic.classList.add("hidden");
+    speakExoSentence();
+    el.exoInput.focus();
+  } else {
+    el.exoSentence.textContent = s.text;
+    el.exoReading.textContent = s.reading || "";
+    el.exoInput.classList.add("hidden");
+    el.btnExoCheck.classList.add("hidden");
+    el.btnExoMic.classList.remove("hidden");
+  }
+}
+
+// Normalisation avant comparaison : casse, ponctuation, diacritiques arabes ;
+// comparaison par caractère pour le japonais (pas d'espaces).
+function normalizeTokens(text) {
+  let t = text.toLowerCase()
+    .replace(/[\u064B-\u0652\u0670]/g, "")
+    .replace(/[.,;:!?¿¡«»"“”'’‘…()\-—、。，！？「」・]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (el.language.value === "japonais") return [...t.replace(/ /g, "")];
+  return t ? t.split(" ") : [];
+}
+
+// Indices des jetons de `target` retrouvés dans `attempt` (alignement LCS).
+function lcsMatchedIndices(target, attempt) {
+  const m = target.length, n = attempt.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      dp[i][j] = target[i] === attempt[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const matched = new Set();
+  let i = 0, j = 0;
+  while (i < m && j < n) {
+    if (target[i] === attempt[j]) { matched.add(i); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  return matched;
+}
+
+function gradeExoAttempt(attemptText) {
+  const s = currentExoSentence();
+  if (!s) return;
+  const isJa = el.language.value === "japonais";
+  const target = normalizeTokens(s.text);
+  const attempt = normalizeTokens(attemptText);
+  const matched = lcsMatchedIndices(target, attempt);
+  const score = target.length ? Math.round((matched.size / target.length) * 100) : 0;
+  exo.scores[exo.index] = score;
+
+  el.exoFeedback.innerHTML = "";
+  const expected = document.createElement("div");
+  expected.className = "exo-line";
+  expected.append("Attendu : ");
+  const span = document.createElement("span");
+  span.dir = "auto";
+  target.forEach((tok, i) => {
+    const w = document.createElement("span");
+    w.className = matched.has(i) ? "exo-ok" : "exo-miss";
+    w.textContent = tok;
+    span.appendChild(w);
+    if (!isJa && i < target.length - 1) span.append(" ");
+  });
+  expected.appendChild(span);
+  const yours = document.createElement("div");
+  yours.className = "exo-line";
+  yours.textContent = `Ta version : ${attemptText}`;
+  const scoreLine = document.createElement("div");
+  scoreLine.className = "exo-score";
+  scoreLine.textContent = `${score} % ${score >= 90 ? "🎉" : score >= 60 ? "👍" : "💪 On réessaie ?"}`;
+  el.exoFeedback.append(expected, yours, scoreLine);
+  if (exo.kind === "dictee") {
+    const full = document.createElement("div");
+    full.className = "exo-line";
+    full.append(`Phrase complète : ${s.text}`);
+    if (s.reading) full.append(` (${s.reading})`);
+    el.exoFeedback.appendChild(full);
+  }
+  el.exoFeedback.classList.remove("hidden");
+  el.btnExoRetry.classList.remove("hidden");
+  el.btnExoNext.classList.remove("hidden");
+  el.btnExoCheck.classList.add("hidden");
+}
+
+function nextExoSentence() {
+  exo.index++;
+  if (exo.index >= exo.sentences.length) {
+    const done = exo.scores.filter(s => s !== undefined);
+    const avg = done.length ? Math.round(done.reduce((a, b) => a + b, 0) / done.length) : 0;
+    el.exoProgress.textContent = "Série terminée !";
+    el.exoSentence.textContent = `Score moyen : ${avg} %`;
+    el.exoReading.textContent = "";
+    el.exoFeedback.classList.add("hidden");
+    el.exoInput.classList.add("hidden");
+    el.btnExoCheck.classList.add("hidden");
+    el.btnExoMic.classList.add("hidden");
+    el.btnExoRetry.classList.add("hidden");
+    el.btnExoNext.classList.add("hidden");
+    return;
+  }
+  showExoSentence();
+}
+
+function endExercise() {
+  stopListening();
+  state.transcriptHandler = null;
+  el.exoArea.classList.add("hidden");
+  el.exoSetup.classList.remove("hidden");
+  setExoStatus("");
+}
+
 // ---------- Export Anki ----------
 function exportDeck() {
   const deck = loadDeck();
@@ -917,7 +1445,7 @@ function exportDeck() {
 }
 
 // ---------- Démarrage ----------
-function startConversation() {
+function startSession(mode) {
   unlockSpeechSynthesis();
   if (!hasCredentials()) {
     openModal(el.settingsModal);
@@ -926,6 +1454,7 @@ function startConversation() {
   }
   const cfg = langConfig();
   state.started = true;
+  state.mode = mode;
   state.history = [];
   currentSessionId = Date.now();
   saveSettings();
@@ -939,10 +1468,17 @@ function startConversation() {
   el.btnNewSession.classList.remove("hidden");
   const levelLabel = el.level.options[el.level.selectedIndex].text;
   const scenarioLabel = el.scenario.options[el.scenario.selectedIndex].text;
-  addSystemNote(`Session — ${cfg.label} · ${levelLabel} · ${scenarioLabel} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
+  if (mode === "eval") {
+    addSystemNote(`🎯 Test de niveau — ${cfg.label} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
+  } else {
+    addSystemNote(`Session — ${cfg.label} · ${levelLabel} · ${scenarioLabel} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
+  }
   if (cfg.support !== "full" && cfg.supportNote) addSystemNote("⚠️ " + cfg.supportNote);
   sendMessage("[START]", { display: false });
 }
+
+function startConversation() { startSession("chat"); }
+function startAssessment() { startSession("eval"); }
 
 function init() {
   el.appVersion.textContent = "v" + APP_VERSION;
@@ -983,9 +1519,40 @@ function init() {
   el.btnSettings.addEventListener("click", () => openModal(el.settingsModal));
   el.btnSettingsClose.addEventListener("click", () => { saveSettings(); closeModal(el.settingsModal); });
   el.voiceRate.addEventListener("input", () => { el.rateValue.textContent = el.voiceRate.value; });
-  for (const input of [el.apiKey, el.model, el.autospeak, el.showTranslations, el.voiceRate]) {
+  for (const input of [el.apiKey, el.model, el.autospeak, el.showTranslations, el.listenMode, el.voiceRate]) {
     input.addEventListener("change", saveSettings);
   }
+
+  // Test de niveau, grammaire, exercices
+  el.btnAssess.addEventListener("click", startAssessment);
+  el.btnGrammar.addEventListener("click", () => openModal(el.grammarModal));
+  el.btnGrammarClose.addEventListener("click", () => closeModal(el.grammarModal));
+  el.btnGrammarFiche.addEventListener("click", () => requestGrammar("fiche"));
+  el.btnGrammarMap.addEventListener("click", () => requestGrammar("map"));
+  el.grammarTopic.addEventListener("keydown", (e) => { if (e.key === "Enter") requestGrammar("fiche"); });
+
+  el.btnExercises.addEventListener("click", () => { endExercise(); openModal(el.exoModal); });
+  el.btnExoClose.addEventListener("click", () => { endExercise(); closeModal(el.exoModal); });
+  el.btnExoDictee.addEventListener("click", () => startExercise("dictee"));
+  el.btnExoPrononciation.addEventListener("click", () => startExercise("prononciation"));
+  el.btnExoSpeak.addEventListener("click", speakExoSentence);
+  el.btnExoMic.addEventListener("click", () => (state.listening ? stopListening() : startListening()));
+  el.btnExoCheck.addEventListener("click", () => {
+    const value = el.exoInput.value.trim();
+    if (value) gradeExoAttempt(value);
+  });
+  el.exoInput.addEventListener("keydown", (e) => { if (e.key === "Enter") el.btnExoCheck.click(); });
+  el.btnExoRetry.addEventListener("click", () => {
+    el.exoFeedback.classList.add("hidden");
+    el.btnExoRetry.classList.add("hidden");
+    el.btnExoNext.classList.add("hidden");
+    if (exo.kind === "dictee") {
+      el.exoInput.value = "";
+      el.btnExoCheck.classList.remove("hidden");
+      speakExoSentence();
+    }
+  });
+  el.btnExoNext.addEventListener("click", nextExoSentence);
 
   el.btnSummary.addEventListener("click", generateSummary);
   el.btnSummaryClose.addEventListener("click", () => closeModal(el.summaryModal));
