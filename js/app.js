@@ -6,7 +6,25 @@
 
 "use strict";
 
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "1.0.0";
+
+// ---------- Profils multiples (#28) ----------
+// Le profil « défaut » utilise les clés historiques (aucune migration nécessaire) ;
+// les autres profils préfixent leurs clés de stockage.
+const PROFILES_KEY = "polyglotte-profiles";
+
+function loadProfiles() {
+  try {
+    const p = JSON.parse(localStorage.getItem(PROFILES_KEY));
+    if (p && Array.isArray(p.list) && p.list.includes(p.current)) return p;
+  } catch (_) {}
+  return { list: ["défaut"], current: "défaut" };
+}
+let profiles = loadProfiles();
+function saveProfiles() { localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); }
+function storeKey(base) {
+  return profiles.current === "défaut" ? base : `${base}::${profiles.current}`;
+}
 
 // ---------- Registre des langues ----------
 // Ajouter une langue = ajouter une entrée ici (et une <option> dans index.html).
@@ -216,6 +234,16 @@ const el = {
   reviewProgress: document.getElementById("review-progress"),
   btnReviewBack: document.getElementById("btn-review-back"),
   btnProgressClose: document.getElementById("btn-progress-close"),
+  // Profils & moteur IA
+  profile: document.getElementById("profile"),
+  btnProfileAdd: document.getElementById("btn-profile-add"),
+  btnProfileDel: document.getElementById("btn-profile-del"),
+  provider: document.getElementById("provider"),
+  localSettings: document.getElementById("local-settings"),
+  localUrl: document.getElementById("local-url"),
+  localModel: document.getElementById("local-model"),
+  localModelAlt: document.getElementById("local-model-alt"),
+  claudeModelLabel: document.getElementById("claude-model-label"),
   // Test de niveau, compréhension orale, immersion
   btnAssess: document.getElementById("btn-assess"),
   listenMode: document.getElementById("listen-mode"),
@@ -267,7 +295,57 @@ const state = {
 };
 
 function hasCredentials() {
+  if (el.provider.value === "local") {
+    return !!el.localUrl.value.trim() && !!el.localModel.value.trim();
+  }
   return state.proxyMode || !!el.apiKey.value.trim();
+}
+
+function credentialsHint() {
+  return el.provider.value === "local"
+    ? "Configure l'URL et le modèle du serveur local dans les réglages ⚙️."
+    : "Ajoute d'abord ta clé API Anthropic dans les réglages ⚙️ (ou lance server.py avec ANTHROPIC_API_KEY).";
+}
+
+// ---------- Profils : interface ----------
+function renderProfiles() {
+  el.profile.innerHTML = "";
+  for (const name of profiles.list) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    el.profile.appendChild(opt);
+  }
+  el.profile.value = profiles.current;
+  el.btnProfileDel.disabled = profiles.current === "défaut";
+}
+
+function switchProfile(name) {
+  profiles.current = name;
+  saveProfiles();
+  location.reload(); // recharge réglages, carnet et historique du profil
+}
+
+function addProfile() {
+  const name = (window.prompt("Nom du nouveau profil :") || "").trim();
+  if (!name) return;
+  if (name.includes("::") || profiles.list.includes(name)) {
+    window.alert("Nom de profil invalide ou déjà pris.");
+    return;
+  }
+  profiles.list.push(name);
+  switchProfile(name);
+}
+
+function deleteProfile() {
+  const name = profiles.current;
+  if (name === "défaut") return;
+  if (!window.confirm(`Supprimer le profil « ${name} » et toutes ses données (réglages, carnet, historique) ?`)) return;
+  for (const base of [SETTINGS_KEY, DECK_KEY, HISTORY_KEY]) {
+    localStorage.removeItem(`${base}::${name}`);
+  }
+  profiles.list = profiles.list.filter(n => n !== name);
+  switchProfile("défaut");
 }
 
 async function detectProxy() {
@@ -277,8 +355,7 @@ async function detectProxy() {
     const health = await resp.json();
     if (health.ok && health.hasKey) {
       state.proxyMode = true;
-      el.apiKeyLabel.classList.add("hidden");
-      el.proxyInfo.classList.remove("hidden");
+      updateProviderUI();
     }
   } catch (_) {
     // Pas de serveur local (ex. hébergement statique) : mode direct avec clé dans les réglages.
@@ -292,9 +369,13 @@ const LEGACY_SETTINGS_KEY = "parla-settings";
 function loadSettings() {
   let saved = {};
   try {
-    saved = JSON.parse(localStorage.getItem(SETTINGS_KEY))
+    saved = JSON.parse(localStorage.getItem(storeKey(SETTINGS_KEY)))
          || JSON.parse(localStorage.getItem(LEGACY_SETTINGS_KEY)) || {};
   } catch (_) {}
+  el.provider.value = saved.provider || "claude";
+  el.localUrl.value = saved.localUrl || "";
+  el.localModel.value = saved.localModel || "";
+  el.localModelAlt.value = saved.localModelAlt || "";
   el.apiKey.value = saved.apiKey || "";
   el.model.value = saved.model || "claude-opus-5";
   el.voiceRate.value = saved.voiceRate || 0.9;
@@ -308,9 +389,13 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+  localStorage.setItem(storeKey(SETTINGS_KEY), JSON.stringify({
     apiKey: el.apiKey.value.trim(),
     model: el.model.value,
+    provider: el.provider.value,
+    localUrl: el.localUrl.value.trim(),
+    localModel: el.localModel.value.trim(),
+    localModelAlt: el.localModelAlt.value.trim(),
     voiceRate: parseFloat(el.voiceRate.value),
     autospeak: el.autospeak.checked,
     showTranslations: el.showTranslations.checked,
@@ -904,11 +989,85 @@ async function callClaude({ messages, system, schema, maxTokens = 2048 }) {
   return text;
 }
 
+// ---------- Moteur local compatible OpenAI (#27) ----------
+// vLLM / Ollama / llama.cpp exposent POST {base}/chat/completions. On tente d'abord
+// les sorties structurées (response_format json_schema) ; si le serveur les refuse,
+// repli : consigne JSON dans le prompt système + extraction robuste.
+
+function extractJson(text) {
+  let t = text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/```(?:json)?/g, "").trim();
+  const start = t.indexOf("{");
+  const end = t.lastIndexOf("}");
+  if (start === -1 || end <= start) throw new Error("Le modèle local n'a pas produit de JSON.");
+  const candidate = t.slice(start, end + 1);
+  JSON.parse(candidate); // valide, sinon lève
+  return candidate;
+}
+
+async function callLocal({ messages, system, schema, maxTokens = 2048, preferAlt = false }) {
+  const base = el.localUrl.value.trim().replace(/\/+$/, "");
+  const model = (preferAlt && el.localModelAlt.value.trim()) || el.localModel.value.trim();
+
+  const attempt = async (useStructured) => {
+    const sys = schema && !useStructured
+      ? system + "\n\nIMPORTANT : réponds UNIQUEMENT par un objet JSON valide conforme à ce schéma, sans texte autour :\n" + JSON.stringify(schema)
+      : system;
+    const body = {
+      model,
+      max_tokens: maxTokens,
+      messages: [{ role: "system", content: sys }, ...messages],
+    };
+    if (schema && useStructured) {
+      body.response_format = { type: "json_schema", json_schema: { name: "reponse", schema, strict: true } };
+    }
+    let resp;
+    try {
+      resp = await fetch(base + "/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (_) {
+      throw new Error("Serveur local injoignable — vérifie l'URL, et le blocage HTTPS→HTTP (mixed content) si l'app est servie en HTTPS.");
+    }
+    if (!resp.ok) {
+      const err = new Error(`Erreur du serveur local (${resp.status}).`);
+      err.status = resp.status;
+      throw err;
+    }
+    const data = await resp.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    if (!text.trim()) throw new Error("Réponse vide du modèle local.");
+    return schema ? extractJson(text) : text;
+  };
+
+  try {
+    return await attempt(true);
+  } catch (err) {
+    // 400/404/422 : le serveur ne connaît probablement pas response_format → repli prompt JSON.
+    if (schema && [400, 404, 422].includes(err.status)) return attempt(false);
+    throw err;
+  }
+}
+
+// Aiguillage Claude / serveur local selon les réglages.
+function callModel(opts) {
+  return el.provider.value === "local" ? callLocal(opts) : callClaude(opts);
+}
+
+function updateProviderUI() {
+  const local = el.provider.value === "local";
+  el.localSettings.classList.toggle("hidden", !local);
+  el.claudeModelLabel.classList.toggle("hidden", local);
+  el.apiKeyLabel.classList.toggle("hidden", local || state.proxyMode);
+  el.proxyInfo.classList.toggle("hidden", local || !state.proxyMode);
+}
+
 // ---------- Logique de conversation ----------
 async function sendMessage(userText, { display = true } = {}) {
   if (state.busy) return;
   if (!hasCredentials()) {
-    setStatus("Ajoute d'abord ta clé API Anthropic dans les réglages ⚙️ (ou lance server.py avec ANTHROPIC_API_KEY).", true);
+    setStatus(credentialsHint(), true);
     openModal(el.settingsModal);
     return;
   }
@@ -924,7 +1083,7 @@ async function sendMessage(userText, { display = true } = {}) {
   state.history.push({ role: "user", content: userText });
 
   try {
-    const raw = await callClaude({
+    const raw = await callModel({
       messages: state.history,
       system: buildSystemPrompt(),
       schema: state.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
@@ -988,7 +1147,7 @@ async function generateSummary() {
 Réponds en texte simple, sans tableau.`,
       },
     ];
-    el.summaryContent.textContent = await callClaude({ messages, system: buildSystemPrompt() });
+    el.summaryContent.textContent = await callModel({ messages, system: buildSystemPrompt(), preferAlt: true });
   } catch (err) {
     el.summaryContent.textContent = "Erreur : " + err.message;
   }
@@ -1005,10 +1164,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // Intervalle avant la prochaine révision, par boîte (1 → 5).
 const LEITNER_DAYS = { 1: 1, 2: 2, 3: 4, 4: 8, 5: 16 };
 
-function loadDeck() { try { return JSON.parse(localStorage.getItem(DECK_KEY)) || []; } catch (_) { return []; } }
-function saveDeck(deck) { localStorage.setItem(DECK_KEY, JSON.stringify(deck)); }
-function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (_) { return []; } }
-function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+function loadDeck() { try { return JSON.parse(localStorage.getItem(storeKey(DECK_KEY))) || []; } catch (_) { return []; } }
+function saveDeck(deck) { localStorage.setItem(storeKey(DECK_KEY), JSON.stringify(deck)); }
+function loadHistory() { try { return JSON.parse(localStorage.getItem(storeKey(HISTORY_KEY))) || []; } catch (_) { return []; } }
+function saveHistory(h) { localStorage.setItem(storeKey(HISTORY_KEY), JSON.stringify(h)); }
 
 function addVocabulary(items) {
   if (!Array.isArray(items) || !items.length) return;
@@ -1225,7 +1384,7 @@ ${cfg.reading ? "et d'une translittération latine" : ""}. Spécificités : ${cf
 async function requestGrammar(kind) {
   const topic = el.grammarTopic.value.trim();
   if (!topic) { setGrammarStatus("Indique d'abord un sujet.", true); return; }
-  if (!hasCredentials()) { setGrammarStatus("Ajoute d'abord ta clé API dans les réglages ⚙️.", true); return; }
+  if (!hasCredentials()) { setGrammarStatus(credentialsHint(), true); return; }
   el.btnGrammarFiche.disabled = el.btnGrammarMap.disabled = true;
   el.grammarResult.classList.add("hidden");
   el.mindmapWrap.classList.add("hidden");
@@ -1235,11 +1394,12 @@ async function requestGrammar(kind) {
     const request = kind === "map"
       ? `Construis une carte mentale pédagogique sur : ${topic}`
       : `Rédige une fiche pédagogique complète sur : ${topic}`;
-    const raw = await callClaude({
+    const raw = await callModel({
       messages: [{ role: "user", content: request }],
       system: grammarSystemPrompt(),
       schema: kind === "map" ? GRAMMAR_MAP_SCHEMA : GRAMMAR_FICHE_SCHEMA,
       maxTokens: 4096,
+      preferAlt: true,
     });
     const parsed = JSON.parse(raw);
     el.grammarTitle.textContent = parsed.title;
@@ -1368,7 +1528,7 @@ Spécificités de la langue : ${cfg.promptExtra}`;
 }
 
 async function startExercise(kind) {
-  if (!hasCredentials()) { setExoStatus("Ajoute d'abord ta clé API dans les réglages ⚙️.", true); return; }
+  if (!hasCredentials()) { setExoStatus(credentialsHint(), true); return; }
   const cfg = langConfig();
   unlockSpeechSynthesis();
   exo.kind = kind;
@@ -1378,7 +1538,7 @@ async function startExercise(kind) {
   el.btnExoDictee.disabled = el.btnExoPrononciation.disabled = true;
   setExoStatus("Préparation des phrases…");
   try {
-    const raw = await callClaude({
+    const raw = await callModel({
       messages: [{ role: "user", content: "Génère les 5 phrases de l'exercice." }],
       system: exoSystemPrompt(),
       schema: EXO_SCHEMA,
@@ -1565,7 +1725,7 @@ function startSession(mode) {
   unlockSpeechSynthesis();
   if (!hasCredentials()) {
     openModal(el.settingsModal);
-    setStatus("Ajoute d'abord ta clé API Anthropic, puis relance la conversation.", true);
+    setStatus(credentialsHint(), true);
     return;
   }
   const cfg = langConfig();
@@ -1670,6 +1830,23 @@ function init() {
     }
   });
   el.btnExoNext.addEventListener("click", nextExoSentence);
+
+  // Profils & moteur IA (v1.0.0)
+  renderProfiles();
+  updateProviderUI();
+  el.profile.addEventListener("change", () => switchProfile(el.profile.value));
+  el.btnProfileAdd.addEventListener("click", addProfile);
+  el.btnProfileDel.addEventListener("click", deleteProfile);
+  el.provider.addEventListener("change", () => { updateProviderUI(); saveSettings(); });
+  for (const input of [el.localUrl, el.localModel, el.localModelAlt]) {
+    input.addEventListener("change", saveSettings);
+  }
+
+  // PWA : service worker (coquille en cache, installation sur l'écran d'accueil)
+  if ("serviceWorker" in navigator &&
+      (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
 
   el.btnSummary.addEventListener("click", generateSummary);
   el.btnSummaryClose.addEventListener("click", () => closeModal(el.summaryModal));

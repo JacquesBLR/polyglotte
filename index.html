@@ -6,6 +6,12 @@
   <title>Polyglotte — Apprends une langue en parlant</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#c2410c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Polyglotte">
 </head>
 <body>
   <header class="app-header">
@@ -99,6 +105,34 @@
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
       <h2>⚙️ Réglages</h2>
+      <label>Profil
+        <select id="profile"></select>
+      </label>
+      <div class="progress-actions">
+        <button id="btn-profile-add" class="btn-secondary">＋ Nouveau profil</button>
+        <button id="btn-profile-del" class="btn-secondary">🗑 Supprimer ce profil</button>
+      </div>
+      <hr class="settings-sep">
+      <label>Moteur IA
+        <select id="provider">
+          <option value="claude" selected>Claude (API Anthropic)</option>
+          <option value="local">Serveur local (compatible OpenAI)</option>
+        </select>
+      </label>
+      <div id="local-settings" class="hidden">
+        <label>URL de base du serveur local
+          <input type="text" id="local-url" placeholder="http://dgx:8000/v1">
+          <small>vLLM, Ollama (<code>http://…:11434/v1</code>), llama.cpp… ⚠️ Depuis une page HTTPS
+          (GitHub Pages), un serveur en HTTP est bloqué par le navigateur : sers l'application
+          depuis le serveur lui-même ou passe par Tailscale HTTPS.</small>
+        </label>
+        <label>Modèle principal
+          <input type="text" id="local-model" placeholder="gpt-oss-120b">
+        </label>
+        <label>Modèle fiches &amp; résumés (optionnel)
+          <input type="text" id="local-model-alt" placeholder="identique au principal si vide">
+        </label>
+      </div>
       <p id="proxy-info" class="proxy-info hidden">🔑 Clé API gérée par le serveur local — rien à configurer ici.</p>
       <label id="api-key-label">Clé API Anthropic
         <input type="password" id="api-key" placeholder="sk-ant-…">
@@ -107,7 +141,7 @@
         avoir à la saisir ici.
         <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Obtenir une clé</a></small>
       </label>
-      <label>Modèle
+      <label id="claude-model-label">Modèle Claude
         <select id="model">
           <option value="claude-opus-5" selected>Claude Opus 5 (recommandé)</option>
           <option value="claude-sonnet-5">Claude Sonnet 5 (plus économique)</option>

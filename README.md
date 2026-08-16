@@ -64,6 +64,35 @@ L'application fonctionne aussi servie en statique (GitHub Pages, `python3 -m htt
 coller alors la clé API dans les réglages ⚙️ — elle reste dans le `localStorage` du navigateur
 et n'est envoyée qu'à l'API Anthropic. À réserver à un usage personnel.
 
+### Installer comme application (PWA)
+
+Sur iPad/iPhone : ouvrir l'app dans Safari → **Partager** → **« Sur l'écran d'accueil »**.
+Polyglotte s'ouvre alors en plein écran avec son icône, et la coquille de l'application est
+mise en cache pour un démarrage instantané (les conversations, elles, nécessitent le réseau).
+
+### Moteur local (ex. gpt-oss-120b sur un DGX)
+
+Dans ⚙️ → **Moteur IA** → « Serveur local (compatible OpenAI) » :
+
+1. **URL de base** : l'endpoint OpenAI-compatible du serveur — vLLM `http://dgx:8000/v1`,
+   Ollama `http://dgx:11434/v1`, llama.cpp `http://dgx:8080/v1`.
+2. **Modèle principal** : ex. `gpt-oss-120b`. Un second champ permet un modèle différent
+   pour les fiches de grammaire et les résumés.
+3. L'app tente les sorties structurées (`response_format` json_schema) et se replie
+   automatiquement sur une consigne JSON si le serveur ne les supporte pas.
+
+⚠️ **Réseau** : une page servie en HTTPS (GitHub Pages) ne peut pas appeler un serveur en
+HTTP (« mixed content »). Pour utiliser le moteur local : sers l'application depuis le
+serveur lui-même (`python3 server.py` sur le DGX), ou expose le serveur en HTTPS
+(Tailscale `tailscale cert`, reverse proxy…). Pense aussi à activer CORS sur le serveur
+d'inférence (vLLM : `--allowed-origins '["*"]'`, Ollama : `OLLAMA_ORIGINS`).
+
+### Profils multiples
+
+⚙️ → **Profil** : chaque profil a ses réglages, son carnet de vocabulaire, ses révisions et
+son historique — pratique à plusieurs sur le même iPad, ou pour séparer deux langues
+d'étude. Le profil « défaut » conserve les données antérieures à la 1.0.
+
 ## Conseils voix
 
 La qualité de la synthèse dépend des voix installées sur le système :
