@@ -133,11 +133,15 @@
           Stockée dans ton navigateur (localStorage).</small>
         </label>
         <label>Modèle principal
-          <input type="text" id="local-model" placeholder="Hermes-4-405B, anthropic/claude-sonnet-4.6, gpt-oss-120b…">
+          <input type="text" id="local-model" placeholder="anthropic/claude-sonnet-4.6, nousresearch/hermes-4-405b…">
         </label>
         <label>Modèle fiches &amp; résumés (optionnel)
           <input type="text" id="local-model-alt" placeholder="identique au principal si vide">
         </label>
+        <div class="progress-actions">
+          <button id="btn-local-test" class="btn-secondary">🔌 Tester la connexion</button>
+        </div>
+        <p id="local-test-result" class="voice-info"></p>
       </div>
       <p id="proxy-info" class="proxy-info hidden">🔑 Clé API gérée par le serveur local — rien à configurer ici.</p>
       <label id="api-key-label">Clé API Anthropic

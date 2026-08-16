@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "1.1.0";
+const APP_VERSION = "1.2.0";
 
 // ---------- Profils multiples (#28) ----------
 // Le profil « défaut » utilise les clés historiques (aucune migration nécessaire) ;
@@ -244,6 +244,8 @@ const el = {
   localKey: document.getElementById("local-key"),
   localModel: document.getElementById("local-model"),
   localModelAlt: document.getElementById("local-model-alt"),
+  btnLocalTest: document.getElementById("btn-local-test"),
+  localTestResult: document.getElementById("local-test-result"),
   claudeModelLabel: document.getElementById("claude-model-label"),
   // Test de niveau, compréhension orale, immersion
   btnAssess: document.getElementById("btn-assess"),
@@ -1061,6 +1063,55 @@ async function callLocal({ messages, system, schema, maxTokens = 2048, preferAlt
   }
 }
 
+// Test de connexion du moteur OpenAI compatible (#31) : joignabilité + catalogue,
+// puis validation de la clé et du modèle par un mini chat/completions.
+async function testLocalConnection() {
+  const base = el.localUrl.value.trim().replace(/\/+$/, "");
+  const model = el.localModel.value.trim();
+  const key = el.localKey.value.trim();
+  const out = el.localTestResult;
+  if (!base || !model) { out.textContent = "⚠️ Renseigne d'abord l'URL de base et le modèle."; return; }
+  el.btnLocalTest.disabled = true;
+  out.textContent = "Test en cours…";
+  const headers = key ? { authorization: "Bearer " + key } : {};
+  try {
+    // 1. Joignabilité + catalogue
+    let catalogueInfo = "";
+    try {
+      const resp = await fetch(base + "/models", { headers });
+      if (resp.ok) {
+        const ids = ((await resp.json()).data || []).map(m => m.id);
+        catalogueInfo = ids.length ? ` (${ids.length} modèles au catalogue)` : "";
+        if (ids.length && !ids.includes(model)) {
+          out.textContent = `⚠️ Serveur joignable${catalogueInfo}, mais le modèle « ${model} » n'y figure pas — vérifie l'orthographe exacte.`;
+          return;
+        }
+      }
+    } catch (_) {
+      throw new Error("Serveur injoignable — vérifie l'URL (et le blocage HTTPS→HTTP si serveur local).");
+    }
+    // 2. Clé + modèle de bout en bout (coût : quelques tokens)
+    const resp = await fetch(base + "/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "Réponds uniquement : OK" }] }),
+    });
+    if (resp.status === 401 || resp.status === 403) throw new Error("Clé API refusée — vérifie-la (et tes crédits).");
+    if (!resp.ok) {
+      let detail = "";
+      try { detail = (await resp.json()).error?.message || ""; } catch (_) {}
+      throw new Error(`Erreur ${resp.status}${detail ? " : " + detail.slice(0, 120) : ""}`);
+    }
+    const data = await resp.json();
+    if (!data.choices?.[0]?.message) throw new Error("Réponse inattendue du serveur.");
+    out.textContent = `✅ Connexion, clé et modèle « ${model} » opérationnels${catalogueInfo}.`;
+  } catch (err) {
+    out.textContent = "❌ " + err.message;
+  } finally {
+    el.btnLocalTest.disabled = false;
+  }
+}
+
 // Aiguillage Claude / serveur local selon les réglages.
 function callModel(opts) {
   return el.provider.value === "local" ? callLocal(opts) : callClaude(opts);
@@ -1852,6 +1903,7 @@ function init() {
   for (const input of [el.localUrl, el.localKey, el.localModel, el.localModelAlt]) {
     input.addEventListener("change", saveSettings);
   }
+  el.btnLocalTest.addEventListener("click", testLocalConnection);
 
   // PWA : service worker (coquille en cache, installation sur l'écran d'accueil)
   if ("serviceWorker" in navigator &&

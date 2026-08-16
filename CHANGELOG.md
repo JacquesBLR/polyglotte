@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [1.2.0] — 2026-08-16
+
+### Added
+- Bouton « 🔌 Tester la connexion » du moteur OpenAI compatible : joignabilité, présence du
+  modèle au catalogue (`GET /models`), puis validation clé + modèle par un mini
+  `chat/completions`, avec diagnostics distincts (injoignable / clé refusée / modèle
+  inconnu) (#31)
+
+### Changed
+- Exemples d'identifiants alignés sur le catalogue réel de Nous Portal
+  (`nousresearch/hermes-4-405b`, `anthropic/claude-sonnet-4.6`, `openai/gpt-oss-120b`) ;
+  CORS vérifié : les appels navigateur directs sont autorisés par l'API Nous
+
 ## [1.1.0] — 2026-08-16
 
 ### Added
