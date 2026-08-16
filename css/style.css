@@ -317,6 +317,77 @@ select, input[type="text"], input[type="password"] {
 .modal-actions { text-align: right; margin-top: 1rem; }
 .voice-info { font-size: 0.8rem; color: var(--muted); }
 .app-version { font-size: 0.75rem; color: var(--muted); text-align: center; margin: 0.5rem 0 0; }
+
+/* ---------- Progrès & révisions ---------- */
+.due-badge {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  padding: 0.05rem 0.4rem;
+  margin-left: 0.25rem;
+  vertical-align: top;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.stat-card {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 0.55rem 0.4rem;
+  text-align: center;
+}
+.stat-card .stat-value { font-size: 1.3rem; color: var(--primary-dark); font-weight: bold; }
+.stat-card .stat-label { font-size: 0.7rem; color: var(--muted); }
+.lang-stats { font-size: 0.8rem; color: var(--muted); margin: 0.3rem 0 0.8rem; }
+.progress-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.deck-title { margin: 0.6rem 0 0.4rem; color: var(--primary-dark); font-size: 1rem; }
+.deck-list { max-height: 30vh; overflow-y: auto; }
+.deck-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0.2rem;
+  border-bottom: 1px dashed #eee5d9;
+  font-size: 0.9rem;
+}
+.deck-row .deck-lang {
+  font-size: 0.65rem;
+  color: var(--muted);
+  border: 1px solid #d6cdc2;
+  border-radius: 6px;
+  padding: 0 0.3rem;
+  white-space: nowrap;
+}
+.deck-row .deck-term { font-weight: bold; }
+.deck-row .deck-reading { color: var(--accent); font-style: italic; font-size: 0.8rem; }
+.deck-row .deck-translation { color: var(--muted); flex: 1; }
+.deck-row .deck-delete {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0 0.2rem;
+}
+.deck-hint { font-size: 0.75rem; color: var(--muted); }
+.deck-empty { font-size: 0.85rem; color: var(--muted); font-style: italic; padding: 0.5rem 0; }
+
+.review-card {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  text-align: center;
+  margin-bottom: 0.8rem;
+  min-height: 7rem;
+}
+.review-term { font-size: 1.5rem; color: var(--ink); }
+.review-reading { font-size: 0.95rem; color: var(--accent); font-style: italic; margin-top: 0.2rem; }
+.review-answer { font-size: 1.05rem; color: var(--primary-dark); margin-top: 0.7rem; border-top: 1px dashed #e2d9cd; padding-top: 0.7rem; }
+.review-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.review-progress { text-align: center; font-size: 0.8rem; color: var(--muted); }
 .proxy-info {
   background: #ecfdf5;
   border-left: 4px solid #059669;

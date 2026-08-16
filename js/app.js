@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "0.2.0";
+const APP_VERSION = "0.3.0";
 
 // ---------- Registre des langues ----------
 // Ajouter une langue = ajouter une entrée ici (et une <option> dans index.html).
@@ -144,6 +144,28 @@ const el = {
   summaryModal: document.getElementById("summary-modal"),
   summaryContent: document.getElementById("summary-content"),
   btnSummaryClose: document.getElementById("btn-summary-close"),
+  // Progrès & révisions
+  btnProgress: document.getElementById("btn-progress"),
+  dueBadge: document.getElementById("due-badge"),
+  progressModal: document.getElementById("progress-modal"),
+  progressHome: document.getElementById("progress-home"),
+  statsGrid: document.getElementById("stats-grid"),
+  langStats: document.getElementById("lang-stats"),
+  btnReview: document.getElementById("btn-review"),
+  dueCount: document.getElementById("due-count"),
+  btnExport: document.getElementById("btn-export"),
+  deckList: document.getElementById("deck-list"),
+  reviewArea: document.getElementById("review-area"),
+  reviewTerm: document.getElementById("review-term"),
+  reviewReading: document.getElementById("review-reading"),
+  reviewAnswer: document.getElementById("review-answer"),
+  btnReviewSpeak: document.getElementById("btn-review-speak"),
+  btnReveal: document.getElementById("btn-reveal"),
+  btnKnew: document.getElementById("btn-knew"),
+  btnMissed: document.getElementById("btn-missed"),
+  reviewProgress: document.getElementById("review-progress"),
+  btnReviewBack: document.getElementById("btn-review-back"),
+  btnProgressClose: document.getElementById("btn-progress-close"),
 };
 
 // ---------- État ----------
@@ -464,6 +486,9 @@ ${readingRule}
   seraient identiques, mets correction à null. S'il n'y a pas d'erreur significative, ou si l'élève a écrit en
   français, mets correction à null. Une seule correction à la fois : la plus importante.
 - "suggestions" : 2 ou 3 réponses possibles courtes dans la langue cible que l'élève pourrait te dire ensuite, adaptées à son niveau.
+- "vocabulary" : 0 à 2 mots ou expressions importants et NOUVEAUX de cet échange (issus de ta réplique ou du message
+  de l'élève), utiles à mémoriser : terme en langue cible, traduction française, translittération latine si l'écriture
+  n'est pas latine (sinon null). Tableau vide si rien de notable — ne remplis jamais artificiellement.
 - Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser.
 - Le message spécial "[START]" signifie que l'élève démarre la conversation : salue-le dans la langue cible et lance le scénario.
 - Note : l'historique ne contient que tes répliques dans la langue cible, sans les traductions ni corrections précédentes.`;
@@ -503,8 +528,27 @@ const RESPONSE_SCHEMA = {
       items: { type: "string" },
       description: "2 ou 3 réponses possibles dans la langue cible pour l'élève.",
     },
+    vocabulary: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          term: { type: "string", description: "Mot ou expression en langue cible." },
+          translation: { type: "string", description: "Traduction française." },
+          reading: {
+            anyOf: [
+              { type: "null" },
+              { type: "string", description: "Translittération latine si écriture non latine." },
+            ],
+          },
+        },
+        required: ["term", "translation", "reading"],
+        additionalProperties: false,
+      },
+      description: "0 à 2 mots/expressions importants et nouveaux de cet échange, à mémoriser. Vide si rien de notable.",
+    },
   },
-  required: ["reply", "translation", "reading", "correction", "suggestions"],
+  required: ["reply", "translation", "reading", "correction", "suggestions", "vocabulary"],
   additionalProperties: false,
 };
 
@@ -598,6 +642,9 @@ async function sendMessage(userText, { display = true } = {}) {
     }
     addTutorBubble(parsed.reply, parsed.translation, parsed.reading);
     showSuggestions(parsed.suggestions);
+    addVocabulary(parsed.vocabulary);
+    recordSessionTurn();
+    updateDueBadge();
     setStatus("");
     el.btnSummary.disabled = false;
 
@@ -641,6 +688,234 @@ Réponds en texte simple, sans tableau.`,
 function openModal(modal) { modal.classList.remove("hidden"); }
 function closeModal(modal) { modal.classList.add("hidden"); }
 
+// ---------- Carnet de vocabulaire (répétition espacée, boîtes de Leitner) ----------
+const DECK_KEY = "polyglotte-deck";
+const HISTORY_KEY = "polyglotte-history";
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Intervalle avant la prochaine révision, par boîte (1 → 5).
+const LEITNER_DAYS = { 1: 1, 2: 2, 3: 4, 4: 8, 5: 16 };
+
+function loadDeck() { try { return JSON.parse(localStorage.getItem(DECK_KEY)) || []; } catch (_) { return []; } }
+function saveDeck(deck) { localStorage.setItem(DECK_KEY, JSON.stringify(deck)); }
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (_) { return []; } }
+function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+
+function addVocabulary(items) {
+  if (!Array.isArray(items) || !items.length) return;
+  const deck = loadDeck();
+  const lang = el.language.value;
+  let added = false;
+  for (const it of items) {
+    if (!it || !it.term || !it.translation) continue;
+    const key = it.term.trim().toLowerCase();
+    if (deck.some(c => c.lang === lang && c.term.trim().toLowerCase() === key)) continue;
+    deck.push({
+      id: Date.now() + Math.random(),
+      lang, term: it.term.trim(), translation: it.translation.trim(),
+      reading: it.reading || null,
+      box: 1, nextReview: Date.now(), addedAt: Date.now(),
+    });
+    added = true;
+  }
+  if (added) saveDeck(deck);
+}
+
+function dueCards() {
+  const now = Date.now();
+  return loadDeck().filter(c => c.nextReview <= now);
+}
+
+function updateDueBadge() {
+  const n = dueCards().length;
+  el.dueBadge.textContent = n;
+  el.dueBadge.classList.toggle("hidden", n === 0);
+}
+
+// ---------- Historique des sessions et statistiques ----------
+let currentSessionId = null;
+
+function recordSessionTurn() {
+  if (!currentSessionId) return;
+  const history = loadHistory();
+  let session = history.find(s => s.id === currentSessionId);
+  if (!session) {
+    session = {
+      id: currentSessionId, date: Date.now(),
+      lang: el.language.value, level: el.level.value, scenario: el.scenario.value,
+      turns: 0,
+    };
+    history.push(session);
+  }
+  session.turns++;
+  session.lastAt = Date.now();
+  saveHistory(history);
+}
+
+function computeStreak(history) {
+  const days = new Set(history.map(s => new Date(s.date).toDateString()));
+  let streak = 0;
+  const d = new Date();
+  // La série n'est pas cassée si on n'a simplement pas encore pratiqué aujourd'hui.
+  if (!days.has(d.toDateString())) d.setDate(d.getDate() - 1);
+  while (days.has(d.toDateString())) { streak++; d.setDate(d.getDate() - 1); }
+  return streak;
+}
+
+function renderProgress() {
+  const deck = loadDeck();
+  const history = loadHistory();
+  const due = dueCards().length;
+
+  const stats = [
+    { value: history.length, label: "sessions" },
+    { value: computeStreak(history), label: "jours d'affilée" },
+    { value: deck.length, label: "mots au carnet" },
+    { value: due, label: "à réviser" },
+  ];
+  el.statsGrid.innerHTML = "";
+  for (const s of stats) {
+    const card = document.createElement("div");
+    card.className = "stat-card";
+    card.innerHTML = `<div class="stat-value"></div><div class="stat-label"></div>`;
+    card.querySelector(".stat-value").textContent = s.value;
+    card.querySelector(".stat-label").textContent = s.label;
+    el.statsGrid.appendChild(card);
+  }
+
+  const byLang = {};
+  for (const s of history) {
+    byLang[s.lang] = (byLang[s.lang] || 0) + 1;
+  }
+  const parts = Object.entries(byLang)
+    .sort((a, b) => b[1] - a[1])
+    .map(([lang, n]) => `${LANGUAGES[lang]?.label || lang} : ${n} session${n > 1 ? "s" : ""}`);
+  el.langStats.textContent = parts.length ? "Pratique — " + parts.join(" · ") : "";
+
+  el.dueCount.textContent = due;
+  el.btnReview.disabled = due === 0;
+  el.btnExport.disabled = deck.length === 0;
+
+  el.deckList.innerHTML = "";
+  if (!deck.length) {
+    el.deckList.innerHTML = `<div class="deck-empty">Encore aucun mot — lance une conversation !</div>`;
+    return;
+  }
+  const recent = [...deck].sort((a, b) => b.addedAt - a.addedAt).slice(0, 100);
+  for (const card of recent) {
+    const row = document.createElement("div");
+    row.className = "deck-row";
+    row.innerHTML = `<span class="deck-lang"></span><span class="deck-term" dir="auto"></span>
+      <span class="deck-reading"></span><span class="deck-translation"></span>
+      <button class="deck-delete" title="Supprimer">✕</button>`;
+    row.querySelector(".deck-lang").textContent = LANGUAGES[card.lang]?.label || card.lang;
+    row.querySelector(".deck-term").textContent = card.term;
+    row.querySelector(".deck-reading").textContent = card.reading || "";
+    row.querySelector(".deck-translation").textContent = card.translation;
+    row.querySelector(".deck-delete").addEventListener("click", () => {
+      saveDeck(loadDeck().filter(c => c.id !== card.id));
+      renderProgress();
+      updateDueBadge();
+    });
+    el.deckList.appendChild(row);
+  }
+}
+
+// ---------- Révision (flashcards) ----------
+const review = { queue: [], index: 0 };
+
+function voiceForLang(langId) {
+  const cfg = LANGUAGES[langId];
+  if (!cfg || !window.speechSynthesis) return null;
+  const voices = speechSynthesis.getVoices();
+  for (const prefix of cfg.ttsPrefixes) {
+    const found = voices.find(v => v.lang.toLowerCase().replace("_", "-").startsWith(prefix));
+    if (found) return found;
+  }
+  return null;
+}
+
+function speakCard(card) {
+  const voice = voiceForLang(card.lang);
+  if (!voice) return;
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(card.term);
+  utter.voice = voice;
+  utter.lang = voice.lang;
+  utter.rate = parseFloat(el.voiceRate.value);
+  speechSynthesis.speak(utter);
+}
+
+function startReview() {
+  review.queue = dueCards().sort(() => Math.random() - 0.5);
+  review.index = 0;
+  if (!review.queue.length) return;
+  el.progressHome.classList.add("hidden");
+  el.reviewArea.classList.remove("hidden");
+  showReviewCard();
+}
+
+function showReviewCard() {
+  const card = review.queue[review.index];
+  if (!card) { endReview(); return; }
+  el.reviewTerm.textContent = card.term;
+  el.reviewReading.textContent = card.reading || "";
+  el.reviewAnswer.textContent = card.translation;
+  el.reviewAnswer.classList.add("hidden");
+  el.btnReveal.classList.remove("hidden");
+  el.btnKnew.classList.add("hidden");
+  el.btnMissed.classList.add("hidden");
+  el.reviewProgress.textContent = `Carte ${review.index + 1} / ${review.queue.length} — ${LANGUAGES[card.lang]?.label || card.lang}`;
+  speakCard(card);
+}
+
+function revealAnswer() {
+  el.reviewAnswer.classList.remove("hidden");
+  el.btnReveal.classList.add("hidden");
+  el.btnKnew.classList.remove("hidden");
+  el.btnMissed.classList.remove("hidden");
+}
+
+function gradeCard(knew) {
+  const card = review.queue[review.index];
+  const deck = loadDeck();
+  const stored = deck.find(c => c.id === card.id);
+  if (stored) {
+    stored.box = knew ? Math.min(5, stored.box + 1) : 1;
+    stored.nextReview = Date.now() + LEITNER_DAYS[stored.box] * DAY_MS;
+    saveDeck(deck);
+  }
+  review.index++;
+  updateDueBadge();
+  if (review.index >= review.queue.length) endReview(true);
+  else showReviewCard();
+}
+
+function endReview(finished = false) {
+  el.reviewArea.classList.add("hidden");
+  el.progressHome.classList.remove("hidden");
+  renderProgress();
+  if (finished) setStatus("Révision terminée 🎉");
+}
+
+// ---------- Export Anki ----------
+function exportDeck() {
+  const deck = loadDeck();
+  if (!deck.length) return;
+  const lines = ["#separator:tab", "#html:false"];
+  for (const c of deck) {
+    lines.push([c.term, c.reading || "", c.translation, LANGUAGES[c.lang]?.label || c.lang]
+      .map(v => String(v).replace(/\t/g, " ")).join("\t"));
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "polyglotte-vocabulaire.txt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
 // ---------- Démarrage ----------
 function startConversation() {
   unlockSpeechSynthesis();
@@ -652,6 +927,7 @@ function startConversation() {
   const cfg = langConfig();
   state.started = true;
   state.history = [];
+  currentSessionId = Date.now();
   saveSettings();
 
   // La reconnaissance est (ré)initialisée avec la locale de la langue choisie.
@@ -713,6 +989,27 @@ function init() {
 
   el.btnSummary.addEventListener("click", generateSummary);
   el.btnSummaryClose.addEventListener("click", () => closeModal(el.summaryModal));
+
+  // Progrès & révisions
+  updateDueBadge();
+  el.btnProgress.addEventListener("click", () => { renderProgress(); endReviewUIReset(); openModal(el.progressModal); });
+  el.btnProgressClose.addEventListener("click", () => closeModal(el.progressModal));
+  el.btnReview.addEventListener("click", startReview);
+  el.btnReviewBack.addEventListener("click", () => endReview());
+  el.btnReveal.addEventListener("click", revealAnswer);
+  el.btnKnew.addEventListener("click", () => gradeCard(true));
+  el.btnMissed.addEventListener("click", () => gradeCard(false));
+  el.btnReviewSpeak.addEventListener("click", () => {
+    const card = review.queue[review.index];
+    if (card) speakCard(card);
+  });
+  el.btnExport.addEventListener("click", exportDeck);
+}
+
+// L'ouverture de la modale repart toujours de l'écran d'accueil du progrès.
+function endReviewUIReset() {
+  el.reviewArea.classList.add("hidden");
+  el.progressHome.classList.remove("hidden");
 }
 
 init();

@@ -5,6 +5,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [0.3.0] — 2026-08-16
+
+### Added
+- Extraction automatique du vocabulaire : le tuteur identifie à chaque tour 0 à 2 mots
+  importants (terme, traduction, translittération) via le champ `vocabulary` du schéma (#11)
+- Carnet de vocabulaire persistant multi-langues avec dédoublonnage, consultation et
+  suppression (#12)
+- Révision par répétition espacée : boîtes de Leitner (intervalles 1/2/4/8/16 jours),
+  flashcards avec audio dans la voix de la langue de la carte (#13)
+- Export du carnet compatible Anki (fichier texte tabulé) (#14)
+- Historique des sessions et statistiques : sessions totales, série de jours consécutifs,
+  pratique par langue, taille du carnet, cartes dues (#15)
+- Écran « 📚 Progrès » avec pastille du nombre de cartes à réviser (#16)
+
 ## [0.2.0] — 2026-08-16
 
 Commit : `db178da`.
