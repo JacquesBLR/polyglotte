@@ -261,6 +261,22 @@ select, input[type="text"], input[type="password"] {
   background: var(--primary);
   animation: pulse 1.2s infinite;
 }
+.btn-mic.muted { opacity: 0.35; }
+
+.btn-mic-off {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1rem;
+  background: var(--surface);
+  border: 1px solid #d6cdc2;
+  flex-shrink: 0;
+}
+.btn-mic-off.active {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #fff;
+}
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(194, 65, 12, 0.45); }
   70% { box-shadow: 0 0 0 14px rgba(194, 65, 12, 0); }
