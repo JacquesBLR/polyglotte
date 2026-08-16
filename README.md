@@ -70,16 +70,30 @@ Sur iPad/iPhone : ouvrir l'app dans Safari → **Partager** → **« Sur l'écra
 Polyglotte s'ouvre alors en plein écran avec son icône, et la coquille de l'application est
 mise en cache pour un démarrage instantané (les conversations, elles, nécessitent le réseau).
 
-### Moteur local (ex. gpt-oss-120b sur un DGX)
+### Moteur compatible OpenAI (hébergé ou local)
 
-Dans ⚙️ → **Moteur IA** → « Serveur local (compatible OpenAI) » :
+Dans ⚙️ → **Moteur IA** → « Serveur compatible OpenAI (local ou hébergé) » :
 
-1. **URL de base** : l'endpoint OpenAI-compatible du serveur — vLLM `http://dgx:8000/v1`,
-   Ollama `http://dgx:11434/v1`, llama.cpp `http://dgx:8080/v1`.
-2. **Modèle principal** : ex. `gpt-oss-120b`. Un second champ permet un modèle différent
-   pour les fiches de grammaire et les résumés.
-3. L'app tente les sorties structurées (`response_format` json_schema) et se replie
-   automatiquement sur une consigne JSON si le serveur ne les supporte pas.
+**API hébergée — ex. Nous Research (modèles Hermes) :**
+
+1. **URL de base** : `https://inference-api.nousresearch.com/v1`
+2. **Clé API** : créée sur [portal.nousresearch.com](https://portal.nousresearch.com)
+   (envoyée en `Authorization: Bearer`, uniquement vers l'URL configurée)
+3. **Modèle** : `Hermes-4-405B`, `Hermes-4-70B` ou `Hermes-4.3-36B`
+
+**Serveur local — ex. gpt-oss-120b sur un DGX :**
+
+1. **URL de base** : vLLM `http://dgx:8000/v1`, Ollama `http://dgx:11434/v1`,
+   llama.cpp `http://dgx:8080/v1` (pas de clé nécessaire)
+2. **Modèle principal** : ex. `gpt-oss-120b`
+
+Dans les deux cas, un second champ permet un modèle différent pour les fiches de grammaire
+et les résumés, et l'app tente les sorties structurées (`response_format` json_schema) avec
+repli automatique (consigne JSON) si le serveur ne les supporte pas.
+
+> ℹ️ Si un fournisseur hébergé n'autorise pas les appels directs depuis un navigateur
+> (CORS), la requête échouera avec une erreur réseau : il faut alors passer par un petit
+> proxy (le même principe que `server.py` pour Anthropic).
 
 ⚠️ **Réseau** : une page servie en HTTPS (GitHub Pages) ne peut pas appeler un serveur en
 HTTP (« mixed content »). Pour utiliser le moteur local : sers l'application depuis le

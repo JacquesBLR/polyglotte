@@ -5,6 +5,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [1.1.0] — 2026-08-16
+
+### Added
+- Clé API optionnelle pour le moteur compatible OpenAI (`Authorization: Bearer`), permettant
+  les API hébergées comme Nous Research / Hermes (`inference-api.nousresearch.com/v1`,
+  modèles Hermes-4-405B/70B/4.3-36B) en plus des serveurs locaux (#30)
+
+### Changed
+- Libellés et exemples du moteur OpenAI-compatible (« local ou hébergé ») ; messages
+  d'erreur 401/403 explicites
+
 ## [1.0.0] — 2026-08-16
 
 ### Added

@@ -1,7 +1,7 @@
 /* Service worker Polyglotte — coquille applicative en cache, API toujours en réseau.
  * Le nom du cache est versionné : à synchroniser avec APP_VERSION (js/app.js). */
 
-const CACHE = "polyglotte-shell-v1.0.0";
+const CACHE = "polyglotte-shell-v1.1.0";
 const SHELL = [
   "./",
   "index.html",
