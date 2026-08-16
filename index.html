@@ -15,6 +15,7 @@
     </div>
     <div class="header-actions">
       <button id="btn-new-session" class="btn-secondary hidden" title="Changer de langue ou de scénario">🔄 Nouvelle session</button>
+      <button id="btn-progress" class="btn-secondary" title="Progrès et révisions">📚<span id="due-badge" class="due-badge hidden"></span></button>
       <button id="btn-summary" class="btn-secondary" title="Résumé de la session" disabled>📋 Résumé</button>
       <button id="btn-settings" class="btn-secondary" title="Réglages">⚙️</button>
     </div>
@@ -118,6 +119,46 @@
       <p class="app-version">Polyglotte <span id="app-version"></span></p>
       <div class="modal-actions">
         <button id="btn-settings-close" class="btn-primary">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale Progrès -->
+  <div id="progress-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>📚 Progrès</h2>
+
+      <div id="progress-home">
+        <div id="stats-grid" class="stats-grid"></div>
+        <p id="lang-stats" class="lang-stats"></p>
+        <div class="progress-actions">
+          <button id="btn-review" class="btn-primary">🎴 Réviser (<span id="due-count">0</span>)</button>
+          <button id="btn-export" class="btn-secondary">⬇️ Export Anki</button>
+        </div>
+        <h3 class="deck-title">Carnet de vocabulaire</h3>
+        <div id="deck-list" class="deck-list"></div>
+        <p class="deck-hint">Le vocabulaire s'ajoute automatiquement au fil de tes conversations.
+        L'export produit un fichier texte tabulé importable dans Anki.</p>
+      </div>
+
+      <div id="review-area" class="hidden">
+        <div class="review-card">
+          <div id="review-term" class="review-term" dir="auto"></div>
+          <div id="review-reading" class="review-reading"></div>
+          <div id="review-answer" class="review-answer hidden" ></div>
+        </div>
+        <div class="review-actions">
+          <button id="btn-review-speak" class="btn-secondary" title="Écouter">🔊</button>
+          <button id="btn-reveal" class="btn-primary">Afficher la réponse</button>
+          <button id="btn-knew" class="btn-primary hidden">✅ Je savais</button>
+          <button id="btn-missed" class="btn-secondary hidden">❌ À revoir</button>
+        </div>
+        <p id="review-progress" class="review-progress"></p>
+        <button id="btn-review-back" class="btn-secondary">← Retour au progrès</button>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-progress-close" class="btn-primary">Fermer</button>
       </div>
     </div>
   </div>
