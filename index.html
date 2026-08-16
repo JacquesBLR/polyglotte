@@ -116,18 +116,24 @@
       <label>Moteur IA
         <select id="provider">
           <option value="claude" selected>Claude (API Anthropic)</option>
-          <option value="local">Serveur local (compatible OpenAI)</option>
+          <option value="local">Serveur compatible OpenAI (local ou hébergé)</option>
         </select>
       </label>
       <div id="local-settings" class="hidden">
-        <label>URL de base du serveur local
-          <input type="text" id="local-url" placeholder="http://dgx:8000/v1">
-          <small>vLLM, Ollama (<code>http://…:11434/v1</code>), llama.cpp… ⚠️ Depuis une page HTTPS
-          (GitHub Pages), un serveur en HTTP est bloqué par le navigateur : sers l'application
-          depuis le serveur lui-même ou passe par Tailscale HTTPS.</small>
+        <label>URL de base du serveur
+          <input type="text" id="local-url" placeholder="https://inference-api.nousresearch.com/v1">
+          <small>Hébergé : Nous Research (<code>https://inference-api.nousresearch.com/v1</code>)…
+          Local : vLLM (<code>http://dgx:8000/v1</code>), Ollama (<code>http://…:11434/v1</code>),
+          llama.cpp. ⚠️ Depuis une page HTTPS, un serveur local en HTTP est bloqué par le
+          navigateur (mixed content).</small>
+        </label>
+        <label>Clé API (si serveur hébergé)
+          <input type="password" id="local-key" placeholder="optionnelle — ex. clé portal.nousresearch.com">
+          <small>Envoyée en <code>Authorization: Bearer</code> uniquement vers l'URL ci-dessus.
+          Stockée dans ton navigateur (localStorage).</small>
         </label>
         <label>Modèle principal
-          <input type="text" id="local-model" placeholder="gpt-oss-120b">
+          <input type="text" id="local-model" placeholder="Hermes-4-405B, gpt-oss-120b…">
         </label>
         <label>Modèle fiches &amp; résumés (optionnel)
           <input type="text" id="local-model-alt" placeholder="identique au principal si vide">

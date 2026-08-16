@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.1.0";
 
 // ---------- Profils multiples (#28) ----------
 // Le profil « défaut » utilise les clés historiques (aucune migration nécessaire) ;
@@ -241,6 +241,7 @@ const el = {
   provider: document.getElementById("provider"),
   localSettings: document.getElementById("local-settings"),
   localUrl: document.getElementById("local-url"),
+  localKey: document.getElementById("local-key"),
   localModel: document.getElementById("local-model"),
   localModelAlt: document.getElementById("local-model-alt"),
   claudeModelLabel: document.getElementById("claude-model-label"),
@@ -374,6 +375,7 @@ function loadSettings() {
   } catch (_) {}
   el.provider.value = saved.provider || "claude";
   el.localUrl.value = saved.localUrl || "";
+  el.localKey.value = saved.localKey || "";
   el.localModel.value = saved.localModel || "";
   el.localModelAlt.value = saved.localModelAlt || "";
   el.apiKey.value = saved.apiKey || "";
@@ -394,6 +396,7 @@ function saveSettings() {
     model: el.model.value,
     provider: el.provider.value,
     localUrl: el.localUrl.value.trim(),
+    localKey: el.localKey.value.trim(),
     localModel: el.localModel.value.trim(),
     localModelAlt: el.localModelAlt.value.trim(),
     voiceRate: parseFloat(el.voiceRate.value),
@@ -1020,18 +1023,26 @@ async function callLocal({ messages, system, schema, maxTokens = 2048, preferAlt
     if (schema && useStructured) {
       body.response_format = { type: "json_schema", json_schema: { name: "reponse", schema, strict: true } };
     }
+    const headers = { "content-type": "application/json" };
+    const key = el.localKey.value.trim();
+    if (key) headers["authorization"] = "Bearer " + key;
     let resp;
     try {
       resp = await fetch(base + "/chat/completions", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify(body),
       });
     } catch (_) {
       throw new Error("Serveur local injoignable — vérifie l'URL, et le blocage HTTPS→HTTP (mixed content) si l'app est servie en HTTPS.");
     }
     if (!resp.ok) {
-      const err = new Error(`Erreur du serveur local (${resp.status}).`);
+      let detail = "";
+      try { detail = (await resp.json()).error?.message || ""; } catch (_) {}
+      if (resp.status === 401 || resp.status === 403) {
+        throw new Error("Clé API refusée par le serveur — vérifie-la dans les réglages ⚙️.");
+      }
+      const err = new Error(`Erreur du serveur (${resp.status})${detail ? " : " + detail : ""}.`);
       err.status = resp.status;
       throw err;
     }
@@ -1838,7 +1849,7 @@ function init() {
   el.btnProfileAdd.addEventListener("click", addProfile);
   el.btnProfileDel.addEventListener("click", deleteProfile);
   el.provider.addEventListener("change", () => { updateProviderUI(); saveSettings(); });
-  for (const input of [el.localUrl, el.localModel, el.localModelAlt]) {
+  for (const input of [el.localUrl, el.localKey, el.localModel, el.localModelAlt]) {
     input.addEventListener("change", saveSettings);
   }
 
