@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 
 // ---------- Profils multiples (#28) ----------
 // Le profil « défaut » utilise les clés historiques (aucune migration nécessaire) ;
@@ -189,6 +189,7 @@ const el = {
   scenario: document.getElementById("scenario"),
   inputBar: document.getElementById("input-bar"),
   btnMic: document.getElementById("btn-mic"),
+  btnMicOff: document.getElementById("btn-mic-off"),
   textInput: document.getElementById("text-input"),
   btnSend: document.getElementById("btn-send"),
   handsfree: document.getElementById("handsfree"),
@@ -290,6 +291,7 @@ const state = {
   mode: "chat",         // "chat" (conversation) | "eval" (test de niveau)
   busy: false,
   listening: false,
+  micMuted: false,      // coupe l'écoute ET la réouverture automatique (mains libres)
   recognition: null,
   transcriptHandler: null, // détourne la reconnaissance vocale (ex. exercice de prononciation)
   voice: null,          // voix de synthèse retenue pour la langue courante
@@ -514,13 +516,29 @@ function stopListeningUI() {
 }
 
 function startListening() {
-  if (!state.recognition || state.listening || state.busy) return;
+  if (!state.recognition || state.listening || state.busy || state.micMuted) return;
   if (window.speechSynthesis) speechSynthesis.cancel();
   try { state.recognition.start(); } catch (_) { /* déjà démarré */ }
 }
 
 function stopListening() {
   if (state.recognition && state.listening) state.recognition.stop();
+}
+
+// Coupe-micro (#32) : arrêt immédiat + suspension de la réouverture automatique.
+function setMicMuted(muted) {
+  state.micMuted = muted;
+  if (muted) stopListening();
+  el.btnMicOff.classList.toggle("active", muted);
+  el.btnMic.classList.toggle("muted", muted);
+  setStatus(muted ? "🔇 Micro coupé — touche 🎤 pour le réactiver." : "");
+}
+
+// Toucher 🎤 réactive toujours le micro, même coupé.
+function micButtonPressed() {
+  if (state.listening) { stopListening(); return; }
+  if (state.micMuted) setMicMuted(false);
+  startListening();
 }
 
 // ---------- Interface ----------
@@ -1846,7 +1864,8 @@ function init() {
   el.language.addEventListener("change", () => { updateWelcomeForLanguage(); saveSettings(); });
   el.immersion.addEventListener("change", saveSettings);
   el.tnScript.addEventListener("change", () => { updateWelcomeForLanguage(); saveSettings(); });
-  el.btnMic.addEventListener("click", () => (state.listening ? stopListening() : startListening()));
+  el.btnMic.addEventListener("click", micButtonPressed);
+  el.btnMicOff.addEventListener("click", () => setMicMuted(!state.micMuted));
   el.btnSend.addEventListener("click", () => {
     const text = el.textInput.value.trim();
     if (text) { el.textInput.value = ""; sendMessage(text); }
@@ -1875,7 +1894,7 @@ function init() {
   el.btnExoDictee.addEventListener("click", () => startExercise("dictee"));
   el.btnExoPrononciation.addEventListener("click", () => startExercise("prononciation"));
   el.btnExoSpeak.addEventListener("click", speakExoSentence);
-  el.btnExoMic.addEventListener("click", () => (state.listening ? stopListening() : startListening()));
+  el.btnExoMic.addEventListener("click", micButtonPressed);
   el.btnExoCheck.addEventListener("click", () => {
     const value = el.exoInput.value.trim();
     if (value) gradeExoAttempt(value);

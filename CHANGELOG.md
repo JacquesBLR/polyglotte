@@ -5,6 +5,12 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [1.3.0] — 2026-08-16
+
+### Added
+- Bouton 🔇 coupe-micro : arrêt immédiat de l'écoute et suspension de la réouverture
+  automatique du mode mains libres ; toucher 🎤 réactive (conversation et exercices) (#32)
+
 ## [1.2.0] — 2026-08-16
 
 ### Added
