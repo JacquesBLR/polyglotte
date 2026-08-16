@@ -6,7 +6,7 @@
 
 "use strict";
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
 
 // ---------- Registre des langues ----------
 // Ajouter une langue = ajouter une entrée ici (et une <option> dans index.html).
@@ -21,6 +21,11 @@ const LANGUAGES = {
     rtl: false, reading: null, support: "full",
     voiceHint: "Installe une voix catalane (« Montserrat » sur iOS/macOS) pour la meilleure synthèse ; repli sur une voix espagnole sinon.",
     promptExtra: "Sois attentive aux calques du français et de l'espagnol, fréquents chez les francophones.",
+    scenarios: [
+      { id: "calcotada", label: "🌍 Une calçotada entre amis", prompt: "Jeu de rôle : tu invites l'élève à une calçotada près de Tarragone. Fais-lui vivre le rituel : calçots grillés au feu, sauce romesco, porró de vi, mains noircies et grand bavoir. Vocabulaire de la fête et de la table." },
+      { id: "santjordi", label: "🌍 Sant Jordi", prompt: "Jeu de rôle : c'est la diada de Sant Jordi à Barcelone, la Rambla est couverte de stands de livres et de roses. Explique la tradition, aide l'élève à choisir un livre et une rose, parlez de vos lectures." },
+      { id: "castellers", label: "🌍 Une diada castellera", prompt: "Jeu de rôle : vous assistez à une exhibition de castellers. Explique les tours humaines (la pinya, le tronc, l'enxaneta), l'esprit d'équipe, et fais réagir l'élève au spectacle." },
+    ],
   },
   espagnol: {
     label: "Espagnol", langFr: "l'espagnol",
@@ -28,6 +33,11 @@ const LANGUAGES = {
     stt: "es-ES", ttsPrefixes: ["es"],
     rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Sois attentive aux faux amis français-espagnol et aux confusions ser/estar.",
+    scenarios: [
+      { id: "tapas", label: "🌍 De tapas à Séville", prompt: "Jeu de rôle : tournée de tapas dans le centre de Séville, de bar en bar. Commander des raciones, partager, payer à la fin, ambiance andalouse." },
+      { id: "feria", label: "🌍 La Feria de Abril", prompt: "Jeu de rôle : tu emmènes l'élève à la Feria de Abril de Séville : casetas, rebujito, sevillanas, tenues de flamenca. Fais-lui vivre la fête." },
+      { id: "semanasanta", label: "🌍 La Semana Santa", prompt: "Jeu de rôle : processions de la Semana Santa à Séville : nazarenos, pasos, saetas. Explique les traditions et fais réagir l'élève à ce qu'il voit." },
+    ],
   },
   anglais: {
     label: "Anglais (GB)", langFr: "l'anglais britannique",
@@ -35,6 +45,11 @@ const LANGUAGES = {
     stt: "en-GB", ttsPrefixes: ["en-gb", "en"],
     rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise l'anglais britannique (vocabulaire, orthographe, expressions). Corrige les calques du français.",
+    scenarios: [
+      { id: "pub", label: "🌍 Au pub", prompt: "Jeu de rôle : un pub londonien classique. Commander au comptoir, payer sa tournée (a round), small talk sur la météo et le football, le rituel du last orders." },
+      { id: "tube", label: "🌍 Dans le métro de Londres", prompt: "Jeu de rôle : se déplacer dans le Tube : Oyster card, mind the gap, demander sa ligne et sa correspondance, l'étiquette du métro londonien." },
+      { id: "sundayroast", label: "🌍 Sunday roast", prompt: "Jeu de rôle : repas de Sunday roast au pub ou en famille : les plats traditionnels, la conversation du dimanche, la politesse britannique." },
+    ],
   },
   allemand: {
     label: "Allemand", langFr: "l'allemand",
@@ -42,6 +57,11 @@ const LANGUAGES = {
     stt: "de-DE", ttsPrefixes: ["de"],
     rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Sois attentive aux déclinaisons, aux genres et à l'ordre des mots, difficultés classiques des francophones.",
+    scenarios: [
+      { id: "biergarten", label: "🌍 Au Biergarten", prompt: "Jeu de rôle : un Biergarten : commander une Maß et des Brezeln, partager une grande table avec des inconnus, trinquer (Prost!), bavarder." },
+      { id: "amt", label: "🌍 Au Bürgeramt", prompt: "Jeu de rôle très berlinois : l'élève doit faire son Anmeldung au Bürgeramt. Prendre un ticket, attendre, expliquer sa situation, comprendre le vocabulaire administratif." },
+      { id: "flohmarkt", label: "🌍 Flohmarkt au Mauerpark", prompt: "Jeu de rôle : chiner au marché aux puces du Mauerpark : demander les prix, marchander poliment, discuter des trouvailles." },
+    ],
   },
   suisse: {
     label: "Suisse allemand", langFr: "le suisse allemand",
@@ -51,6 +71,11 @@ const LANGUAGES = {
     supportNote: "Le suisse allemand n'a pas de moteur vocal dédié : la reconnaissance comprend mieux l'allemand standard que le dialecte, et la voix de synthèse est allemande (prononciation approximative). La conversation écrite, elle, est pleinement en schwiizerdütsch.",
     voiceHint: "Voix allemande utilisée (pas de voix suisse-allemande existante).",
     promptExtra: "Écris en suisse allemand (dialecte zurichois), avec une orthographe dialectale courante. L'élève peut répondre en allemand standard : accepte-le, mais réponds toujours en dialecte. Les transcriptions vocales arrivent souvent déformées vers l'allemand standard : interprète avec bienveillance.",
+    scenarios: [
+      { id: "kafi", label: "🌍 Kafi und Gipfeli", prompt: "Jeu de rôle : pause café à Zurich, es Kafi und es Gipfeli. Small talk suisse : la météo, les montagnes, la ponctualité — et les différences avec l'allemand d'Allemagne." },
+      { id: "wandern", label: "🌍 Randonnée en montagne", prompt: "Jeu de rôle : préparer et vivre une Wanderung : itinéraire, météo, équipement, pique-nique, saluer les autres randonneurs (Grüezi mitenand!)." },
+      { id: "migros", label: "🌍 Courses à la Migros", prompt: "Jeu de rôle : faire ses courses à la Migros : trouver les rayons, produits typiquement suisses, payer, la consigne et le recyclage." },
+    ],
   },
   ptpt: {
     label: "Portugais (Portugal)", langFr: "le portugais européen",
@@ -58,6 +83,11 @@ const LANGUAGES = {
     stt: "pt-PT", ttsPrefixes: ["pt-pt", "pt"],
     rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise le portugais européen (prononciation, usage de « tu »/« você », vocabulaire du Portugal), pas le brésilien.",
+    scenarios: [
+      { id: "pasteis", label: "🌍 Pastéis de Belém", prompt: "Jeu de rôle : la file des Pastéis de Belém : commander des pastéis de nata et une bica, canelle ou pas, discuter de la recette secrète." },
+      { id: "fado", label: "🌍 Soirée fado à Alfama", prompt: "Jeu de rôle : une maison de fado dans l'Alfama : le silence pendant le chant, la saudade, commander à voix basse, parler musique entre deux fados." },
+      { id: "electrico", label: "🌍 Le tram 28", prompt: "Jeu de rôle : traverser Lisbonne dans le mythique elétrico 28 : acheter son billet, demander l'arrêt, commenter les quartiers traversés." },
+    ],
   },
   ptbr: {
     label: "Portugais (Brésil)", langFr: "le portugais brésilien",
@@ -65,6 +95,11 @@ const LANGUAGES = {
     stt: "pt-BR", ttsPrefixes: ["pt-br", "pt"],
     rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise le portugais brésilien (« você », vocabulaire et tournures du Brésil).",
+    scenarios: [
+      { id: "botequim", label: "🌍 Au botequim", prompt: "Jeu de rôle : un bar de quartier carioca : chope bien glacée, petiscos, conversation détendue, football et musique." },
+      { id: "praia", label: "🌍 Plage de Copacabana", prompt: "Jeu de rôle : une journée à Copacabana : vendeurs ambulants (açaí, mate, biscoito Globo), louer une chaise et un parasol, baignade et altinha." },
+      { id: "feira", label: "🌍 La feira du dimanche", prompt: "Jeu de rôle : un marché de rue brésilien : fruits tropicaux à goûter, pastel de feira, caldo de cana, marchander gentiment." },
+    ],
   },
   japonais: {
     label: "Japonais", langFr: "le japonais",
@@ -72,6 +107,11 @@ const LANGUAGES = {
     stt: "ja-JP", ttsPrefixes: ["ja"],
     rtl: false, reading: "le rōmaji (transcription latine) de ta réplique", support: "full", voiceHint: "",
     promptExtra: "Écris en japonais normal (kanji et kana), avec des kanji adaptés au niveau (débutant : kana et kanji très courants uniquement). Utilise la forme polie (-masu/-desu) avec les débutants.",
+    scenarios: [
+      { id: "konbini", label: "🌍 Au konbini", prompt: "Jeu de rôle : un konbini japonais : choisir un bentō et une boisson, le faire réchauffer, comprendre les formules ritualisées du personnel, payer." },
+      { id: "izakaya", label: "🌍 À l'izakaya", prompt: "Jeu de rôle : soirée à l'izakaya : l'otōshi, commander plusieurs petits plats au fil de la soirée, trinquer (kanpai!), appeler le serveur (sumimasen!)." },
+      { id: "onsen", label: "🌍 Aux onsen", prompt: "Jeu de rôle : séjour en ryokan avec onsen : les règles du bain (se laver avant, la petite serviette), le yukata, le vocabulaire du séjour." },
+    ],
   },
   arabe: {
     label: "Arabe standard", langFr: "l'arabe standard moderne",
@@ -79,6 +119,11 @@ const LANGUAGES = {
     stt: "ar-SA", ttsPrefixes: ["ar"],
     rtl: true, reading: "une translittération latine de ta réplique", support: "full", voiceHint: "",
     promptExtra: "Utilise l'arabe standard moderne (fusha) en écriture arabe. Pour les débutants, ajoute la voyellation (tachkil) sur les mots difficiles.",
+    scenarios: [
+      { id: "ahwa", label: "🌍 Au café (ahwa) du Caire", prompt: "Jeu de rôle : un café populaire du Caire : thé à la menthe, café turc, chicha, backgammon, conversation de quartier." },
+      { id: "khan", label: "🌍 Souk Khan el-Khalili", prompt: "Jeu de rôle : marchander un souvenir au Khan el-Khalili : prix de départ exagéré, contre-offres, thé offert, l'art de la négociation avec le sourire." },
+      { id: "iftar", label: "🌍 Invitation à un iftar", prompt: "Jeu de rôle : l'élève est invité à un iftar pendant ramadan : salutations d'usage, plats servis, coutumes de la table, remerciements." },
+    ],
   },
   tunisien: {
     label: "Tunisien (derja)", langFr: "le tunisien (derja)",
@@ -89,6 +134,11 @@ const LANGUAGES = {
     supportNote: "La derja n'a pas de moteur vocal dédié : la reconnaissance passe par l'arabe (approximative pour le dialecte) et la voix de synthèse est en arabe standard. La conversation écrite, elle, est pleinement en tunisien.",
     voiceHint: "Voix arabe standard utilisée (pas de voix tunisienne existante).",
     promptExtraBase: "Tu parles le tunisien (derja), PAS l'arabe standard : vocabulaire et tournures typiquement tunisiens. Les transcriptions vocales de l'élève arrivent souvent déformées vers l'arabe standard : interprète avec bienveillance.",
+    scenarios: [
+      { id: "medina", label: "🌍 Dans la médina de Tunis", prompt: "Jeu de rôle : les souks de la médina de Tunis : chercher un artisan, marchander en derja, souffler autour d'un thé aux pins." },
+      { id: "cafetn", label: "🌍 Au café tunisois", prompt: "Jeu de rôle : un café de quartier à Tunis : commander un direct ou un capucin, discussions foot et famille, expressions typiquement tunisoises." },
+      { id: "mariage", label: "🌍 Un mariage tunisien", prompt: "Jeu de rôle : l'élève est invité à un mariage tunisien : les étapes de la fête, le henné, les tenues, présenter ses félicitations en derja." },
+    ],
   },
 };
 
@@ -166,9 +216,10 @@ const el = {
   reviewProgress: document.getElementById("review-progress"),
   btnReviewBack: document.getElementById("btn-review-back"),
   btnProgressClose: document.getElementById("btn-progress-close"),
-  // Test de niveau, compréhension orale
+  // Test de niveau, compréhension orale, immersion
   btnAssess: document.getElementById("btn-assess"),
   listenMode: document.getElementById("listen-mode"),
+  immersion: document.getElementById("immersion"),
   // Grammaire
   btnGrammar: document.getElementById("btn-grammar"),
   grammarModal: document.getElementById("grammar-modal"),
@@ -251,6 +302,7 @@ function loadSettings() {
   el.autospeak.checked = saved.autospeak !== false;
   el.showTranslations.checked = saved.showTranslations !== false;
   el.listenMode.checked = saved.listenMode === true;
+  el.immersion.checked = saved.immersion === true;
   if (saved.language && LANGUAGES[saved.language]) el.language.value = saved.language;
   if (saved.tnScript) el.tnScript.value = saved.tnScript;
 }
@@ -263,6 +315,7 @@ function saveSettings() {
     autospeak: el.autospeak.checked,
     showTranslations: el.showTranslations.checked,
     listenMode: el.listenMode.checked,
+    immersion: el.immersion.checked,
     language: el.language.value,
     tnScript: el.tnScript.value,
   }));
@@ -461,6 +514,14 @@ function addCorrection(correction) {
   scrollChat();
 }
 
+function addCulturalNote(text) {
+  const div = document.createElement("div");
+  div.className = "culture-note";
+  div.textContent = "💡 " + text;
+  el.chat.appendChild(div);
+  scrollChat();
+}
+
 function addSystemNote(text) {
   const div = document.createElement("div");
   div.className = "msg system";
@@ -483,12 +544,48 @@ function showSuggestions(list) {
   el.suggestions.classList.remove("hidden");
 }
 
+// Scénarios génériques, complétés par les scénarios culturels de la langue (#23).
+const BASE_SCENARIOS = [
+  ["libre", "Conversation libre"],
+  ["cafe", "Au café / restaurant"],
+  ["marche", "Au marché"],
+  ["directions", "Demander son chemin"],
+  ["presentations", "Se présenter / rencontres"],
+  ["voyage", "Voyage"],
+  ["travail", "Au travail"],
+];
+
+function updateScenarioOptions() {
+  const cfg = langConfig();
+  const previous = el.scenario.value;
+  el.scenario.innerHTML = "";
+  for (const [value, label] of BASE_SCENARIOS) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    el.scenario.appendChild(opt);
+  }
+  if (cfg.scenarios && cfg.scenarios.length) {
+    const group = document.createElement("optgroup");
+    group.label = `Scénarios culturels — ${cfg.label}`;
+    for (const s of cfg.scenarios) {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.label;
+      group.appendChild(opt);
+    }
+    el.scenario.appendChild(group);
+  }
+  el.scenario.value = [...el.scenario.options].some(o => o.value === previous) ? previous : "libre";
+}
+
 function updateWelcomeForLanguage() {
   const isTunisian = el.language.value === "tunisien";
   el.tnScriptRow.classList.toggle("hidden", !isTunisian);
   const cfg = langConfig();
   el.supportNote.textContent = cfg.supportNote || "";
   el.supportNote.classList.toggle("hidden", !cfg.supportNote);
+  updateScenarioOptions();
   refreshVoices();
 }
 
@@ -508,6 +605,10 @@ si l'élève répond avec aisance sur plusieurs tours, enrichis progressivement 
 s'il peine (réponses très courtes, erreurs fréquentes, signes d'incompréhension), simplifie immédiatement.`;
 
 function scenarioInstructions(cfg) {
+  const cultural = (cfg.scenarios || []).find(s => s.id === el.scenario.value);
+  if (cultural) {
+    return cultural.prompt + " Ancre le vocabulaire, les usages et les références dans ce contexte culturel.";
+  }
   const city = cfg.tutor.city;
   const server = cfg.tutor.f ? "serveuse" : "serveur";
   const merchant = cfg.tutor.f ? "marchande" : "marchand";
@@ -569,11 +670,18 @@ Règles :
 - "reply" : ta réplique EN ${cfg.langFr.toUpperCase().replace(/^L[E'’A]\s*/, "")} uniquement, 1 à 3 phrases, qui se termine le plus souvent par une question pour relancer l'élève.
 - "translation" : la traduction française fidèle de "reply".
 ${readingRule}
-- "correction" : si le dernier message de l'élève contient une erreur (grammaire, vocabulaire, calque du français),
+${el.immersion.checked
+    ? `- MODE IMMERSION TOTALE : "correction" est TOUJOURS null. Corrige par REFORMULATION naturelle : si l'élève
+  fait une erreur, reprends simplement la forme correcte au fil de ta réplique, comme le ferait un natif
+  (exemple : il dit « jo veig vi », tu réponds « Ah, tu beus vi! I beus vi negre o blanc? »).
+- "cultural_note" : toujours null en immersion.`
+    : `- "correction" : si le dernier message de l'élève contient une erreur (grammaire, vocabulaire, calque du français),
   remplis l'objet correction avec la phrase erronée, la version corrigée et une explication BRÈVE en français.
   Ne corrige que si tu es certain de l'erreur ET de la correction : dans le doute, ou si "original" et "corrected"
   seraient identiques, mets correction à null. S'il n'y a pas d'erreur significative, ou si l'élève a écrit en
   français, mets correction à null. Une seule correction à la fois : la plus importante.
+- "cultural_note" : occasionnellement (au plus un tour sur trois), une note culturelle brève EN FRANÇAIS en lien
+  avec l'échange — coutume, usage, contexte local. Sinon null. Jamais artificielle.`}
 - "suggestions" : 2 ou 3 réponses possibles courtes dans la langue cible que l'élève pourrait te dire ensuite, adaptées à son niveau.
 - "vocabulary" : 0 à 2 mots ou expressions importants et NOUVEAUX de cet échange (issus de ta réplique ou du message
   de l'élève), utiles à mémoriser : terme en langue cible, traduction française, translittération latine si l'écriture
@@ -617,6 +725,12 @@ const RESPONSE_SCHEMA = {
       items: { type: "string" },
       description: "2 ou 3 réponses possibles dans la langue cible pour l'élève.",
     },
+    cultural_note: {
+      anyOf: [
+        { type: "null" },
+        { type: "string", description: "Brève note culturelle en français (1-2 phrases) liée à l'échange. Rare : au plus un tour sur trois." },
+      ],
+    },
     vocabulary: {
       type: "array",
       items: {
@@ -637,7 +751,7 @@ const RESPONSE_SCHEMA = {
       description: "0 à 2 mots/expressions importants et nouveaux de cet échange, à mémoriser. Vide si rien de notable.",
     },
   },
-  required: ["reply", "translation", "reading", "correction", "suggestions", "vocabulary"],
+  required: ["reply", "translation", "reading", "correction", "suggestions", "vocabulary", "cultural_note"],
   additionalProperties: false,
 };
 
@@ -820,12 +934,14 @@ async function sendMessage(userText, { display = true } = {}) {
     // On ne garde dans l'historique que la réplique en langue cible (concis + naturel).
     state.history.push({ role: "assistant", content: parsed.reply });
 
+    const immersion = el.immersion.checked && state.mode === "chat";
     // Filet de sécurité contre les corrections « à vide » (original == corrigé).
-    if (parsed.correction &&
+    if (!immersion && parsed.correction &&
         parsed.correction.original.trim().toLowerCase() !== parsed.correction.corrected.trim().toLowerCase()) {
       addCorrection(parsed.correction);
     }
-    addTutorBubble(parsed.reply, parsed.translation, parsed.reading);
+    addTutorBubble(parsed.reply, immersion ? null : parsed.translation, parsed.reading);
+    if (!immersion && parsed.cultural_note) addCulturalNote(parsed.cultural_note);
     showSuggestions(parsed.suggestions);
     addVocabulary(parsed.vocabulary);
     recordSessionTurn();
@@ -1471,7 +1587,7 @@ function startSession(mode) {
   if (mode === "eval") {
     addSystemNote(`🎯 Test de niveau — ${cfg.label} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
   } else {
-    addSystemNote(`Session — ${cfg.label} · ${levelLabel} · ${scenarioLabel} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
+    addSystemNote(`Session — ${cfg.label} · ${levelLabel} · ${scenarioLabel}${el.immersion.checked ? " · 🌊 Immersion" : ""} — avec ${cfg.tutor.name} (${cfg.tutor.city})`);
   }
   if (cfg.support !== "full" && cfg.supportNote) addSystemNote("⚠️ " + cfg.supportNote);
   sendMessage("[START]", { display: false });
@@ -1506,6 +1622,7 @@ function init() {
   el.btnStart.addEventListener("click", startConversation);
   el.btnNewSession.addEventListener("click", () => location.reload());
   el.language.addEventListener("change", () => { updateWelcomeForLanguage(); saveSettings(); });
+  el.immersion.addEventListener("change", saveSettings);
   el.tnScript.addEventListener("change", () => { updateWelcomeForLanguage(); saveSettings(); });
   el.btnMic.addEventListener("click", () => (state.listening ? stopListening() : startListening()));
   el.btnSend.addEventListener("click", () => {
