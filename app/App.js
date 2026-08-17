@@ -1,31 +1,23 @@
 // Polyglotte v2 — application universelle (iOS / Android / web) sur Expo.
-// Écran de conversation MVP consommant le cœur partagé (app/core) et
-// l'abstraction vocale multi-plateforme (app/speech).
+// Navigation simple entre écrans, consommant le cœur partagé (app/core),
+// l'abstraction vocale (app/speech) et les écrans (app/ui).
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { LANGUAGES, BASE_SCENARIOS, langConfig } from "./core/languages";
-import { buildTutorPrompt, summaryRequest } from "./core/prompts";
-import { RESPONSE_SCHEMA } from "./core/schemas";
 import { callModel, hasCredentials } from "./core/api";
+import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
+import { buildTutorPrompt, summaryRequest } from "./core/prompts";
+import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
 import * as speech from "./speech/speech";
-
-const SETTINGS_KEY = "polyglotte.v2::settings";
-const DECK_KEY = "polyglotte.v2::deck";
+import { KEYS, loadJSON, saveJSON } from "./storage";
+import { C, Chip, ui } from "./ui/common";
+import ExercisesScreen from "./ui/ExercisesScreen";
+import GrammarScreen from "./ui/GrammarScreen";
+import ProgressScreen from "./ui/ProgressScreen";
+import SettingsModal from "./ui/SettingsModal";
 
 const DEFAULT_SETTINGS = {
   provider: "claude",
@@ -45,13 +37,10 @@ const LEVELS = [
   ["avance", "Avancé"],
 ];
 
-function Chip({ label, active, onPress }) {
-  return (
-    <Pressable onPress={onPress} style={[st.chip, active && st.chipActive]}>
-      <Text style={[st.chipText, active && st.chipTextActive]}>{label}</Text>
-    </Pressable>
-  );
-}
+// Niveau CECRL estimé par le test → niveau de l'app.
+const CEFR_TO_LEVEL = { A1: "debutant", A2: "debutant", B1: "intermediaire", B2: "intermediaire", C1: "avance" };
+
+const SCREEN_TITLES = { grammar: "🧠 Grammaire", exos: "✍️ Exercices", progress: "📊 Progrès" };
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -73,18 +62,18 @@ export default function App() {
   const [input, setInput] = useState("");
 
   // Références stables pour la session en cours (pas besoin de re-render).
-  const session = useRef({ cfg: null, system: "", history: [], recognizer: null });
+  const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null });
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(SETTINGS_KEY).then(raw => {
-      if (raw) setSettings(s => ({ ...s, ...JSON.parse(raw) }));
-    }).catch(() => {});
+    loadJSON(KEYS.settings, null).then(saved => {
+      if (saved) setSettings(s => ({ ...s, ...saved }));
+    });
   }, []);
 
   const saveSettings = (next) => {
     setSettings(next);
-    AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next)).catch(() => {});
+    saveJSON(KEYS.settings, next);
   };
 
   const cfg = langConfig(langId, tnScript);
@@ -95,7 +84,7 @@ export default function App() {
 
   // ---------- Session ----------
 
-  const startSession = () => {
+  const startSession = (mode) => {
     if (!hasCredentials(settings)) {
       setSettingsOpen(true);
       setStatus({ text: "Configure d'abord ton moteur IA dans les réglages.", error: true });
@@ -105,9 +94,11 @@ export default function App() {
     const c = langConfig(langId, tnScript);
     session.current = {
       cfg: c,
-      system: buildTutorPrompt({ cfg: c, level, scenarioId, immersion, mode: "chat" }),
+      mode,
+      system: buildTutorPrompt({ cfg: c, level, scenarioId, immersion, mode }),
       history: [],
       recognizer: null,
+      id: mode === "chat" ? `${Date.now()}` : null,
     };
     setMessages([]);
     setSuggestions([]);
@@ -117,11 +108,25 @@ export default function App() {
     send("[START]");
   };
 
+  const recordSessionTurn = async () => {
+    const s = session.current;
+    if (!s.id) return;
+    const history = await loadJSON(KEYS.history, []);
+    let entry = history.find(h => h.id === s.id);
+    if (!entry) {
+      entry = { id: s.id, date: Date.now(), lang: langId, level, scenario: scenarioId, turns: 0 };
+      history.push(entry);
+    }
+    entry.turns++;
+    entry.lastAt = Date.now();
+    saveJSON(KEYS.history, history);
+  };
+
   const endSession = async () => {
     speech.stopSpeaking();
     stopMic();
     const s = session.current;
-    if (s.history.length >= 4 && !busy) {
+    if (s.mode === "chat" && s.history.length >= 4 && !busy) {
       setBusy(true);
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
       try {
@@ -160,35 +165,44 @@ export default function App() {
       const raw = await callModel(settings, {
         messages: s.history,
         system: s.system,
-        schema: RESPONSE_SCHEMA,
+        schema: s.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
         maxTokens: 1024,
       });
       const data = JSON.parse(raw);
       s.history.push({ role: "assistant", content: data.reply });
-      const correction = data.correction && data.correction.original !== data.correction.corrected
-        ? data.correction : null;
-      setMessages(m => [...m, {
-        role: "tutor",
-        text: data.reply,
-        reading: data.reading,
-        translation: data.translation,
-        correction,
-        culturalNote: data.cultural_note,
-      }]);
-      setSuggestions(data.suggestions || []);
-      setStatus({ text: "", error: false });
-      if (Array.isArray(data.vocabulary) && data.vocabulary.length) {
-        AsyncStorage.getItem(DECK_KEY).then(rawDeck => {
-          const deck = rawDeck ? JSON.parse(rawDeck) : [];
-          const next = addVocabulary(deck, langId, data.vocabulary);
-          if (next !== deck) AsyncStorage.setItem(DECK_KEY, JSON.stringify(next));
-        }).catch(() => {});
+      if (s.mode === "eval") {
+        setMessages(m => [...m, {
+          role: "tutor",
+          text: data.reply,
+          reading: data.reading,
+          translation: data.translation,
+          assessed: data.done ? { level: data.level, explanation: data.explanation } : null,
+        }]);
+      } else {
+        const correction = data.correction && data.correction.original !== data.correction.corrected
+          ? data.correction : null;
+        setMessages(m => [...m, {
+          role: "tutor",
+          text: data.reply,
+          reading: data.reading,
+          translation: data.translation,
+          correction,
+          culturalNote: data.cultural_note,
+        }]);
+        setSuggestions(data.suggestions || []);
+        recordSessionTurn();
+        if (Array.isArray(data.vocabulary) && data.vocabulary.length) {
+          loadJSON(KEYS.deck, []).then(deck => {
+            const next = addVocabulary(deck, langId, data.vocabulary);
+            if (next !== deck) saveJSON(KEYS.deck, next);
+          });
+        }
       }
+      setStatus({ text: "", error: false });
       if (settings.autospeak) {
         speech.speak(data.reply, {
           ttsPrefixes: s.cfg.ttsPrefixes,
           rate: settings.rate,
-          onEnd: () => {},
         });
       }
     } catch (err) {
@@ -196,6 +210,15 @@ export default function App() {
       setStatus({ text: err.message, error: true });
     }
     setBusy(false);
+  };
+
+  const adoptLevel = (cefr) => {
+    const lvl = CEFR_TO_LEVEL[cefr];
+    if (lvl) {
+      setLevel(lvl);
+      setStatus({ text: `Niveau réglé sur « ${LEVELS.find(l => l[0] === lvl)[1]} ». Bonne pratique !`, error: false });
+    }
+    setScreen("home");
   };
 
   // ---------- Micro ----------
@@ -251,42 +274,82 @@ export default function App() {
           <Pressable onPress={() => setSettingsOpen(true)}><Text style={st.headerBtn}>⚙️</Text></Pressable>
         </View>
         <ScrollView contentContainerStyle={st.homeBody}>
-          <Text style={st.sectionTitle}>Langue</Text>
-          <View style={st.chipRow}>
+          <Text style={ui.sectionTitle}>Langue</Text>
+          <View style={ui.chipRow}>
             {Object.entries(LANGUAGES).map(([id, l]) => (
               <Chip key={id} label={l.label} active={langId === id} onPress={() => { setLangId(id); setScenarioId("libre"); }} />
             ))}
           </View>
           {langId === "tunisien" && (
-            <View style={st.chipRow}>
+            <View style={ui.chipRow}>
               <Chip label="Écriture arabe" active={tnScript === "arabe"} onPress={() => setTnScript("arabe")} />
               <Chip label="Arabizi (latin)" active={tnScript === "arabizi"} onPress={() => setTnScript("arabizi")} />
             </View>
           )}
-          <Text style={st.sectionTitle}>Niveau</Text>
-          <View style={st.chipRow}>
+          <Text style={ui.sectionTitle}>Niveau</Text>
+          <View style={ui.chipRow}>
             {LEVELS.map(([id, label]) => (
               <Chip key={id} label={label} active={level === id} onPress={() => setLevel(id)} />
             ))}
+            <Chip label="🎓 Test de niveau" active={false} onPress={() => startSession("eval")} />
           </View>
-          <Text style={st.sectionTitle}>Scénario</Text>
-          <View style={st.chipRow}>
+          <Text style={ui.sectionTitle}>Scénario</Text>
+          <View style={ui.chipRow}>
             {scenarios.map(([id, label]) => (
               <Chip key={id} label={label} active={scenarioId === id} onPress={() => setScenarioId(id)} />
             ))}
           </View>
           <View style={st.switchRow}>
-            <Text style={st.label}>Immersion totale (aucune correction affichée)</Text>
-            <Switch value={immersion} onValueChange={setImmersion} trackColor={{ true: "#c2410c" }} />
+            <Text style={ui.label}>Immersion totale (aucune correction affichée)</Text>
+            <Switch value={immersion} onValueChange={setImmersion} trackColor={{ true: C.primary }} />
           </View>
-          <Pressable onPress={startSession} style={st.primaryBtn}>
-            <Text style={st.primaryBtnText}>🎙️ Commencer la conversation</Text>
+          <Pressable onPress={() => startSession("chat")} style={[ui.primaryBtn, { marginTop: 20 }]}>
+            <Text style={ui.primaryBtnText}>🎙️ Commencer la conversation</Text>
           </Pressable>
-          {!!status.text && <Text style={[st.status, status.error && st.statusError]}>{status.text}</Text>}
+          <View style={[ui.chipRow, { marginTop: 12 }]}>
+            <Pressable onPress={() => setScreen("grammar")} style={[ui.secondaryBtn, st.navBtn]}>
+              <Text style={ui.secondaryBtnText}>🧠 Grammaire</Text>
+            </Pressable>
+            <Pressable onPress={() => setScreen("exos")} style={[ui.secondaryBtn, st.navBtn]}>
+              <Text style={ui.secondaryBtnText}>✍️ Exercices</Text>
+            </Pressable>
+            <Pressable onPress={() => setScreen("progress")} style={[ui.secondaryBtn, st.navBtn]}>
+              <Text style={ui.secondaryBtnText}>📊 Progrès</Text>
+            </Pressable>
+          </View>
+          {!!status.text && <Text style={[ui.status, status.error && ui.statusError]}>{status.text}</Text>}
           <Text style={st.hint}>
             Version 2 (aperçu) — l'app complète reste disponible sur la page principale.
           </Text>
         </ScrollView>
+        <SettingsModal
+          visible={settingsOpen}
+          settings={settings}
+          onClose={() => setSettingsOpen(false)}
+          onSave={saveSettings}
+        />
+      </View>
+    );
+  }
+
+  if (screen !== "chat") {
+    return (
+      <View style={st.root}>
+        <StatusBar style="light" />
+        <View style={st.header}>
+          <Pressable onPress={() => { speech.stopSpeaking(); setScreen("home"); }}>
+            <Text style={st.headerBtn}>←</Text>
+          </Pressable>
+          <Text style={st.headerTitle}>{SCREEN_TITLES[screen]}</Text>
+          <Pressable onPress={() => setSettingsOpen(true)}><Text style={st.headerBtn}>⚙️</Text></Pressable>
+        </View>
+        {screen === "grammar" && (
+          <GrammarScreen settings={settings} cfg={cfg} level={level} onOpenSettings={() => setSettingsOpen(true)} />
+        )}
+        {screen === "exos" && (
+          <ExercisesScreen settings={settings} cfg={cfg} langId={langId} level={level} onOpenSettings={() => setSettingsOpen(true)} />
+        )}
+        {screen === "progress" && <ProgressScreen settings={settings} />}
         <SettingsModal
           visible={settingsOpen}
           settings={settings}
@@ -304,7 +367,9 @@ export default function App() {
         <Pressable onPress={() => { speech.stopSpeaking(); stopMic(); setScreen("home"); }}>
           <Text style={st.headerBtn}>←</Text>
         </Pressable>
-        <Text style={st.headerTitle}>{session.current.cfg?.tutor.name} · {session.current.cfg?.tutor.city}</Text>
+        <Text style={st.headerTitle}>
+          {session.current.mode === "eval" ? "🎓 Test de niveau" : `${session.current.cfg?.tutor.name} · ${session.current.cfg?.tutor.city}`}
+        </Text>
         <Pressable onPress={endSession}><Text style={st.headerBtn}>✅</Text></Pressable>
       </View>
       <ScrollView
@@ -340,6 +405,15 @@ export default function App() {
                     <Text style={st.cultureText}>🌍 {m.culturalNote}</Text>
                   </View>
                 )}
+                {m.assessed && (
+                  <View style={st.assessed}>
+                    <Text style={st.assessedLevel}>Niveau estimé : {m.assessed.level}</Text>
+                    <Text style={st.correctionExpl}>{m.assessed.explanation}</Text>
+                    <Pressable onPress={() => adoptLevel(m.assessed.level)} style={[ui.primaryBtn, { marginTop: 8 }]}>
+                      <Text style={ui.primaryBtnText}>Adopter ce niveau</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             )}
             {m.role === "summary" && (
@@ -358,7 +432,7 @@ export default function App() {
           ))}
         </ScrollView>
       )}
-      {!!status.text && <Text style={[st.status, status.error && st.statusError]}>{status.text}</Text>}
+      {!!status.text && <Text style={[ui.status, { paddingHorizontal: 14 }, status.error && ui.statusError]}>{status.text}</Text>}
       <View style={st.inputRow}>
         <Pressable onPress={toggleMute} style={[st.roundBtn, micMuted && st.roundBtnMuted]}>
           <Text style={st.roundBtnText}>{micMuted ? "🔇" : "🔈"}</Text>
@@ -368,7 +442,7 @@ export default function App() {
           value={input}
           onChangeText={setInput}
           placeholder={`Écris en ${cfg.label.toLowerCase()} ou en français…`}
-          placeholderTextColor="#a8a29e"
+          placeholderTextColor={C.faint}
           onSubmitEditing={() => send(input)}
           editable={!busy}
         />
@@ -387,66 +461,10 @@ export default function App() {
   );
 }
 
-function SettingsModal({ visible, settings, onClose, onSave }) {
-  const [draft, setDraft] = useState(settings);
-  useEffect(() => { if (visible) setDraft(settings); }, [visible]);
-  const set = (k, v) => setDraft(d => ({ ...d, [k]: v }));
-
-  return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={st.modalOverlay}>
-        <View style={st.modalCard}>
-          <ScrollView contentContainerStyle={{ gap: 10 }}>
-            <Text style={st.modalTitle}>⚙️ Réglages</Text>
-            <Text style={st.sectionTitle}>Moteur IA</Text>
-            <View style={st.chipRow}>
-              <Chip label="Claude (Anthropic)" active={draft.provider === "claude"} onPress={() => set("provider", "claude")} />
-              <Chip label="Serveur local / Nous" active={draft.provider === "local"} onPress={() => set("provider", "local")} />
-            </View>
-            {draft.provider === "claude" ? (
-              <>
-                <Text style={st.label}>Clé API Anthropic</Text>
-                <TextInput style={st.field} value={draft.apiKey} onChangeText={v => set("apiKey", v)} secureTextEntry autoCapitalize="none" placeholder="sk-ant-…" placeholderTextColor="#a8a29e" />
-              </>
-            ) : (
-              <>
-                <Text style={st.label}>URL du serveur (compatible OpenAI)</Text>
-                <TextInput style={st.field} value={draft.localUrl} onChangeText={v => set("localUrl", v)} autoCapitalize="none" placeholder="https://inference-api.nousresearch.com/v1" placeholderTextColor="#a8a29e" />
-                <Text style={st.label}>Clé API (si requise)</Text>
-                <TextInput style={st.field} value={draft.localKey} onChangeText={v => set("localKey", v)} secureTextEntry autoCapitalize="none" />
-                <Text style={st.label}>Modèle principal</Text>
-                <TextInput style={st.field} value={draft.localModel} onChangeText={v => set("localModel", v)} autoCapitalize="none" placeholder="anthropic/claude-sonnet-4.6" placeholderTextColor="#a8a29e" />
-                <Text style={st.label}>Modèle secondaire (corrections, résumés)</Text>
-                <TextInput style={st.field} value={draft.localModelAlt} onChangeText={v => set("localModelAlt", v)} autoCapitalize="none" placeholder="openai/gpt-oss-120b" placeholderTextColor="#a8a29e" />
-              </>
-            )}
-            <View style={st.switchRow}>
-              <Text style={st.label}>Lire les réponses à voix haute</Text>
-              <Switch value={draft.autospeak} onValueChange={v => set("autospeak", v)} trackColor={{ true: "#c2410c" }} />
-            </View>
-            <Text style={st.label}>Vitesse de lecture</Text>
-            <View style={st.chipRow}>
-              {[[0.7, "Lente"], [0.85, "Posée"], [1, "Normale"]].map(([r, label]) => (
-                <Chip key={label} label={label} active={draft.rate === r} onPress={() => set("rate", r)} />
-              ))}
-            </View>
-            <View style={[st.chipRow, { justifyContent: "flex-end", marginTop: 8 }]}>
-              <Pressable onPress={onClose} style={st.secondaryBtn}><Text style={st.secondaryBtnText}>Annuler</Text></Pressable>
-              <Pressable onPress={() => { onSave(draft); onClose(); }} style={st.primaryBtnSmall}>
-                <Text style={st.primaryBtnText}>Enregistrer</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#faf7f2", ...(Platform.OS === "web" ? { maxWidth: 780, width: "100%", marginHorizontal: "auto" } : null) },
+  root: { flex: 1, backgroundColor: C.bg, ...(Platform.OS === "web" ? { maxWidth: 780, width: "100%", marginHorizontal: "auto" } : null) },
   header: {
-    backgroundColor: "#c2410c",
+    backgroundColor: C.primary,
     paddingTop: Platform.OS === "web" ? 14 : 52,
     paddingBottom: 14,
     paddingHorizontal: 16,
@@ -457,49 +475,35 @@ const st = StyleSheet.create({
   headerTitle: { color: "#fff", fontSize: 19, fontWeight: "700" },
   headerBtn: { color: "#fff", fontSize: 22, paddingHorizontal: 4 },
   homeBody: { padding: 16, gap: 8 },
-  sectionTitle: { fontSize: 13, fontWeight: "700", color: "#78716c", textTransform: "uppercase", marginTop: 10 },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: { borderWidth: 1, borderColor: "#e7e5e4", backgroundColor: "#fff", borderRadius: 999, paddingVertical: 7, paddingHorizontal: 13 },
-  chipActive: { backgroundColor: "#c2410c", borderColor: "#c2410c" },
-  chipText: { color: "#44403c", fontSize: 14 },
-  chipTextActive: { color: "#fff", fontWeight: "600" },
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14, gap: 10 },
-  label: { color: "#44403c", fontSize: 14, flexShrink: 1 },
-  primaryBtn: { backgroundColor: "#c2410c", borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 20 },
-  primaryBtnSmall: { backgroundColor: "#c2410c", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16 },
-  primaryBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  secondaryBtn: { borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16 },
-  secondaryBtnText: { color: "#78716c", fontSize: 16 },
-  hint: { color: "#a8a29e", fontSize: 12, marginTop: 16, textAlign: "center" },
+  navBtn: { flexGrow: 1, paddingHorizontal: 10 },
+  hint: { color: C.faint, fontSize: 12, marginTop: 16, textAlign: "center" },
   chat: { flex: 1 },
   bubble: { borderRadius: 14, padding: 12, maxWidth: "88%" },
-  bubbleUser: { backgroundColor: "#c2410c", alignSelf: "flex-end" },
+  bubbleUser: { backgroundColor: C.primary, alignSelf: "flex-end" },
   bubbleUserText: { color: "#fff", fontSize: 16 },
-  bubbleTutor: { backgroundColor: "#fff", alignSelf: "flex-start", borderWidth: 1, borderColor: "#e7e5e4", gap: 4 },
-  targetText: { fontSize: 17, color: "#1c1917", fontWeight: "500" },
-  reading: { fontSize: 14, color: "#78716c", fontStyle: "italic" },
-  translation: { fontSize: 13, color: "#a8a29e" },
+  bubbleTutor: { backgroundColor: C.card, alignSelf: "flex-start", borderWidth: 1, borderColor: C.border, gap: 4 },
+  targetText: { fontSize: 17, color: C.text, fontWeight: "500" },
+  reading: { fontSize: 14, color: C.muted, fontStyle: "italic" },
+  translation: { fontSize: 13, color: C.faint },
   correction: { backgroundColor: "#fff7ed", borderRadius: 8, padding: 8, marginTop: 6, gap: 2 },
-  correctionTitle: { fontSize: 12, fontWeight: "700", color: "#c2410c" },
-  correctionLine: { fontSize: 14, color: "#b91c1c" },
-  correctionLineOk: { fontSize: 14, color: "#15803d", fontWeight: "600" },
+  correctionTitle: { fontSize: 12, fontWeight: "700", color: C.primary },
+  correctionLine: { fontSize: 14, color: C.error },
+  correctionLineOk: { fontSize: 14, color: C.ok, fontWeight: "600" },
   correctionExpl: { fontSize: 13, color: "#57534e" },
   culture: { backgroundColor: "#eff6ff", borderRadius: 8, padding: 8, marginTop: 6 },
   cultureText: { fontSize: 13, color: "#1e40af" },
+  assessed: { backgroundColor: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6 },
+  assessedLevel: { fontSize: 16, fontWeight: "800", color: C.ok },
   bubbleSummary: { backgroundColor: "#fffbeb", alignSelf: "stretch", maxWidth: "100%", borderWidth: 1, borderColor: "#fde68a" },
   summaryTitle: { fontWeight: "700", color: "#92400e", marginBottom: 6 },
   summaryText: { color: "#44403c", fontSize: 14, lineHeight: 21 },
   suggestions: { maxHeight: 44, marginBottom: 4 },
-  status: { paddingHorizontal: 14, paddingVertical: 4, color: "#78716c", fontSize: 13 },
-  statusError: { color: "#b91c1c" },
-  inputRow: { flexDirection: "row", gap: 8, padding: 10, alignItems: "center", backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#e7e5e4" },
-  input: { flex: 1, borderWidth: 1, borderColor: "#e7e5e4", borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14, fontSize: 15, color: "#1c1917", backgroundColor: "#faf7f2" },
+  inputRow: { flexDirection: "row", gap: 8, padding: 10, alignItems: "center", backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
+  input: { flex: 1, borderWidth: 1, borderColor: C.border, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.bg },
   roundBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#f5f5f4", alignItems: "center", justifyContent: "center" },
   roundBtnMuted: { backgroundColor: "#fecaca" },
-  micBtn: { backgroundColor: "#c2410c" },
+  micBtn: { backgroundColor: C.primary },
   micBtnActive: { backgroundColor: "#16a34a" },
   roundBtnText: { fontSize: 18 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalCard: { backgroundColor: "#faf7f2", borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 18, maxHeight: "88%" },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1c1917" },
 });

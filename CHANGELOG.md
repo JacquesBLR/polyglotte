@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.2] — 2026-08-17
+
+Deuxième jalon v2 : l'aperçu Expo rejoint les fonctionnalités principales de la v1 (#36, en cours).
+
+### Added
+- 🎓 Test de niveau CECRL dans l'écran de conversation (mode évaluation, schéma dédié),
+  avec bouton « Adopter ce niveau » qui règle l'app sur le niveau estimé (#36)
+- 🧠 Écran Grammaire : fiches pédagogiques et cartes mentales SVG (react-native-svg,
+  même algorithme de disposition que la v1 ; les info-bulles deviennent des nœuds
+  tapotables qui affichent leur détail sous la carte) (#36)
+- ✍️ Écran Exercices : dictée et prononciation, 5 phrases par série, notation mot à
+  mot LCS avec surlignage des jetons trouvés/manqués (japonais par caractère) (#36)
+- 📊 Écran Progrès : statistiques (sessions, jours d'affilée, carnet, à réviser),
+  pratique par langue, carnet de vocabulaire (écoute, suppression) et révision
+  Leitner (boîtes 1-5) (#36)
+- Historique des sessions persisté (AsyncStorage) pour les statistiques et la série
+  de jours (#36)
+
+### Changed
+- App.js découpé : écrans dans `app/ui/` (common, SettingsModal, GrammarScreen,
+  ExercisesScreen, ProgressScreen) + `app/storage.js` (persistance JSON)
+
 ## [2.0.0-alpha.1] — 2026-08-17
 
 Premier jalon de la migration vers une application universelle **Expo / React Native**
