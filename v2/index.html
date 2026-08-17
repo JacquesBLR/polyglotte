@@ -1,22 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <title>Polyglotte</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <meta name="description" content="Apprends une langue en parlant : conversation orale avec un tuteur IA, corrections, révisions et exercices." />
+
+    <!-- PWA : installable sur l'écran d'accueil (iOS et Android). -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#c2410c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Polyglotte" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+
+    <!-- Réinitialisation recommandée par react-native-web (gabarit Expo par défaut). -->
     <style id="expo-reset">
-      /* These styles make the body full-height */
       html,
       body {
         height: 100%;
       }
-      /* These styles disable body scrolling if you are using <ScrollView> */
       body {
         overflow: hidden;
+        margin: 0;
+        background-color: #faf7f2;
       }
-      /* These styles make the root element full-height */
       #root {
         display: flex;
         height: 100%;
@@ -26,12 +36,8 @@
   <link rel="icon" href="/hello-world/v2/favicon.ico"/></head>
 
   <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
+    <noscript>Cette application nécessite JavaScript.</noscript>
     <div id="root"></div>
-  <script src="/hello-world/v2/_expo/static/js/web/index-18b2a351ff7de55f565cc9d1a40a59d8.js" defer></script>
+  <script src="/hello-world/v2/_expo/static/js/web/index-e1f2b7dac299fb68effc3824046045c4.js" defer></script>
 </body>
 </html>
