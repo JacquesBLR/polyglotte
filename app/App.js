@@ -11,8 +11,11 @@ import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
+import { registerServiceWorker } from "./pwa/pwa";
 import * as speech from "./speech/speech";
-import { KEYS, loadJSON, saveJSON } from "./storage";
+import {
+  DEFAULT_PROFILE, keysFor, loadJSON, loadProfiles, removeProfileData, saveJSON, saveProfiles,
+} from "./storage";
 import { C, Chip, ui } from "./ui/common";
 import ExercisesScreen from "./ui/ExercisesScreen";
 import GrammarScreen from "./ui/GrammarScreen";
@@ -44,6 +47,7 @@ const SCREEN_TITLES = { grammar: "🧠 Grammaire", exos: "✍️ Exercices", pro
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [profiles, setProfiles] = useState({ list: [DEFAULT_PROFILE], current: DEFAULT_PROFILE });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [screen, setScreen] = useState("home");
 
@@ -65,15 +69,57 @@ export default function App() {
   const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null });
   const scrollRef = useRef(null);
 
+  const keys = keysFor(profiles.current);
+
   useEffect(() => {
-    loadJSON(KEYS.settings, null).then(saved => {
-      if (saved) setSettings(s => ({ ...s, ...saved }));
+    registerServiceWorker();
+    loadProfiles().then(async (p) => {
+      setProfiles(p);
+      const saved = await loadJSON(keysFor(p.current).settings, null);
+      setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
     });
   }, []);
 
   const saveSettings = (next) => {
     setSettings(next);
-    saveJSON(KEYS.settings, next);
+    saveJSON(keys.settings, next);
+  };
+
+  // Change de profil : recharge les réglages du profil visé (carnet et historique
+  // sont relus par les écrans via `keys`).
+  const switchProfile = async (name) => {
+    const next = { ...profiles, current: name };
+    setProfiles(next);
+    saveProfiles(next);
+    const saved = await loadJSON(keysFor(name).settings, null);
+    setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
+    setSettingsOpen(false);
+    setScreen("home");
+    setStatus({ text: `Profil « ${name} » actif.`, error: false });
+  };
+
+  const addProfile = (name) => {
+    const next = { list: [...profiles.list, name], current: name };
+    setProfiles(next);
+    saveProfiles(next);
+    setSettings(DEFAULT_SETTINGS);
+    setSettingsOpen(false);
+    setScreen("home");
+    setStatus({ text: `Profil « ${name} » créé — configure son moteur IA.`, error: false });
+  };
+
+  const deleteProfile = async (name) => {
+    if (name === DEFAULT_PROFILE) return;
+    await removeProfileData(name);
+    const list = profiles.list.filter(n => n !== name);
+    const next = { list, current: DEFAULT_PROFILE };
+    setProfiles(next);
+    saveProfiles(next);
+    const saved = await loadJSON(keysFor(DEFAULT_PROFILE).settings, null);
+    setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
+    setSettingsOpen(false);
+    setScreen("home");
+    setStatus({ text: `Profil « ${name} » supprimé.`, error: false });
   };
 
   const cfg = langConfig(langId, tnScript);
@@ -111,7 +157,7 @@ export default function App() {
   const recordSessionTurn = async () => {
     const s = session.current;
     if (!s.id) return;
-    const history = await loadJSON(KEYS.history, []);
+    const history = await loadJSON(keys.history, []);
     let entry = history.find(h => h.id === s.id);
     if (!entry) {
       entry = { id: s.id, date: Date.now(), lang: langId, level, scenario: scenarioId, turns: 0 };
@@ -119,7 +165,7 @@ export default function App() {
     }
     entry.turns++;
     entry.lastAt = Date.now();
-    saveJSON(KEYS.history, history);
+    saveJSON(keys.history, history);
   };
 
   const endSession = async () => {
@@ -192,9 +238,9 @@ export default function App() {
         setSuggestions(data.suggestions || []);
         recordSessionTurn();
         if (Array.isArray(data.vocabulary) && data.vocabulary.length) {
-          loadJSON(KEYS.deck, []).then(deck => {
+          loadJSON(keys.deck, []).then(deck => {
             const next = addVocabulary(deck, langId, data.vocabulary);
-            if (next !== deck) saveJSON(KEYS.deck, next);
+            if (next !== deck) saveJSON(keys.deck, next);
           });
         }
       }
@@ -325,8 +371,12 @@ export default function App() {
         <SettingsModal
           visible={settingsOpen}
           settings={settings}
+          profiles={profiles}
           onClose={() => setSettingsOpen(false)}
           onSave={saveSettings}
+          onSwitchProfile={switchProfile}
+          onAddProfile={addProfile}
+          onDeleteProfile={deleteProfile}
         />
       </View>
     );
@@ -349,12 +399,16 @@ export default function App() {
         {screen === "exos" && (
           <ExercisesScreen settings={settings} cfg={cfg} langId={langId} level={level} onOpenSettings={() => setSettingsOpen(true)} />
         )}
-        {screen === "progress" && <ProgressScreen settings={settings} />}
+        {screen === "progress" && <ProgressScreen settings={settings} keys={keys} />}
         <SettingsModal
           visible={settingsOpen}
           settings={settings}
+          profiles={profiles}
           onClose={() => setSettingsOpen(false)}
           onSave={saveSettings}
+          onSwitchProfile={switchProfile}
+          onAddProfile={addProfile}
+          onDeleteProfile={deleteProfile}
         />
       </View>
     );

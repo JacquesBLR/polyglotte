@@ -105,6 +105,51 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
   }
 }
 
+// Diagnostic du moteur compatible OpenAI : joignabilité, présence du modèle au
+// catalogue, puis validation clé + modèle par un mini appel (quelques jetons).
+// Retourne { ok, message } — n'échoue jamais par exception.
+export async function testLocalConnection(settings) {
+  const base = (settings.localUrl || "").trim().replace(/\/+$/, "");
+  const model = (settings.localModel || "").trim();
+  const key = (settings.localKey || "").trim();
+  if (!base || !model) return { ok: false, message: "⚠️ Renseigne d'abord l'URL de base et le modèle." };
+  const headers = key ? { authorization: "Bearer " + key } : {};
+  try {
+    let catalogueInfo = "";
+    try {
+      const resp = await fetch(base + "/models", { headers });
+      if (resp.ok) {
+        const ids = ((await resp.json()).data || []).map(m => m.id);
+        catalogueInfo = ids.length ? ` (${ids.length} modèles au catalogue)` : "";
+        if (ids.length && !ids.includes(model)) {
+          return {
+            ok: false,
+            message: `⚠️ Serveur joignable${catalogueInfo}, mais le modèle « ${model} » n'y figure pas — vérifie l'orthographe exacte.`,
+          };
+        }
+      }
+    } catch (_) {
+      throw new Error("Serveur injoignable — vérifie l'URL (et le blocage HTTPS→HTTP si serveur local).");
+    }
+    const resp = await fetch(base + "/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify({ model, max_tokens: 5, messages: [{ role: "user", content: "Réponds uniquement : OK" }] }),
+    });
+    if (resp.status === 401 || resp.status === 403) throw new Error("Clé API refusée — vérifie-la (et tes crédits).");
+    if (!resp.ok) {
+      let detail = "";
+      try { detail = (await resp.json()).error?.message || ""; } catch (_) {}
+      throw new Error(`Erreur ${resp.status}${detail ? " : " + detail.slice(0, 120) : ""}`);
+    }
+    const data = await resp.json();
+    if (!data.choices?.[0]?.message) throw new Error("Réponse inattendue du serveur.");
+    return { ok: true, message: `✅ Connexion, clé et modèle « ${model} » opérationnels${catalogueInfo}.` };
+  } catch (err) {
+    return { ok: false, message: "❌ " + err.message };
+  }
+}
+
 export function callModel(settings, opts) {
   return settings.provider === "local" ? callLocal(settings, opts) : callClaude(settings, opts);
 }

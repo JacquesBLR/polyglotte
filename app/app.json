@@ -25,6 +25,9 @@
     },
     "experiments": {
       "baseUrl": "/hello-world/v2"
-    }
+    },
+    "plugins": [
+      "expo-sharing"
+    ]
   }
 }

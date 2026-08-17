@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.3] — 2026-08-17
+
+Fin de la parité fonctionnelle de la v2 côté web (#36). Vérifié en navigateur réel
+(Chromium pilote l'export : rendu des écrans, création et persistance d'un profil,
+aucune erreur console).
+
+### Added
+- Profils multiples : réglages, carnet et historique séparés par profil ; création,
+  bascule et suppression (avec confirmation) depuis les réglages. Le profil « défaut »
+  garde les clés de stockage historiques (#36)
+- Bouton « 🔌 Tester la connexion » du moteur compatible OpenAI, porté de la v1 :
+  joignabilité, présence du modèle au catalogue, puis validation clé + modèle (#36)
+- Export du carnet au format Anki : téléchargement du fichier sur web, écriture puis
+  feuille de partage en natif (`expo-file-system` API SDK 54+ et `expo-sharing`) (#36)
+- PWA v2 installable : gabarit `public/index.html` (manifeste, thème, métadonnées
+  Apple), `manifest.webmanifest`, icônes et service worker propres à la v2
+  (cache `polyglotte-v2-shell-2.0.0-alpha.3`, portée `/v2/` — la portée la plus
+  spécifique l'emporte sur le service worker de la v1) (#36)
+
 ## [2.0.0-alpha.2] — 2026-08-17
 
 Deuxième jalon v2 : l'aperçu Expo rejoint les fonctionnalités principales de la v1 (#36, en cours).

@@ -5,19 +5,40 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { LANGUAGES } from "../core/languages";
 import { computeStreak, dueCards, gradeCard } from "../core/leitner";
+import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
-import { KEYS, loadJSON, saveJSON } from "../storage";
+import { loadJSON, saveJSON } from "../storage";
 import { C, Chip, ui } from "./common";
 
-export default function ProgressScreen({ settings }) {
+// Format d'import Anki : une carte par ligne, champs séparés par des tabulations.
+function deckToAnki(deck) {
+  const lines = ["#separator:tab", "#html:false"];
+  for (const c of deck) {
+    lines.push([c.term, c.reading || "", c.translation, LANGUAGES[c.lang]?.label || c.lang]
+      .map(v => String(v).replace(/\t/g, " ")).join("\t"));
+  }
+  return lines.join("\n");
+}
+
+export default function ProgressScreen({ settings, keys }) {
   const [deck, setDeck] = useState([]);
   const [history, setHistory] = useState([]);
   const [review, setReview] = useState(null); // { queue, index, revealed }
+  const [status, setStatus] = useState("");
 
   useEffect(() => {
-    loadJSON(KEYS.deck, []).then(setDeck);
-    loadJSON(KEYS.history, []).then(setHistory);
-  }, []);
+    loadJSON(keys.deck, []).then(setDeck);
+    loadJSON(keys.history, []).then(setHistory);
+  }, [keys]);
+
+  const exportDeck = async () => {
+    if (!deck.length) return;
+    try {
+      setStatus(await saveTextFile("polyglotte-vocabulaire.txt", deckToAnki(deck)));
+    } catch (err) {
+      setStatus("❌ " + err.message);
+    }
+  };
 
   const due = dueCards(deck);
 
@@ -39,7 +60,7 @@ export default function ProgressScreen({ settings }) {
     const updated = gradeCard(card, knew);
     const nextDeck = deck.map(c => (c.id === card.id ? updated : c));
     setDeck(nextDeck);
-    saveJSON(KEYS.deck, nextDeck);
+    saveJSON(keys.deck, nextDeck);
     const i = review.index + 1;
     if (i >= review.queue.length) {
       setReview(null);
@@ -52,7 +73,7 @@ export default function ProgressScreen({ settings }) {
   const removeCard = (id) => {
     const nextDeck = deck.filter(c => c.id !== id);
     setDeck(nextDeck);
-    saveJSON(KEYS.deck, nextDeck);
+    saveJSON(keys.deck, nextDeck);
   };
 
   if (review) {
@@ -118,6 +139,10 @@ export default function ProgressScreen({ settings }) {
       <Pressable onPress={startReview} disabled={!due.length} style={[ui.primaryBtn, !due.length && { opacity: 0.5 }]}>
         <Text style={ui.primaryBtnText}>🔁 Réviser ({due.length})</Text>
       </Pressable>
+      <Pressable onPress={exportDeck} disabled={!deck.length} style={[ui.secondaryBtn, !deck.length && { opacity: 0.5 }]}>
+        <Text style={ui.secondaryBtnText}>📤 Exporter le carnet (Anki)</Text>
+      </Pressable>
+      {!!status && <Text style={ui.status}>{status}</Text>}
       <Text style={ui.sectionTitle}>Carnet de vocabulaire</Text>
       {!deck.length && <Text style={ui.status}>Encore aucun mot — lance une conversation !</Text>}
       {recent.map(card => (
