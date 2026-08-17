@@ -72,6 +72,15 @@ PWA installable (iPad) ; profils multiples ; **backend local** (serveur compatib
 ex. gpt-oss-120b sur DGX) avec modèle principal + modèle fiches/résumés, et bascule
 Claude ↔ local sans rechargement.
 
+### v2.0.0 — Application universelle Expo (en cours)
+
+Issues [#33](../../issues/33) à [#37](../../issues/37).
+Migration vers **Expo / React Native** (une seule base de code pour iOS, Android et web).
+Livré en alpha : squelette (#33), cœur partagé `app/core` (#33), abstraction vocale +
+écran de conversation (#34), build web publié sous `/v2/` (#35). Restent : parité
+fonctionnelle complète (#36) et build iOS via EAS/TestFlight (#37 — nécessite un compte
+développeur Apple).
+
 ## Après la 1.0 (pistes)
 
 - STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support

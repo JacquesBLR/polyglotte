@@ -5,6 +5,29 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.1] — 2026-08-17
+
+Premier jalon de la migration vers une application universelle **Expo / React Native**
+(iOS, Android et web via react-native-web), publiée en aperçu à côté de l'app v1 sur
+`https://jacquesblr.github.io/hello-world/v2/`. L'app v1 reste l'app de référence.
+
+### Added
+- Squelette Expo SDK 57 dans `app/` (template blank + react-native-web) (#33)
+- Cœur métier partagé extrait de l'app v1 en modules purs sans dépendance UI,
+  réutilisables sur les trois plateformes : `app/core/languages.js` (10 langues,
+  scénarios, résolution tunisien), `schemas.js`, `prompts.js`, `api.js` (Claude +
+  serveur OpenAI compatible), `leitner.js`, `diff.js` (#33)
+- Abstraction vocale multi-plateforme `app/speech/` : `speech.web.js` (Web Speech API,
+  portée de la v1) et `speech.native.js` (synthèse expo-speech ; reconnaissance
+  indisponible en natif pour l'instant → dégradation propre vers la saisie clavier),
+  résolue automatiquement par Metro selon la plateforme (#34)
+- Écran de conversation MVP dans `App.js` : choix langue/niveau/scénario/immersion,
+  bulles avec traduction et translittération, corrections, notes culturelles,
+  suggestions, micro + coupe-micro, résumé de fin de session, capture du vocabulaire
+  vers le carnet (AsyncStorage), réglages moteur IA (Claude / serveur local) (#34)
+- Build web `expo export` intégré au workflow Pages et publié sous `/v2/`,
+  `experiments.baseUrl` configuré pour le sous-chemin (#35)
+
 ## [1.3.0] — 2026-08-16
 
 ### Added
