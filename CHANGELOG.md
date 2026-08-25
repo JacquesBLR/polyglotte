@@ -5,6 +5,34 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.4] — 2026-08-25
+
+Normalisation du dépôt après le renommage `hello-world` → `polyglotte` du 21/08/2026 (#38).
+
+### Fixed
+- **L'aperçu v2 publié était inutilisable** : le dépôt renommé, GitHub Pages sert désormais
+  le site sous `/polyglotte/`, mais la v2 avait été construite avec
+  `experiments.baseUrl = "/hello-world/v2"` — la page se chargeait (200) et son bundle
+  JavaScript renvoyait 404, donc un écran blanc. `baseUrl` suit maintenant le nom du
+  dépôt (#38)
+
+### Added
+- `ci.yml` (`on: pull_request`, `ubuntu-latest`) : cohérence du dépôt, syntaxe de l'app v1
+  et du proxy local, construction de la v2 en web et vérification que les actifs produits
+  pointent bien vers `/polyglotte/v2/` (#38)
+- `scripts/verifie-coherence.mjs` : garde-fou contre le retour de ce bug — vérifie
+  `baseUrl`, l'absence de référence à l'ancien nom du dépôt et la synchronisation du nom
+  de cache du service worker v1 avec `APP_VERSION` (#38)
+
+### Changed
+- Branche par défaut `main`, contenant l'intégralité du projet (elle n'hébergeait jusqu'ici
+  que le README « hello-world » d'origine) ; `deploy-pages.yml` publie désormais à la
+  fusion dans `main` et non plus sur l'ancienne branche de travail (#38)
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-alpha.4` ; portée documentée
+  en `/polyglotte/v2/` (#38)
+- `app/package.json` aligné sur la version de l'application (il était resté en `1.0.0`) (#38)
+- README : URL publiée ; ROADMAP : méthode de travail `main` + PR + CI (#38)
+
 ## [2.0.0-alpha.3] — 2026-08-17
 
 Fin de la parité fonctionnelle de la v2 côté web (#36). Vérifié en navigateur réel

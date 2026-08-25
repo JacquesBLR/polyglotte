@@ -1,11 +1,11 @@
 name: Publier sur GitHub Pages
 
 # Synchronise le contenu statique de l'application vers la branche gh-pages,
-# que GitHub Pages publie automatiquement sur https://jacquesblr.github.io/hello-world/
+# que GitHub Pages publie automatiquement sur https://jacquesblr.github.io/polyglotte/
 
 on:
   push:
-    branches: [claude/catalan-learning-tool-qqc9nz]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

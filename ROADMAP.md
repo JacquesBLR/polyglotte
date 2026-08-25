@@ -12,8 +12,11 @@ orale avec un tuteur IA. Feuille de route validée le 16/08/2026.
   tags étant bloqué depuis l'environnement de développement.
 - **CHANGELOG.md** au format [Keep a Changelog](https://keepachangelog.com/fr/) : tout
   changement notable y est consigné.
-- Le renommage du dépôt GitHub (`hello-world` → `polyglotte`) est **reporté** (décision du
-  16/08/2026) ; l'URL GitHub Pages reste inchangée d'ici là.
+- **Branche par défaut `main`** : tout le développement y est fusionné ; chaque changement
+  passe par une pull request, dont la CI (`ci.yml`) doit être verte avant fusion. La
+  publication GitHub Pages (`deploy-pages.yml`) se déclenche à la fusion dans `main`.
+- Le dépôt a été renommé `hello-world` → `polyglotte` le 21/08/2026 ; l'application est
+  publiée sur `https://jacquesblr.github.io/polyglotte/` (v2 sous `/polyglotte/v2/`).
 
 ## Langues cibles et support vocal
 
@@ -88,4 +91,4 @@ développeur Apple).
 - Streaming des réponses avec lecture phrase par phrase (latence).
 - Configuration hybride fine (conversation en local, corrections via Claude).
 - Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible).
-- Renommage du dépôt (`hello-world` → `polyglotte`) et de l'URL Pages.
+- Prod Mac mini : runner self-hosted dédié et `deploy.yml` ([#39](../../issues/39)).

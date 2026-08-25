@@ -1,0 +1,44 @@
+name: CI
+
+# Contrôles exécutés sur chaque pull request avant fusion dans main.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Cohérence du dépôt
+        run: node scripts/verifie-coherence.mjs
+
+      - name: Syntaxe de l'app v1
+        run: node --check js/app.js
+
+      - name: Syntaxe du proxy local
+        run: python3 -m py_compile server.py
+
+      - name: Construire la v2 (Expo web)
+        working-directory: app
+        run: |
+          npm ci
+          CI=1 npx expo export --platform web
+
+      - name: Vérifier les chemins d'actifs de la v2
+        run: |
+          test -f app/dist/index.html
+          grep -q '"/polyglotte/v2/_expo/' app/dist/index.html \
+            || { echo "::error::La v2 construite ne pointe pas vers /polyglotte/v2/"; exit 1; }
