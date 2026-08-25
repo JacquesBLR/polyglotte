@@ -7,6 +7,9 @@ Tu parles dans ton micro dans la langue cible, le tuteur (propulsé par Claude) 
 niveau, te lit sa réponse à voix haute, te corrige en français et te propose des réponses
 possibles pour continuer.
 
+🌐 **En ligne** : [jacquesblr.github.io/polyglotte](https://jacquesblr.github.io/polyglotte/)
+(aperçu de l'app universelle Expo : [`/v2/`](https://jacquesblr.github.io/polyglotte/v2/))
+
 📍 Feuille de route : [ROADMAP.md](ROADMAP.md) · Journal des changements : [CHANGELOG.md](CHANGELOG.md)
 
 ## Langues disponibles
