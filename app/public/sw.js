@@ -1,9 +1,10 @@
 /* Service worker Polyglotte v2 — coquille applicative en cache, API toujours en réseau.
  * Le nom du cache est versionné : à bumper à chaque version publiée.
- * Portée : /polyglotte/v2/ (le service worker de la v1, plus haut dans l’arborescence,
- * ne contrôle donc pas les pages de la v2 — la portée la plus spécifique l'emporte). */
+ * Portée : la racine du site (/polyglotte/) depuis la bascule #42. Ce fichier remplace,
+ * au même chemin sw.js, l'ancien service worker de la v1 : chez les visiteurs existants,
+ * la mise à jour purge les caches v1 à l'activation (keys !== CACHE). */
 
-const CACHE = "polyglotte-v2-shell-2.0.0-alpha.7";
+const CACHE = "polyglotte-v2-shell-2.0.0-beta.1";
 const SHELL = [
   "./",
   "index.html",

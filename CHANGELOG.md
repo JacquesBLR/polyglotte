@@ -5,6 +5,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.1] — 2026-08-31
+
+**La v2 prend la racine** (#42) : l'app universelle Expo est servie sur
+`jacquesblr.github.io/polyglotte/`, la v1 gelée est archivée sous `/v1/`. Fin de la
+parité fonctionnelle (#36).
+
+### Changed
+- `baseUrl` de la v2 : `/polyglotte` (racine) ; cache SW `polyglotte-v2-shell-2.0.0-beta.1`.
+  Le service worker v2 remplace celui de la v1 au même chemin `sw.js` : chez les visiteurs
+  existants, la mise à jour purge les caches v1 à l'activation
+- `deploy-pages.yml` : build v2 copié à la racine du site, v1 (`index.html`, `css`, `js`,
+  `icons`, `manifest`, `sw.js`) copiée sous `/v1/` — ses chemins étant tous relatifs, elle
+  y fonctionne à l'identique
+- Ancien emplacement `/v2/` : page de redirection vers la racine + service worker
+  d'auto-destruction (`redirects/v2/`) qui purge les caches alpha, se désinscrit et
+  recharge les onglets des testeurs
+- `ci.yml` (chemins d'actifs `/polyglotte/_expo/`) et `verifie-coherence.mjs` (baseUrl
+  racine, contrôle de la redirection) alignés sur la nouvelle disposition
+- README et ROADMAP : URLs et état de la bascule mis à jour
+
 ## [2.0.0-alpha.7] — 2026-08-31
 
 ### Added

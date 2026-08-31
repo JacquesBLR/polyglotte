@@ -43,5 +43,5 @@ jobs:
       - name: Vérifier les chemins d'actifs de la v2
         run: |
           test -f app/dist/index.html
-          grep -q '"/polyglotte/v2/_expo/' app/dist/index.html \
-            || { echo "::error::La v2 construite ne pointe pas vers /polyglotte/v2/"; exit 1; }
+          grep -q '"/polyglotte/_expo/' app/dist/index.html \
+            || { echo "::error::La v2 construite ne pointe pas vers la racine /polyglotte/"; exit 1; }
