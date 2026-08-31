@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { LANGUAGES } from "../core/languages";
-import { computeStreak, dueCards, gradeCard } from "../core/leitner";
+import { RATINGS, reviewCard } from "../core/fsrs";
+import { computeStreak, dueCards } from "../core/leitner";
 import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
 import { loadJSON, saveJSON } from "../storage";
@@ -50,14 +51,15 @@ export default function ProgressScreen({ settings, keys }) {
   const startReview = () => {
     if (!due.length) return;
     speech.primeSpeech();
-    const queue = [...due];
+    // Cartes inversées (réglage) : une carte sur deux présentée français → langue cible.
+    const queue = due.map((card, i) => ({ card, inverse: !!settings.reversedCards && i % 2 === 1 }));
     setReview({ queue, index: 0, revealed: false });
-    speakCard(queue[0]);
+    if (!queue[0].inverse) speakCard(queue[0].card);
   };
 
-  const grade = (knew) => {
-    const card = review.queue[review.index];
-    const updated = gradeCard(card, knew);
+  const grade = (rating) => {
+    const { card } = review.queue[review.index];
+    const updated = reviewCard(card, rating);
     const nextDeck = deck.map(c => (c.id === card.id ? updated : c));
     setDeck(nextDeck);
     saveJSON(keys.deck, nextDeck);
@@ -66,7 +68,7 @@ export default function ProgressScreen({ settings, keys }) {
       setReview(null);
     } else {
       setReview({ queue: review.queue, index: i, revealed: false });
-      speakCard(review.queue[i]);
+      if (!review.queue[i].inverse) speakCard(review.queue[i].card);
     }
   };
 
@@ -77,30 +79,45 @@ export default function ProgressScreen({ settings, keys }) {
   };
 
   if (review) {
-    const card = review.queue[review.index];
+    const { card, inverse } = review.queue[review.index];
+    const reveal = () => {
+      setReview(r => ({ ...r, revealed: true }));
+      if (inverse) speakCard(card); // en sens inverse, la réponse est dans la langue cible
+    };
     return (
       <ScrollView contentContainerStyle={st.body}>
         <Text style={ui.sectionTitle}>
           Carte {review.index + 1} / {review.queue.length} — {LANGUAGES[card.lang]?.label || card.lang}
+          {inverse ? " (inversée)" : ""}
         </Text>
         <View style={[ui.card, { alignItems: "center", paddingVertical: 28 }]}>
-          <Pressable onPress={() => speakCard(card)}>
-            <Text style={st.term}>{card.term}</Text>
+          <Pressable onPress={() => { if (!inverse || review.revealed) speakCard(card); }}>
+            <Text style={st.term}>{inverse ? card.translation : card.term}</Text>
           </Pressable>
-          {!!card.reading && <Text style={st.reading}>{card.reading}</Text>}
-          {review.revealed && <Text style={st.answer}>{card.translation}</Text>}
+          {!inverse && !!card.reading && <Text style={st.reading}>{card.reading}</Text>}
+          {review.revealed && (
+            <Text style={st.answer}>
+              {inverse ? `${card.term}${card.reading ? `  (${card.reading})` : ""}` : card.translation}
+            </Text>
+          )}
         </View>
         {!review.revealed ? (
-          <Pressable onPress={() => setReview(r => ({ ...r, revealed: true }))} style={ui.primaryBtn}>
+          <Pressable onPress={reveal} style={ui.primaryBtn}>
             <Text style={ui.primaryBtnText}>Voir la réponse</Text>
           </Pressable>
         ) : (
           <View style={[ui.chipRow, { justifyContent: "center" }]}>
-            <Pressable onPress={() => grade(true)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.ok }]}>
-              <Text style={ui.primaryBtnText}>✅ Je savais</Text>
-            </Pressable>
-            <Pressable onPress={() => grade(false)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.error }]}>
+            <Pressable onPress={() => grade(RATINGS.again)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.error }]}>
               <Text style={ui.primaryBtnText}>❌ À revoir</Text>
+            </Pressable>
+            <Pressable onPress={() => grade(RATINGS.hard)} style={[ui.primaryBtn, st.grow, { backgroundColor: "#b45309" }]}>
+              <Text style={ui.primaryBtnText}>😅 Difficile</Text>
+            </Pressable>
+            <Pressable onPress={() => grade(RATINGS.good)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.ok }]}>
+              <Text style={ui.primaryBtnText}>✅ Bien</Text>
+            </Pressable>
+            <Pressable onPress={() => grade(RATINGS.easy)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.primary }]}>
+              <Text style={ui.primaryBtnText}>🚀 Facile</Text>
             </Pressable>
           </View>
         )}
@@ -150,7 +167,9 @@ export default function ProgressScreen({ settings, keys }) {
           <Text style={st.deckLang}>{LANGUAGES[card.lang]?.label || card.lang}</Text>
           <View style={{ flex: 1 }}>
             <Text style={st.deckTerm}>{card.term}{card.reading ? `  (${card.reading})` : ""}</Text>
-            <Text style={st.deckTranslation}>{card.translation} · boîte {card.box}</Text>
+            <Text style={st.deckTranslation}>
+              {card.translation}{card.stability ? ` · stabilité ${Math.round(card.stability)} j` : ""}
+            </Text>
           </View>
           <Chip label="🔊" onPress={() => speakCard(card)} />
           <Pressable onPress={() => removeCard(card.id)} style={{ padding: 6 }}>

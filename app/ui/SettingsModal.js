@@ -146,6 +146,11 @@ export default function SettingsModal({
               ))}
             </View>
 
+            <View style={st.switchRow}>
+              <Text style={ui.label}>Révision : cartes inversées (français → langue cible, une sur deux)</Text>
+              <Switch value={!!draft.reversedCards} onValueChange={v => set("reversedCards", v)} trackColor={{ true: C.primary }} />
+            </View>
+
             <View style={[ui.chipRow, { justifyContent: "flex-end", marginTop: 8 }]}>
               <Pressable onPress={onClose} style={st.cancelBtn}><Text style={{ color: C.muted, fontSize: 16 }}>Annuler</Text></Pressable>
               <Pressable onPress={() => { onSave(draft); onClose(); }} style={st.saveBtn}>
