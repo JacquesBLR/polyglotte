@@ -3,7 +3,7 @@
  * Portée : /polyglotte/v2/ (le service worker de la v1, plus haut dans l’arborescence,
  * ne contrôle donc pas les pages de la v2 — la portée la plus spécifique l'emporte). */
 
-const CACHE = "polyglotte-v2-shell-2.0.0-alpha.6";
+const CACHE = "polyglotte-v2-shell-2.0.0-alpha.7";
 const SHELL = [
   "./",
   "index.html",

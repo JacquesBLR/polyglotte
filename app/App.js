@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
   localModelAlt: "",
   autospeak: true,
   rate: 1,
+  reversedCards: false,
 };
 
 const LEVELS = [

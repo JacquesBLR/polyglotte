@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.7] — 2026-08-31
+
+### Added
+- 🧠 Répétition espacée **FSRS-4.5** à la place des boîtes de Leitner : planification par
+  stabilité/difficulté visant 90 % de rétention, 4 réponses de révision (À revoir,
+  Difficile, Bien, Facile), intervalle plafonné à un an. Migration en douceur des cartes
+  Leitner : échéance conservée, et la boîte sème la stabilité initiale à la révision
+  suivante — l'avancement acquis n'est pas perdu (#44)
+- 🔁 **Cartes inversées** (réglage, désactivé par défaut) : une carte sur deux présentée
+  français → langue cible, réponse lue à voix haute à la révélation (#44)
+- 8 tests dédiés (`tests/fsrs.test.mjs`)
+
+### Changed
+- Le carnet affiche la stabilité (en jours) des cartes déjà révisées, au lieu de la boîte
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-alpha.7`
+
 ## [2.0.0-alpha.6] — 2026-08-31
 
 ### Added
