@@ -16,12 +16,15 @@ export default function SettingsModal({
   const [adding, setAdding] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState("");
+  const [testingVoice, setTestingVoice] = useState(false);
+  const [voiceResult, setVoiceResult] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setDraft(settings);
       setTestResult("");
+      setVoiceResult("");
       setAdding(false);
       setNewProfile("");
       setConfirmDelete(false);
@@ -36,6 +39,21 @@ export default function SettingsModal({
     const { message } = await testLocalConnection(draft);
     setTestResult(message);
     setTesting(false);
+  };
+
+  const testVoice = async () => {
+    setTestingVoice(true);
+    setVoiceResult("Test en cours…");
+    try {
+      const base = (draft.voiceUrl || "").trim().replace(/\/+$/, "");
+      const h = await (await fetch(base + "/health")).json();
+      const v = await (await fetch(base + "/voices")).json();
+      const dispo = Object.values(v).filter(x => x.disponible).length;
+      setVoiceResult(`✅ Serveur joignable — Whisper « ${h.stt.modele} » (${h.stt.device}), ${dispo} voix Piper.`);
+    } catch (_) {
+      setVoiceResult("❌ Serveur vocal injoignable — vérifie l'URL (et le HTTPS depuis la PWA).");
+    }
+    setTestingVoice(false);
   };
 
   const addProfile = () => {
@@ -134,6 +152,20 @@ export default function SettingsModal({
                 {!!testResult && <Text style={ui.status}>{testResult}</Text>}
               </>
             )}
+
+            <Text style={ui.sectionTitle}>Serveur vocal (optionnel)</Text>
+            <Text style={{ color: C.faint, fontSize: 12 }}>
+              STT/TTS locaux (Whisper + Piper, ex. sur le DGX — voir serveur-vocal/) pour les
+              langues au support vocal partiel : suisse allemand et tunisien. Micro en mode
+              appuyer-parler-retoucher. Vide = moteurs du navigateur.
+            </Text>
+            <TextInput style={ui.field} value={draft.voiceUrl || ""} onChangeText={v => set("voiceUrl", v)} autoCapitalize="none" placeholder="https://…:8664 (vide = désactivé)" placeholderTextColor={C.faint} />
+            {!!(draft.voiceUrl || "").trim() && (
+              <Pressable onPress={testVoice} disabled={testingVoice} style={[ui.secondaryBtn, testingVoice && { opacity: 0.6 }]}>
+                <Text style={ui.secondaryBtnText}>🎙️ Tester le serveur vocal</Text>
+              </Pressable>
+            )}
+            {!!voiceResult && <Text style={ui.status}>{voiceResult}</Text>}
 
             <View style={st.switchRow}>
               <Text style={ui.label}>Lire les réponses à voix haute</Text>

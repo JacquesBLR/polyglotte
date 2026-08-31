@@ -45,7 +45,7 @@ export default function ProgressScreen({ settings, keys }) {
 
   const speakCard = (card) => {
     const cfg = LANGUAGES[card.lang];
-    if (cfg) speech.speak(card.term, { ttsPrefixes: cfg.ttsPrefixes, rate: settings.rate });
+    if (cfg) speech.speak(card.term, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, rate: settings.rate });
   };
 
   const startReview = () => {

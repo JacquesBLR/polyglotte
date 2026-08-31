@@ -1,3 +1,7 @@
 # Clé API locale — ne jamais committer
 .env
 __pycache__/
+
+# Serveur vocal : environnement et modèles téléchargés (download-voix.sh)
+serveur-vocal/.venv/
+serveur-vocal/voix/

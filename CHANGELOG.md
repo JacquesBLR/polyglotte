@@ -5,6 +5,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.2] — 2026-08-31
+
+### Added
+- 🎙️ **Serveur vocal local** (#45) : `serveur-vocal/` — FastAPI sur le DGX exposant
+  `/stt` (faster-whisper, GPU si disponible sinon CPU int8) et `/tts` (7 voix Piper :
+  ca, es, en-GB, de, pt-PT, pt-BR, ar). Vérifié en boucle : audio Piper catalan
+  retranscrit à l'identique par Whisper. Script `download-voix.sh`, unité systemd,
+  README (dont exposition HTTPS via `tailscale serve` pour la PWA)
+- Côté app (web) : réglage « Serveur vocal » (URL + bouton de test `/health`). Quand il
+  est configuré, les langues au support vocal **partiel** (suisse allemand, tunisien)
+  passent par Whisper pour la reconnaissance — micro en appuyer-parler-retoucher — et
+  par Piper pour la synthèse, avec repli automatique sur les moteurs du navigateur en
+  cas d'échec ou d'absence de voix (#45)
+
+### Changed
+- Les appels `speak()`/`createRecognizer()` transmettent le code `stt` et le niveau de
+  `support` de la langue (routage local/distant dans la couche vocale)
+- Exercice de prononciation : retoucher le micro arrête l'enregistrement en cours
+- Le moteur distant n'est pas encore branché en natif (viendra avec le build dev, #37)
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.2`
+
 ## [2.0.0-beta.1] — 2026-08-31
 
 **La v2 prend la racine** (#42) : l'app universelle Expo est servie sur
