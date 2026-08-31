@@ -12,6 +12,9 @@ possibles pour continuer.
 
 📍 Feuille de route : [ROADMAP.md](ROADMAP.md) · Journal des changements : [CHANGELOG.md](CHANGELOG.md)
 
+> 🧊 La v1 (webapp statique) est **gelée** : correctifs seulement. Le développement se
+> poursuit sur l'app universelle v2 (`app/`), qui prendra la racine à parité validée.
+
 ## Langues disponibles
 
 | Langue | Tuteur | Support vocal |

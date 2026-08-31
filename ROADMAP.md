@@ -8,8 +8,9 @@ orale avec un tuteur IA. Feuille de route validée le 16/08/2026.
 - **Développement piloté par les issues GitHub** : chaque fonctionnalité fait l'objet d'une
   issue avant développement ; les commits la référencent (`#N`).
 - **Versionnage sémantique** : versions `X.Y.Z`, version affichée dans l'application,
-  releases GitHub. ⚠️ Les tags git sont posés via l'interface GitHub (Releases), le push de
-  tags étant bloqué depuis l'environnement de développement.
+  releases GitHub. Tags et releases sont posés **automatiquement** par `release.yml` à la
+  fusion dans `main` quand la version en tête du `CHANGELOG.md` change (le push de tags
+  depuis l'environnement de développement reste bloqué — c'est l'action qui les crée).
 - **CHANGELOG.md** au format [Keep a Changelog](https://keepachangelog.com/fr/) : tout
   changement notable y est consigné.
 - **Branche par défaut `main`** : tout le développement y est fusionné ; chaque changement
@@ -84,11 +85,19 @@ Livré en alpha : squelette (#33), cœur partagé `app/core` (#33), abstraction 
 fonctionnelle complète (#36) et build iOS via EAS/TestFlight (#37 — nécessite un compte
 développeur Apple).
 
+**La v1 est gelée depuis le 31/08/2026** : correctifs seulement, toute nouveauté va dans
+la v2. Restent avant la clôture : tests unitaires du cœur ([#41](../../issues/41)) et
+bascule `/v2/` → racine après validation d'usage sur iPad ([#42](../../issues/42)).
+
 ## Après la 1.0 (pistes)
 
 - STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support
-  vocal partiel — l'amélioration la plus forte pour le suisse allemand et le tunisien.
-- Streaming des réponses avec lecture phrase par phrase (latence).
+  vocal partiel — l'amélioration la plus forte pour le suisse allemand et le tunisien
+  ([#45](../../issues/45)).
+- Streaming des réponses avec lecture phrase par phrase (latence) ([#43](../../issues/43)).
 - Configuration hybride fine (conversation en local, corrections via Claude).
-- Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible).
-- Prod Mac mini : runner self-hosted dédié et `deploy.yml` ([#39](../../issues/39)).
+- Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible)
+  ([#44](../../issues/44)).
+- ~~Prod Mac mini : runner self-hosted dédié et `deploy.yml`~~ ([#39](../../issues/39) —
+  tranché le 31/08/2026 : l'hébergement reste GitHub Pages, les releases sont automatisées
+  par `release.yml` sur `ubuntu-latest`, pas de runner self-hosted).

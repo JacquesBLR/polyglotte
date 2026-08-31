@@ -25,6 +25,9 @@ jobs:
       - name: Cohérence du dépôt
         run: node scripts/verifie-coherence.mjs
 
+      - name: Tests unitaires du cœur (app/core)
+        run: node --test tests/*.test.mjs
+
       - name: Syntaxe de l'app v1
         run: node --check js/app.js
 

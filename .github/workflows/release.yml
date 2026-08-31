@@ -1,0 +1,51 @@
+name: Release
+
+# À chaque fusion dans main : si la version en tête du CHANGELOG n'a pas encore de
+# release GitHub, crée le tag vX.Y.Z et la release (notes = section du CHANGELOG).
+# Descriptif uniquement — l'hébergement reste GitHub Pages (deploy-pages.yml).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lire la version en tête du CHANGELOG
+        id: version
+        run: |
+          version=$(grep -oPm1 '^## \[\K[^\]]+' CHANGELOG.md)
+          test -n "$version" || { echo "::error::Version introuvable dans CHANGELOG.md"; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Créer le tag et la release s'ils n'existent pas
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="v${{ steps.version.outputs.version }}"
+          if gh release view "$v" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $v déjà publiée — rien à faire."
+            exit 0
+          fi
+          # Notes de release = section du CHANGELOG de cette version.
+          awk -v ver="${{ steps.version.outputs.version }}" '
+            index($0, "## [" ver "]") == 1 { actif = 1; next }
+            actif && /^## \[/ { exit }
+            actif { print }
+          ' CHANGELOG.md > notes.md
+          prerelease=""
+          case "$v" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$v" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "$v" --notes-file notes.md $prerelease
+          echo "Release $v créée."
