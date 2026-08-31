@@ -8,12 +8,13 @@ niveau, te lit sa réponse à voix haute, te corrige en français et te propose 
 possibles pour continuer.
 
 🌐 **En ligne** : [jacquesblr.github.io/polyglotte](https://jacquesblr.github.io/polyglotte/)
-(aperçu de l'app universelle Expo : [`/v2/`](https://jacquesblr.github.io/polyglotte/v2/))
+— l'app universelle Expo (v2). L'ancienne webapp v1, gelée, reste consultable sous
+[`/v1/`](https://jacquesblr.github.io/polyglotte/v1/).
 
 📍 Feuille de route : [ROADMAP.md](ROADMAP.md) · Journal des changements : [CHANGELOG.md](CHANGELOG.md)
 
-> 🧊 La v1 (webapp statique) est **gelée** : correctifs seulement. Le développement se
-> poursuit sur l'app universelle v2 (`app/`), qui prendra la racine à parité validée.
+> 🧊 La v1 (webapp statique) est **gelée** : correctifs seulement. Depuis le 31/08/2026,
+> l'app universelle v2 (`app/`) est servie à la racine ; la v1 est archivée sous `/v1/`.
 
 ## Langues disponibles
 

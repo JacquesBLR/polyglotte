@@ -13,12 +13,21 @@ function verifie(intitule, condition, detail) {
 }
 
 // 1. L'URL de base de la v2 doit suivre le nom du dépôt (chemin GitHub Pages).
+// Depuis la bascule #42, la v2 est servie à la racine du site.
 const appJson = JSON.parse(readFileSync("app/app.json", "utf8"));
 const baseUrl = appJson.expo?.experiments?.baseUrl;
 verifie(
-  "app/app.json : baseUrl alignée sur le dépôt",
-  baseUrl === `/${DEPOT}/v2`,
-  `attendu "/${DEPOT}/v2", trouvé ${JSON.stringify(baseUrl)}`,
+  "app/app.json : baseUrl alignée sur le dépôt (v2 à la racine)",
+  baseUrl === `/${DEPOT}`,
+  `attendu "/${DEPOT}", trouvé ${JSON.stringify(baseUrl)}`,
+);
+
+// 1 bis. La redirection de l'ancien emplacement /v2/ pointe vers la racine.
+const redirection = readFileSync("redirects/v2/index.html", "utf8");
+verifie(
+  "redirects/v2 : redirection vers la racine du site",
+  redirection.includes(`url=/${DEPOT}/`),
+  `ne contient pas "url=/${DEPOT}/"`,
 );
 
 // 2. Plus aucune trace de l'ancien nom hors documents d'historique.

@@ -32,9 +32,17 @@ jobs:
           CI=1 npx expo export --platform web
       - name: Préparer le site statique
         run: |
+          # v2 (app universelle) à la racine du site
           mkdir -p _site
-          cp -r index.html css js icons manifest.webmanifest sw.js README.md _site/
-          cp -r app/dist _site/v2
+          cp -r app/dist/* _site/
+          cp README.md _site/
+          # v1 (webapp gelée) archivée sous /v1/
+          mkdir -p _site/v1
+          cp -r css js icons _site/v1/
+          cp index.html manifest.webmanifest sw.js _site/v1/
+          # Ancien emplacement /v2/ : redirection vers la racine + SW d'auto-destruction
+          mkdir -p _site/v2
+          cp redirects/v2/index.html redirects/v2/sw.js _site/v2/
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -17,7 +17,8 @@ orale avec un tuteur IA. Feuille de route validée le 16/08/2026.
   passe par une pull request, dont la CI (`ci.yml`) doit être verte avant fusion. La
   publication GitHub Pages (`deploy-pages.yml`) se déclenche à la fusion dans `main`.
 - Le dépôt a été renommé `hello-world` → `polyglotte` le 21/08/2026 ; l'application est
-  publiée sur `https://jacquesblr.github.io/polyglotte/` (v2 sous `/polyglotte/v2/`).
+  publiée sur `https://jacquesblr.github.io/polyglotte/` — la v2 à la racine depuis la
+  bascule du 31/08/2026 (#42), la v1 gelée archivée sous `/v1/`.
 
 ## Langues cibles et support vocal
 
@@ -86,8 +87,10 @@ fonctionnelle complète (#36) et build iOS via EAS/TestFlight (#37 — nécessit
 développeur Apple).
 
 **La v1 est gelée depuis le 31/08/2026** : correctifs seulement, toute nouveauté va dans
-la v2. Restent avant la clôture : tests unitaires du cœur ([#41](../../issues/41)) et
-bascule `/v2/` → racine après validation d'usage sur iPad ([#42](../../issues/42)).
+la v2. Tests unitaires du cœur livrés ([#41](../../issues/41)) ; **bascule `/v2/` → racine
+exécutée le 31/08/2026** ([#42](../../issues/42)) : la v2 est servie à la racine, la v1
+archivée sous `/v1/`, l'ancien emplacement `/v2/` redirige. Reste le build iOS
+([#37](../../issues/37)).
 
 ## Après la 1.0 (pistes)
 

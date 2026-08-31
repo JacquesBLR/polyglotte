@@ -24,7 +24,7 @@
       "output": "single"
     },
     "experiments": {
-      "baseUrl": "/polyglotte/v2"
+      "baseUrl": "/polyglotte"
     },
     "plugins": [
       "expo-sharing"
