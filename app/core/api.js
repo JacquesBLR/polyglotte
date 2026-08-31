@@ -66,6 +66,12 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
       max_tokens: maxTokens,
       messages: [{ role: "system", content: sys }, ...messages],
     };
+    if (useStructured) {
+      // Modèles « thinking » (Qwen3…) : évite qu'un raisonnement interne épuise le
+      // budget de tokens (réponse vide) et dégrade la latence. Retiré dans le repli
+      // pour les serveurs qui refusent les options inconnues (400).
+      body.chat_template_kwargs = { enable_thinking: false };
+    }
     if (schema && useStructured) {
       body.response_format = { type: "json_schema", json_schema: { name: "reponse", schema, strict: true } };
     }
@@ -100,7 +106,9 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
   try {
     return await attempt(true);
   } catch (err) {
-    if (schema && [400, 404, 422].includes(err.status)) return attempt(false);
+    // Repli sans sortie structurée ni chat_template_kwargs : serveurs qui ne
+    // connaissent pas response_format ou refusent les options inconnues.
+    if ([400, 404, 422].includes(err.status)) return attempt(false);
     throw err;
   }
 }
