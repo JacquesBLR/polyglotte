@@ -25,13 +25,15 @@ export function onVoicesChanged(cb) {
   if (ttsAvailable()) window.speechSynthesis.onvoiceschanged = cb;
 }
 
-export function speak(text, { ttsPrefixes = [], rate = 1, onEnd } = {}) {
+// `queue: true` ajoute l'énoncé à la file au lieu d'interrompre (streaming phrase
+// par phrase) — le speechSynthesis du navigateur gère la file nativement.
+export function speak(text, { ttsPrefixes = [], rate = 1, onEnd, queue = false } = {}) {
   const picked = pickVoice(ttsPrefixes);
   if (!ttsAvailable() || !picked) {
     if (onEnd) onEnd();
     return;
   }
-  window.speechSynthesis.cancel();
+  if (!queue) window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.voice = picked.voice;
   utter.lang = picked.voice.lang;

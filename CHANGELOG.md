@@ -5,6 +5,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.6] — 2026-08-31
+
+### Added
+- ⚡ Streaming des réponses du moteur compatible OpenAI (SSE) avec lecture à voix haute
+  **phrase par phrase** dès que chaque phrase est complète — latence perçue fortement
+  réduite en conversation orale. Réponse affichée progressivement pendant le stream ;
+  repli transparent sur l'appel classique si le serveur ne sait pas streamer. Hors mode
+  évaluation ; le fournisseur Claude reste en appel classique (#43)
+- `app/core/stream.js` : extraction incrémentale d'un champ chaîne d'un JSON en cours de
+  réception, découpage en phrases (ponctuation pleine chasse japonaise gérée, points
+  décimaux préservés), tampon SSE — fonctions pures couvertes par `tests/stream.test.mjs` (#43)
+- Couches vocales : option `queue` de `speak()` pour enchaîner les phrases sans couper la
+  précédente (file d'expo-speech en natif, file du speechSynthesis sur web) (#43)
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-alpha.6`
+
 ## [2.0.0-alpha.5] — 2026-08-31
 
 Outillage avant la bascule v2 : tests unitaires du cœur, releases automatiques, gel de la

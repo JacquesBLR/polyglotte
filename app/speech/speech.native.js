@@ -21,8 +21,10 @@ export function onVoicesChanged(_cb) {
   // Les voix système sont disponibles immédiatement : rien à faire.
 }
 
-export function speak(text, { ttsPrefixes = [], rate = 1, onEnd } = {}) {
-  Speech.stop();
+// `queue: true` ajoute l'énoncé à la file au lieu d'interrompre (streaming phrase
+// par phrase) — expo-speech met en file les speak() successifs.
+export function speak(text, { ttsPrefixes = [], rate = 1, onEnd, queue = false } = {}) {
+  if (!queue) Speech.stop();
   let done = false;
   const finish = () => { if (!done) { done = true; if (onEnd) onEnd(); } };
   Speech.speak(text, {
