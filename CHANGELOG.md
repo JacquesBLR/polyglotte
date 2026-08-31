@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.4] — 2026-08-31
+
+### Fixed
+- « Réponse vide du modèle » intermittente avec les modèles à raisonnement (Qwen3…) :
+  le « thinking » pouvait consommer tout le budget de tokens avant la réponse. Les
+  appels au moteur compatible OpenAI envoient désormais
+  `chat_template_kwargs: { enable_thinking: false }` (streaming et appel classique) —
+  réponse directe, latence de conversation nettement meilleure. Les serveurs qui
+  ignorent l'option ne changent pas ; ceux qui la refusent (400) sont retentés sans
+  l'option, y compris pour les appels sans schéma (résumés) (#43)
+- Si la réponse reste vide après un raisonnement ou une coupure de budget, le message
+  d'erreur l'explique au lieu du générique « Réponse vide du modèle »
+
 ## [2.0.0-beta.3] — 2026-08-31
 
 ### Fixed

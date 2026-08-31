@@ -119,6 +119,11 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
     max_tokens: maxTokens,
     stream: true,
     messages: [{ role: "system", content: sys }, ...messages],
+    // Modèles « thinking » (Qwen3…) : sans ceci, le raisonnement peut consommer tout
+    // le budget de tokens et laisser la réponse vide — et il ruine la latence de
+    // conversation. Les serveurs qui ignorent l'option ne sont pas affectés ; ceux
+    // qui la refusent (400) déclenchent le repli callLocal sans l'option.
+    chat_template_kwargs: { enable_thinking: false },
   };
   const headers = { "content-type": "application/json" };
   if (settings.localKey) headers["authorization"] = "Bearer " + settings.localKey;
@@ -150,6 +155,8 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
   const decoder = new TextDecoder();
   let sse = "";
   let full = "";
+  let reasoned = false;
+  let finish = null;
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -159,7 +166,10 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
     for (const payload of events) {
       if (payload === "[DONE]") continue;
       try {
-        const delta = JSON.parse(payload).choices?.[0]?.delta?.content || "";
+        const choice = JSON.parse(payload).choices?.[0] || {};
+        if (choice.delta?.reasoning_content) reasoned = true;
+        finish = choice.finish_reason || finish;
+        const delta = choice.delta?.content || "";
         if (delta) {
           full += delta;
           if (onDelta) onDelta(full);
@@ -167,7 +177,11 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
       } catch (_) { /* fragment non JSON : ignoré */ }
     }
   }
-  if (!full.trim()) throw new Error("Réponse vide du modèle.");
+  if (!full.trim()) {
+    throw new Error(reasoned || finish === "length"
+      ? "Le modèle a épuisé ses tokens en « réflexion » sans répondre — réessaie, ou choisis un modèle sans raisonnement."
+      : "Réponse vide du modèle.");
+  }
   return schema ? extractJson(full) : full;
 }
 
