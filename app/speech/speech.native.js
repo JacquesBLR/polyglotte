@@ -10,6 +10,10 @@ export function ttsAvailable() {
   return true;
 }
 
+// Serveur vocal distant (#45) : pas encore branché en natif (viendra avec le
+// build de développement, #37). Interface commune avec speech.web.js.
+export function configure(_opts) {}
+
 // En natif on ne choisit pas une voix précise : on passe la locale du premier
 // préfixe et l'OS prend sa meilleure voix. `native` est donc supposé vrai.
 export function pickVoice(ttsPrefixes) {

@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   autospeak: true,
   rate: 1,
   reversedCards: false,
+  voiceUrl: "",
 };
 
 const LEVELS = [
@@ -72,6 +73,11 @@ export default function App() {
   const scrollRef = useRef(null);
 
   const keys = keysFor(profiles.current);
+
+  // Serveur vocal distant (#45) : la couche vocale suit le réglage.
+  useEffect(() => {
+    speech.configure({ voiceUrl: settings.voiceUrl });
+  }, [settings.voiceUrl]);
 
   useEffect(() => {
     registerServiceWorker();
@@ -223,7 +229,7 @@ export default function App() {
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
-              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, rate: settings.rate, queue: true }))
+              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, rate: settings.rate, queue: true }))
           : null;
         opts.onDelta = (accumulated) => {
           const partial = partialStringField(accumulated, "reply");
@@ -274,6 +280,8 @@ export default function App() {
       if (settings.autospeak && !streamed) {
         speech.speak(data.reply, {
           ttsPrefixes: s.cfg.ttsPrefixes,
+          stt: s.cfg.stt,
+          support: s.cfg.support,
           rate: settings.rate,
         });
       }
@@ -302,6 +310,7 @@ export default function App() {
     if (!s.recognizer) {
       s.recognizer = speech.createRecognizer({
         lang: s.cfg.stt,
+        support: s.cfg.support,
         onStart: () => setListening(true),
         onInterim: (t) => setStatus({ text: `🎤 « ${t} »`, error: false }),
         onResult: (t) => send(t),
@@ -468,7 +477,7 @@ export default function App() {
             )}
             {m.role === "tutor" && (
               <View style={[st.bubble, st.bubbleTutor]}>
-                <Pressable onPress={() => speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, rate: settings.rate })}>
+                <Pressable onPress={() => speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, rate: settings.rate })}>
                   <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
                 </Pressable>
                 {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}

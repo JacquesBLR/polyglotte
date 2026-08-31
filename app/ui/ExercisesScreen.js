@@ -54,7 +54,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
       setFeedback(null);
       setInput("");
       setStatus({ text: "", error: false });
-      if (k === "dictee") speech.speak(list[0].text, { ttsPrefixes: cfg.ttsPrefixes, rate: settings.rate });
+      if (k === "dictee") speech.speak(list[0].text, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, rate: settings.rate });
     } catch (err) {
       setStatus({ text: err.message, error: true });
     }
@@ -74,6 +74,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     if (!recognizer.current) {
       recognizer.current = speech.createRecognizer({
         lang: cfg.stt,
+        support: cfg.support,
         onStart: () => setListening(true),
         onInterim: (t) => setStatus({ text: `🎤 « ${t} »`, error: false }),
         onResult: (t) => { setStatus({ text: "", error: false }); grade(t); },
@@ -92,7 +93,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     const i = index + 1;
     setIndex(i);
     if (kind === "dictee" && sentences[i]) {
-      speech.speak(sentences[i].text, { ttsPrefixes: cfg.ttsPrefixes, rate: settings.rate });
+      speech.speak(sentences[i].text, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, rate: settings.rate });
     }
   };
 
@@ -154,9 +155,9 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
           <Text style={st.reading}>{sentence.reading}</Text>
         )}
         <View style={ui.chipRow}>
-          <Chip label="🔊 (Ré)écouter" onPress={() => speech.speak(sentence.text, { ttsPrefixes: cfg.ttsPrefixes, rate: settings.rate })} />
+          <Chip label="🔊 (Ré)écouter" onPress={() => speech.speak(sentence.text, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, rate: settings.rate })} />
           {kind === "prononciation" && (
-            <Chip label={listening ? "🎤 J'écoute…" : "🎤 Je répète"} active={listening} onPress={startMic} />
+            <Chip label={listening ? "🎤 J'écoute…" : "🎤 Je répète"} active={listening} onPress={listening ? () => recognizer.current && recognizer.current.stop() : startMic} />
           )}
         </View>
       </View>
@@ -194,7 +195,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
             {g.score} % {g.score >= 90 ? "🎉" : g.score >= 60 ? "👍" : "💪 On réessaie ?"}
           </Text>
           <View style={ui.chipRow}>
-            <Chip label="↺ Réessayer" onPress={() => { setFeedback(null); setInput(""); if (kind === "dictee") speech.speak(sentence.text, { ttsPrefixes: cfg.ttsPrefixes, rate: settings.rate }); }} />
+            <Chip label="↺ Réessayer" onPress={() => { setFeedback(null); setInput(""); if (kind === "dictee") speech.speak(sentence.text, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, rate: settings.rate }); }} />
             <Chip label="Phrase suivante →" active onPress={next} />
           </View>
         </View>

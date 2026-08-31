@@ -94,9 +94,9 @@ archivée sous `/v1/`, l'ancien emplacement `/v2/` redirige. Reste le build iOS
 
 ## Après la 1.0 (pistes)
 
-- STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support
-  vocal partiel — l'amélioration la plus forte pour le suisse allemand et le tunisien
-  ([#45](../../issues/45)).
+- ~~STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support
+  vocal partiel~~ ([#45](../../issues/45) — **livré le 31/08/2026** : `serveur-vocal/` sur
+  le DGX + intégration web ; branchement natif à faire avec le build dev, #37).
 - Streaming des réponses avec lecture phrase par phrase (latence) ([#43](../../issues/43)).
 - Configuration hybride fine (conversation en local, corrections via Claude).
 - Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible)

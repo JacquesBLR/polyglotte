@@ -1,0 +1,17 @@
+# Unité systemd du serveur vocal Polyglotte (#45) — à installer sur le DGX :
+#   sudo cp serveur-vocal/polyglotte-vocal.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now polyglotte-vocal
+[Unit]
+Description=Serveur vocal Polyglotte (STT faster-whisper + TTS Piper)
+After=network-online.target
+
+[Service]
+User=omniapp
+WorkingDirectory=/home/omniapp/Documents/projets/polyglotte/serveur-vocal
+ExecStart=/home/omniapp/Documents/projets/polyglotte/serveur-vocal/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8664
+Restart=on-failure
+RestartSec=5
+Environment=VOCAL_STT_MODEL=small
+
+[Install]
+WantedBy=multi-user.target
