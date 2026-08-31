@@ -223,7 +223,7 @@ export default function App() {
         messages: s.history,
         system: s.system,
         schema: s.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
-        maxTokens: 1024,
+        maxTokens: 2048,
       };
       let raw;
       if (useStream) {
