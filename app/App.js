@@ -7,6 +7,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, V
 import { StatusBar } from "expo-status-bar";
 
 import { callModel, hasCredentials } from "./core/api";
+import { streamOrCallLocal, partialStringField, createSentenceStreamer } from "./core/stream";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
@@ -207,13 +208,37 @@ export default function App() {
     setSuggestions([]);
     setStatus({ text: `${s.cfg.tutor.name} réfléchit…`, error: false });
     s.history.push({ role: "user", content: text });
+    // Streaming phrase par phrase (#43) : moteur compatible OpenAI, hors évaluation.
+    const useStream = settings.provider === "local" && s.mode !== "eval";
+    let streamed = false; // un message provisoire est affiché en cours de stream
     try {
-      const raw = await callModel(settings, {
+      const opts = {
         messages: s.history,
         system: s.system,
         schema: s.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
         maxTokens: 1024,
-      });
+      };
+      let raw;
+      if (useStream) {
+        const speaker = settings.autospeak
+          ? createSentenceStreamer(sentence =>
+              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, rate: settings.rate, queue: true }))
+          : null;
+        opts.onDelta = (accumulated) => {
+          const partial = partialStringField(accumulated, "reply");
+          if (!partial || !partial.text) return;
+          if (speaker) {
+            speaker.push(partial.text);
+            if (partial.complete) speaker.flush(partial.text);
+          }
+          setMessages(m => [...(streamed ? m.slice(0, -1) : m), { role: "tutor", text: partial.text, streaming: true }]);
+          streamed = true;
+          setStatus({ text: "", error: false });
+        };
+        raw = await streamOrCallLocal(settings, opts);
+      } else {
+        raw = await callModel(settings, opts);
+      }
       const data = JSON.parse(raw);
       s.history.push({ role: "assistant", content: data.reply });
       if (s.mode === "eval") {
@@ -227,7 +252,7 @@ export default function App() {
       } else {
         const correction = data.correction && data.correction.original !== data.correction.corrected
           ? data.correction : null;
-        setMessages(m => [...m, {
+        setMessages(m => [...(streamed ? m.slice(0, -1) : m), {
           role: "tutor",
           text: data.reply,
           reading: data.reading,
@@ -245,7 +270,7 @@ export default function App() {
         }
       }
       setStatus({ text: "", error: false });
-      if (settings.autospeak) {
+      if (settings.autospeak && !streamed) {
         speech.speak(data.reply, {
           ttsPrefixes: s.cfg.ttsPrefixes,
           rate: settings.rate,
@@ -253,6 +278,7 @@ export default function App() {
       }
     } catch (err) {
       s.history.pop();
+      if (streamed) setMessages(m => m.slice(0, -1));
       setStatus({ text: err.message, error: true });
     }
     setBusy(false);
