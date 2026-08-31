@@ -4,7 +4,7 @@
  * au même chemin sw.js, l'ancien service worker de la v1 : chez les visiteurs existants,
  * la mise à jour purge les caches v1 à l'activation (keys !== CACHE). */
 
-const CACHE = "polyglotte-v2-shell-2.0.0-beta.4";
+const CACHE = "polyglotte-v2-shell-2.0.0-beta.5";
 const SHELL = [
   "./",
   "index.html",
