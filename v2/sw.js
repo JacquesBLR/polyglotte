@@ -1,55 +1,18 @@
-/* Service worker Polyglotte v2 — coquille applicative en cache, API toujours en réseau.
- * Le nom du cache est versionné : à bumper à chaque version publiée.
- * Portée : /polyglotte/v2/ (le service worker de la v1, plus haut dans l’arborescence,
- * ne contrôle donc pas les pages de la v2 — la portée la plus spécifique l'emporte). */
+/* Service worker d'auto-destruction pour l'ancien emplacement /v2/ (bascule #42).
+ * Les navigateurs des testeurs alpha mettent à jour leur ancien SW vers ce fichier :
+ * il purge les caches de l'aperçu (l'app servie à la racine repeuplera les siens),
+ * se désinscrit, puis recharge les onglets — qui suivent alors la redirection. */
 
-const CACHE = "polyglotte-v2-shell-2.0.0-alpha.7";
-const SHELL = [
-  "./",
-  "index.html",
-  "manifest.webmanifest",
-  "icons/icon-192.png",
-  "icons/icon-512.png",
-  "icons/apple-touch-icon.png",
-];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE)
-      // Le bundle JS est haché à chaque build : il est mis en cache à la volée (fetch),
-      // pas ici, pour ne pas faire échouer l'installation.
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
-  );
-});
+self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-  // Jamais de cache sur les appels aux modèles (Anthropic, serveur local/Nous).
-  if (event.request.method !== "GET") return;
-  if (url.origin !== location.origin) return;
-
-  // Stale-while-revalidate : réponse immédiate depuis le cache, rafraîchie en arrière-plan.
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fresh = fetch(event.request)
-        .then((resp) => {
-          if (resp.ok) {
-            const copy = resp.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-          }
-          return resp;
-        })
-        .catch(() => cached);
-      return cached || fresh;
-    })
+      .then((keys) => Promise.all(
+        keys.filter((k) => k.startsWith("polyglotte-v2-shell-")).map((k) => caches.delete(k)),
+      ))
+      .then(() => self.registration.unregister())
+      .then(() => self.clients.matchAll({ type: "window" }))
+      .then((clients) => clients.forEach((c) => c.navigate(c.url)))
   );
 });

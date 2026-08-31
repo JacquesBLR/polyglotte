@@ -1,13 +1,12 @@
-/* Service worker Polyglotte v2 — coquille applicative en cache, API toujours en réseau.
- * Le nom du cache est versionné : à bumper à chaque version publiée.
- * Portée : la racine du site (/polyglotte/) depuis la bascule #42. Ce fichier remplace,
- * au même chemin sw.js, l'ancien service worker de la v1 : chez les visiteurs existants,
- * la mise à jour purge les caches v1 à l'activation (keys !== CACHE). */
+/* Service worker Polyglotte — coquille applicative en cache, API toujours en réseau.
+ * Le nom du cache est versionné : à synchroniser avec APP_VERSION (js/app.js). */
 
-const CACHE = "polyglotte-v2-shell-2.0.0-beta.1";
+const CACHE = "polyglotte-shell-v1.3.0";
 const SHELL = [
   "./",
   "index.html",
+  "css/style.css",
+  "js/app.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -16,11 +15,7 @@ const SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE)
-      // Le bundle JS est haché à chaque build : il est mis en cache à la volée (fetch),
-      // pas ici, pour ne pas faire échouer l'installation.
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting())
   );
 });
 
@@ -34,9 +29,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
-  // Jamais de cache sur les appels aux modèles (Anthropic, serveur local/Nous).
+  // Jamais de cache sur les appels API (proxy local, API Anthropic, serveur local).
   if (event.request.method !== "GET") return;
   if (url.origin !== location.origin) return;
+  if (url.pathname.includes("/api/")) return;
 
   // Stale-while-revalidate : réponse immédiate depuis le cache, rafraîchie en arrière-plan.
   event.respondWith(

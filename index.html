@@ -1,294 +1,43 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Polyglotte — Apprends une langue en parlant</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗣️</text></svg>">
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <meta name="theme-color" content="#c2410c">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Polyglotte">
-</head>
-<body>
-  <header class="app-header">
-    <div class="app-title">
-      <h1>Polyglotte</h1>
-      <p class="subtitle">Apprends une langue en parlant</p>
-    </div>
-    <div class="header-actions">
-      <button id="btn-new-session" class="btn-secondary hidden" title="Changer de langue ou de scénario">🔄 Nouvelle session</button>
-      <button id="btn-grammar" class="btn-secondary" title="Grammaire et conjugaison">🧠</button>
-      <button id="btn-progress" class="btn-secondary" title="Progrès et révisions">📚<span id="due-badge" class="due-badge hidden"></span></button>
-      <button id="btn-summary" class="btn-secondary" title="Résumé de la session" disabled>📋 Résumé</button>
-      <button id="btn-settings" class="btn-secondary" title="Réglages">⚙️</button>
-    </div>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>Polyglotte</title>
+    <meta name="description" content="Apprends une langue en parlant : conversation orale avec un tuteur IA, corrections, révisions et exercices." />
 
-  <main class="chat-container">
-    <div id="chat" class="chat">
-      <div class="welcome-card" id="welcome-card">
-        <h2>Benvinguda · Bienvenido · Welcome 👋</h2>
-        <p>Choisis ta langue : ton tuteur te parle <em>à l'oral</em> dans la langue cible,
-        te corrige en français et te propose des réponses possibles pour continuer.</p>
-        <div class="welcome-options">
-          <label>Langue
-            <select id="language">
-              <option value="catalan" selected>Catalan</option>
-              <option value="espagnol">Espagnol</option>
-              <option value="anglais">Anglais (GB)</option>
-              <option value="allemand">Allemand</option>
-              <option value="suisse">Suisse allemand</option>
-              <option value="ptpt">Portugais (Portugal)</option>
-              <option value="ptbr">Portugais (Brésil)</option>
-              <option value="japonais">Japonais</option>
-              <option value="arabe">Arabe standard</option>
-              <option value="tunisien">Tunisien (derja)</option>
-            </select>
-          </label>
-          <label>Niveau
-            <select id="level">
-              <option value="debutant" selected>Débutant (A1–A2)</option>
-              <option value="intermediaire">Intermédiaire (B1–B2)</option>
-              <option value="avance">Avancé (C1)</option>
-            </select>
-          </label>
-          <label>Scénario
-            <select id="scenario">
-              <option value="libre" selected>Conversation libre</option>
-              <option value="cafe">Au café / restaurant</option>
-              <option value="marche">Au marché</option>
-              <option value="directions">Demander son chemin</option>
-              <option value="presentations">Se présenter / rencontres</option>
-              <option value="voyage">Voyage</option>
-              <option value="travail">Au travail</option>
-            </select>
-          </label>
-          <label id="tn-script-row" class="hidden">Écriture (tunisien)
-            <select id="tn-script">
-              <option value="arabe" selected>Arabe (+ arabizi en lecture)</option>
-              <option value="arabizi">Arabizi (alphabet latin)</option>
-            </select>
-          </label>
-        </div>
-        <label class="checkbox-label immersion-toggle" title="Le tuteur ne parle que la langue cible et corrige par reformulation naturelle ; les traductions sont masquées">
-          <input type="checkbox" id="immersion"> 🌊 Immersion totale
-        </label>
-        <p id="support-note" class="support-note hidden"></p>
-        <button id="btn-start" class="btn-primary">🎬 Commencer la conversation</button>
-        <div class="welcome-alt">
-          <button id="btn-assess" class="btn-secondary" title="Estime ton niveau CECRL en quelques échanges">🎯 Test de niveau</button>
-          <button id="btn-exercises" class="btn-secondary" title="Dictée et prononciation">✍️ Exercices</button>
-        </div>
-        <p id="compat-warning" class="compat-warning hidden"></p>
-      </div>
-    </div>
+    <!-- PWA : installable sur l'écran d'accueil (iOS et Android). -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#c2410c" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Polyglotte" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 
-    <div id="suggestions" class="suggestions hidden"></div>
+    <!-- Réinitialisation recommandée par react-native-web (gabarit Expo par défaut). -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        overflow: hidden;
+        margin: 0;
+        background-color: #faf7f2;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  <link rel="icon" href="/polyglotte/favicon.ico"/></head>
 
-    <div id="status-bar" class="status-bar hidden"></div>
-
-    <div class="input-bar hidden" id="input-bar">
-      <button id="btn-mic" class="btn-mic" title="Parler dans la langue cible">🎤</button>
-      <button id="btn-mic-off" class="btn-mic-off" title="Couper le micro (stoppe aussi la réouverture automatique du mode mains libres)">🔇</button>
-      <input type="text" id="text-input" dir="auto" placeholder="Ou écris ta réponse…" autocomplete="off">
-      <button id="btn-send" class="btn-primary btn-send" title="Envoyer">➤</button>
-      <label class="handsfree-toggle" title="Après chaque réponse du tuteur, le micro se rouvre automatiquement">
-        <input type="checkbox" id="handsfree"> <span>Mains libres</span>
-      </label>
-    </div>
-  </main>
-
-  <!-- Modale des réglages -->
-  <div id="settings-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>⚙️ Réglages</h2>
-      <label>Profil
-        <select id="profile"></select>
-      </label>
-      <div class="progress-actions">
-        <button id="btn-profile-add" class="btn-secondary">＋ Nouveau profil</button>
-        <button id="btn-profile-del" class="btn-secondary">🗑 Supprimer ce profil</button>
-      </div>
-      <hr class="settings-sep">
-      <label>Moteur IA
-        <select id="provider">
-          <option value="claude" selected>Claude (API Anthropic)</option>
-          <option value="local">Serveur compatible OpenAI (local ou hébergé)</option>
-        </select>
-      </label>
-      <div id="local-settings" class="hidden">
-        <label>URL de base du serveur
-          <input type="text" id="local-url" placeholder="https://inference-api.nousresearch.com/v1">
-          <small>Hébergé : Nous Research (<code>https://inference-api.nousresearch.com/v1</code>)…
-          Local : vLLM (<code>http://dgx:8000/v1</code>), Ollama (<code>http://…:11434/v1</code>),
-          llama.cpp. ⚠️ Depuis une page HTTPS, un serveur local en HTTP est bloqué par le
-          navigateur (mixed content).</small>
-        </label>
-        <label>Clé API (si serveur hébergé)
-          <input type="password" id="local-key" placeholder="optionnelle — ex. clé portal.nousresearch.com">
-          <small>Envoyée en <code>Authorization: Bearer</code> uniquement vers l'URL ci-dessus.
-          Stockée dans ton navigateur (localStorage).</small>
-        </label>
-        <label>Modèle principal
-          <input type="text" id="local-model" placeholder="anthropic/claude-sonnet-4.6, nousresearch/hermes-4-405b…">
-        </label>
-        <label>Modèle fiches &amp; résumés (optionnel)
-          <input type="text" id="local-model-alt" placeholder="identique au principal si vide">
-        </label>
-        <div class="progress-actions">
-          <button id="btn-local-test" class="btn-secondary">🔌 Tester la connexion</button>
-        </div>
-        <p id="local-test-result" class="voice-info"></p>
-      </div>
-      <p id="proxy-info" class="proxy-info hidden">🔑 Clé API gérée par le serveur local — rien à configurer ici.</p>
-      <label id="api-key-label">Clé API Anthropic
-        <input type="password" id="api-key" placeholder="sk-ant-…">
-        <small>Stockée uniquement dans ton navigateur (localStorage). Astuce : lance
-        <code>python3 server.py</code> avec la variable <code>ANTHROPIC_API_KEY</code> pour ne plus
-        avoir à la saisir ici.
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Obtenir une clé</a></small>
-      </label>
-      <label id="claude-model-label">Modèle Claude
-        <select id="model">
-          <option value="claude-opus-5" selected>Claude Opus 5 (recommandé)</option>
-          <option value="claude-sonnet-5">Claude Sonnet 5 (plus économique)</option>
-          <option value="claude-haiku-4-5">Claude Haiku 4.5 (le plus rapide)</option>
-        </select>
-      </label>
-      <label>Vitesse de la voix : <span id="rate-value">0.9</span>
-        <input type="range" id="voice-rate" min="0.5" max="1.3" step="0.05" value="0.9">
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="autospeak" checked> Lire les réponses à voix haute
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="show-translations" checked> Afficher les traductions françaises
-      </label>
-      <label class="checkbox-label">
-        <input type="checkbox" id="listen-mode"> Compréhension orale : masquer le texte des réponses (👁 pour révéler)
-      </label>
-      <p id="voice-info" class="voice-info"></p>
-      <p class="app-version">Polyglotte <span id="app-version"></span></p>
-      <div class="modal-actions">
-        <button id="btn-settings-close" class="btn-primary">Fermer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modale Grammaire -->
-  <div id="grammar-modal" class="modal hidden">
-    <div class="modal-content modal-wide">
-      <h2>🧠 Grammaire & conjugaison</h2>
-      <label>Sujet (dans la langue en cours)
-        <input type="text" id="grammar-topic" placeholder="Ex. : conjugaison de « ser » au présent, les pronoms COD…">
-      </label>
-      <div class="progress-actions">
-        <button id="btn-grammar-fiche" class="btn-primary">📄 Fiche</button>
-        <button id="btn-grammar-map" class="btn-primary">🕸️ Carte mentale</button>
-      </div>
-      <p id="grammar-status" class="status-bar hidden"></p>
-      <h3 id="grammar-title" class="deck-title hidden"></h3>
-      <div id="grammar-result" class="grammar-result hidden"></div>
-      <div id="mindmap-wrap" class="mindmap-wrap hidden"></div>
-      <div class="modal-actions">
-        <button id="btn-grammar-close" class="btn-primary">Fermer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modale Exercices -->
-  <div id="exo-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>✍️ Exercices</h2>
-      <div id="exo-setup">
-        <p class="deck-hint">Cinq phrases adaptées à la langue et au niveau choisis sur l'accueil.
-        Dictée : écoute puis écris. Prononciation : lis la phrase à voix haute, la reconnaissance
-        vocale compare — c'est un indicateur, pas un juge absolu.</p>
-        <div class="progress-actions">
-          <button id="btn-exo-dictee" class="btn-primary">📝 Dictée</button>
-          <button id="btn-exo-prononciation" class="btn-primary">🗣️ Prononciation</button>
-        </div>
-      </div>
-      <div id="exo-area" class="hidden">
-        <p id="exo-progress" class="review-progress"></p>
-        <div class="review-card">
-          <div id="exo-sentence" class="review-term" dir="auto"></div>
-          <div id="exo-reading" class="review-reading"></div>
-        </div>
-        <div class="review-actions">
-          <button id="btn-exo-speak" class="btn-secondary">🔊 Écouter</button>
-          <button id="btn-exo-mic" class="btn-mic btn-mic-small hidden">🎤</button>
-        </div>
-        <input type="text" id="exo-input" dir="auto" placeholder="Écris ce que tu entends…" class="exo-input hidden" autocomplete="off">
-        <div class="review-actions">
-          <button id="btn-exo-check" class="btn-primary hidden">Corriger</button>
-          <button id="btn-exo-retry" class="btn-secondary hidden">↩️ Réessayer</button>
-          <button id="btn-exo-next" class="btn-primary hidden">Suivant →</button>
-        </div>
-        <div id="exo-feedback" class="exo-feedback hidden"></div>
-      </div>
-      <p id="exo-status" class="status-bar hidden"></p>
-      <div class="modal-actions">
-        <button id="btn-exo-close" class="btn-primary">Fermer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modale Progrès -->
-  <div id="progress-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>📚 Progrès</h2>
-
-      <div id="progress-home">
-        <div id="stats-grid" class="stats-grid"></div>
-        <p id="lang-stats" class="lang-stats"></p>
-        <div class="progress-actions">
-          <button id="btn-review" class="btn-primary">🎴 Réviser (<span id="due-count">0</span>)</button>
-          <button id="btn-export" class="btn-secondary">⬇️ Export Anki</button>
-        </div>
-        <h3 class="deck-title">Carnet de vocabulaire</h3>
-        <div id="deck-list" class="deck-list"></div>
-        <p class="deck-hint">Le vocabulaire s'ajoute automatiquement au fil de tes conversations.
-        L'export produit un fichier texte tabulé importable dans Anki.</p>
-      </div>
-
-      <div id="review-area" class="hidden">
-        <div class="review-card">
-          <div id="review-term" class="review-term" dir="auto"></div>
-          <div id="review-reading" class="review-reading"></div>
-          <div id="review-answer" class="review-answer hidden" ></div>
-        </div>
-        <div class="review-actions">
-          <button id="btn-review-speak" class="btn-secondary" title="Écouter">🔊</button>
-          <button id="btn-reveal" class="btn-primary">Afficher la réponse</button>
-          <button id="btn-knew" class="btn-primary hidden">✅ Je savais</button>
-          <button id="btn-missed" class="btn-secondary hidden">❌ À revoir</button>
-        </div>
-        <p id="review-progress" class="review-progress"></p>
-        <button id="btn-review-back" class="btn-secondary">← Retour au progrès</button>
-      </div>
-
-      <div class="modal-actions">
-        <button id="btn-progress-close" class="btn-primary">Fermer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modale du résumé -->
-  <div id="summary-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>📋 Résumé de la session</h2>
-      <div id="summary-content" class="summary-content">Génération du résumé…</div>
-      <div class="modal-actions">
-        <button id="btn-summary-close" class="btn-primary">Fermer</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/app.js"></script>
+  <body>
+    <noscript>Cette application nécessite JavaScript.</noscript>
+    <div id="root"></div>
+  <script src="/polyglotte/_expo/static/js/web/index-f156a287f7aa7d5adcf6ab4bda19cfd2.js" defer></script>
 </body>
 </html>
