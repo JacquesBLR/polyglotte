@@ -5,6 +5,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.5] — 2026-08-31
+
+### Fixed
+- « Le modèle n'a pas produit de JSON » en pleine conversation (vu en arabe) : le
+  streaming s'appuyait sur le seul prompt pour obtenir du JSON — dérives et réponses
+  détournées possibles. Le décodage guidé (`response_format json_schema`) est désormais
+  envoyé aussi en streaming (reproduit puis vérifié sur vLLM : JSON valide à chaque
+  tirage) ; un serveur qui le refuse déclenche le repli existant vers l'appel classique
+- Budget de réponse de la conversation doublé (2048 tokens) : l'écriture arabe avec
+  translittération et suggestions pouvait approcher la limite
+
 ## [2.0.0-beta.4] — 2026-08-31
 
 ### Fixed

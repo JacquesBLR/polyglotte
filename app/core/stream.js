@@ -125,6 +125,12 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
     // qui la refusent (400) déclenchent le repli callLocal sans l'option.
     chat_template_kwargs: { enable_thinking: false },
   };
+  if (schema) {
+    // Décodage guidé : garantit un JSON complet et conforme dans le canal `content`
+    // (sans lui : dérives non-JSON, texte détourné vers d'autres canaux, troncatures).
+    // Un serveur qui le refuse (400/404/422) déclenche le repli callLocal.
+    body.response_format = { type: "json_schema", json_schema: { name: "reponse", schema, strict: true } };
+  }
   const headers = { "content-type": "application/json" };
   if (settings.localKey) headers["authorization"] = "Bearer " + settings.localKey;
 
