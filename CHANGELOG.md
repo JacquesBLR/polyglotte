@@ -5,6 +5,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.3] — 2026-08-31
+
+### Fixed
+- Serveur vocal : uvicorn écoute désormais `127.0.0.1` (au lieu de `0.0.0.0`) — le bind
+  large recevait en direct les octets TLS destinés au proxy `tailscale serve` (« wrong
+  version number » côté client, « Invalid HTTP request » côté uvicorn). L'accès distant
+  passe par `https://spark-4569.tail34da6b.ts.net:8664` (#45). Pas de changement côté
+  app web (cache SW inchangé)
+
 ## [2.0.0-beta.2] — 2026-08-31
 
 ### Added
