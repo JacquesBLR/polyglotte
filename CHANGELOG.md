@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-alpha.5] — 2026-08-31
+
+Outillage avant la bascule v2 : tests unitaires du cœur, releases automatiques, gel de la
+v1 (#41, #39).
+
+### Added
+- Tests unitaires (`node --test`, sans dépendance) du cœur partagé `app/core` — Leitner,
+  notation LCS des dictées, registre des langues, prompts, extraction JSON, schémas —
+  dans `tests/`, exécutés en CI avant la construction (#41)
+- `release.yml` : à la fusion dans `main`, si la version en tête du CHANGELOG n'a pas
+  encore de release GitHub, création automatique du tag `vX.Y.Z` et de la release
+  (notes = section du CHANGELOG, pré-release si la version contient un tiret) (#39)
+
+### Changed
+- **v1 gelée** : la webapp statique (racine) ne reçoit plus que des correctifs ; toute
+  nouveauté va dans la v2 (`app/`). La bascule `/v2/` → racine est suivie dans #42
+  (ROADMAP, README)
+- Décision #39 : l'hébergement reste sur GitHub Pages (site 100 % statique, rien à
+  héberger côté serveur) ; pas de runner self-hosted — la partie release de la
+  convention est automatisée sur `ubuntu-latest`
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-alpha.5`
+
 ## [2.0.0-alpha.4] — 2026-08-25
 
 Normalisation du dépôt après le renommage `hello-world` → `polyglotte` du 21/08/2026 (#38).
