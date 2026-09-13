@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
 import { testLocalConnection } from "../core/api";
+import { REMINDERS_SUPPORTED } from "../notify/notify";
 import { DEFAULT_PROFILE } from "../storage";
 import { C, Chip, ui } from "./common";
 
@@ -157,7 +158,7 @@ export default function SettingsModal({
             <Text style={{ color: C.faint, fontSize: 12 }}>
               STT/TTS locaux (Whisper + Piper, ex. sur le DGX — voir serveur-vocal/) pour les
               langues au support vocal partiel : suisse allemand et tunisien. Micro en mode
-              appuyer-parler-retoucher. Vide = moteurs du navigateur.
+              appuyer-parler-retoucher. Vide = moteurs du navigateur ou de l'appareil.
             </Text>
             <TextInput style={ui.field} value={draft.voiceUrl || ""} onChangeText={v => set("voiceUrl", v)} autoCapitalize="none" placeholder="https://…:8664 (vide = désactivé)" placeholderTextColor={C.faint} />
             {!!(draft.voiceUrl || "").trim() && (
@@ -182,6 +183,13 @@ export default function SettingsModal({
               <Text style={ui.label}>Révision : cartes inversées (français → langue cible, une sur deux)</Text>
               <Switch value={!!draft.reversedCards} onValueChange={v => set("reversedCards", v)} trackColor={{ true: C.primary }} />
             </View>
+
+            {REMINDERS_SUPPORTED && (
+              <View style={st.switchRow}>
+                <Text style={ui.label}>Rappel quand des cartes sont à revoir (19 h, sur cet appareil)</Text>
+                <Switch value={!!draft.reminders} onValueChange={v => set("reminders", v)} trackColor={{ true: C.primary }} />
+              </View>
+            )}
 
             <View style={[ui.chipRow, { justifyContent: "flex-end", marginTop: 8 }]}>
               <Pressable onPress={onClose} style={st.cancelBtn}><Text style={{ color: C.muted, fontSize: 16 }}>Annuler</Text></Pressable>

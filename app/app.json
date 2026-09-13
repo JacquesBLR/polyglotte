@@ -8,7 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jacquesblr.polyglotte"
+      "bundleIdentifier": "com.jacquesblr.polyglotte",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.jacquesblr.polyglotte",
@@ -27,7 +30,21 @@
       "baseUrl": "/polyglotte"
     },
     "plugins": [
-      "expo-sharing"
+      "expo-sharing",
+      "expo-notifications",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Polyglotte écoute le micro pour que tu puisses parler à ton tuteur dans la langue que tu apprends.",
+          "speechRecognitionPermission": "Polyglotte transcrit ta parole pour comprendre ce que tu dis dans la langue que tu apprends."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Polyglotte enregistre ta voix pour la transcrire via ton serveur vocal, pour les langues dont l'oral n'est pas pris en charge par l'appareil."
+        }
+      ]
     ]
   }
 }

@@ -5,6 +5,45 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.6] — 2026-09-13
+
+Préparation du build iOS (#37) : l'app native gagne tout ce qui lui manquait pour tourner
+hors du navigateur.
+
+### Added
+- 📱 **Chaîne de build EAS** : `app/eas.json` (profils `development`, `simulator`,
+  `preview`, `production` ; `appVersionSource: remote` et `autoIncrement` en production)
+  et profil de soumission App Store Connect. Dépendance `expo-dev-client` — la
+  reconnaissance vocale native exige un build de développement, elle n'existe pas dans
+  Expo Go (#37)
+- 🎙️ **Reconnaissance vocale native** (iOS `SFSpeechRecognizer`, Android
+  `SpeechRecognizer`) via `expo-speech-recognition` : le micro fonctionne enfin en natif,
+  avec résultats intermédiaires et messages d'erreur alignés sur le web. Le module natif
+  est chargé paresseusement — un binaire qui ne l'embarque pas bascule proprement sur la
+  saisie clavier au lieu de planter (#37)
+- 🔊 **Serveur vocal branché en natif** (#45, promis pour #37) : pour les langues au
+  support vocal partiel (suisse allemand, tunisien), enregistrement AAC 16 kHz mono via
+  `expo-audio` envoyé à Whisper, et lecture des voix Piper (WAV écrit dans le cache puis
+  joué), avec repli sur les moteurs du système en cas d'échec. L'app native a désormais la
+  même matrice vocale que le web
+- 🔔 **Rappels de révision** (`expo-notifications`, réglage désactivé par défaut) :
+  notification locale à 19 h le premier jour où des cartes sont à revoir — planifiée sur
+  l'appareil, sans serveur ni compte. Replanifiée à chaque changement d'écran et à chaque
+  retour sur l'app. `app/core/reminders.js` : calcul pur de l'échéance, couvert par
+  9 tests (`tests/reminders.test.mjs`) (#37)
+- Permissions iOS déclarées (micro, reconnaissance vocale) et
+  `ITSAppUsesNonExemptEncryption: false` — évite le questionnaire de conformité à chaque
+  téléversement TestFlight
+
+### Changed
+- Le réglage « Rappels de révision » n'apparaît que sur les plateformes qui savent les
+  tenir : sur le web, une PWA ne peut pas programmer de notification locale à date fixe
+  sans serveur de push, et le réglage est masqué plutôt qu'inopérant
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.6`
+- `verifie-coherence.mjs` contrôle désormais que ce nom de cache suit la version de
+  `app/package.json` — un nom oublié servait l'ancienne app aux visiteurs sans rien casser
+  à la construction
+
 ## [2.0.0-beta.5] — 2026-08-31
 
 ### Fixed
