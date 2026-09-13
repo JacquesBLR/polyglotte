@@ -28,8 +28,7 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "REMPLIR_apple_id@exemple.com",
-        "ascAppId": "REMPLIR_identifiant_app_store_connect",
+        "ascAppId": "6811681919",
         "appleTeamId": "REMPLIR_team_id"
       }
     }
