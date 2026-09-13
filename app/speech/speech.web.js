@@ -25,10 +25,12 @@ function remoteActive(opts) {
 let rQueue = [];
 let rCurrent = null; // { audio, url }
 let rPlaying = false;
+let rGen = 0; // incrémenté par stopSpeaking() : périme les lectures en vol
 
 function stopRemoteSpeech() {
   rQueue = [];
   rPlaying = false;
+  rGen++;
   if (rCurrent) {
     try { rCurrent.audio.pause(); } catch (_) { /* déjà arrêté */ }
     URL.revokeObjectURL(rCurrent.url);
@@ -40,7 +42,9 @@ async function pumpRemote() {
   if (rPlaying || !rQueue.length) return;
   rPlaying = true;
   const job = rQueue.shift();
+  const gen = rGen;
   const done = (fallback) => {
+    if (gen !== rGen) return; // arrêté entre-temps : ne pas relancer la file
     rPlaying = false;
     if (fallback) speakLocal(job.text, { ...job.opts, queue: true }); // repli voix navigateur
     else if (job.opts.onEnd) job.opts.onEnd();
@@ -53,7 +57,10 @@ async function pumpRemote() {
       body: JSON.stringify({ text: job.text, lang: job.opts.stt || "" }),
     });
     if (!resp.ok) throw new Error();
-    const url = URL.createObjectURL(await resp.blob());
+    const blob = await resp.blob();
+    // stopSpeaking() a pu tomber pendant la requête : ne pas parler quand même.
+    if (gen !== rGen) return;
+    const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.playbackRate = job.opts.rate || 1;
     rCurrent = { audio, url };

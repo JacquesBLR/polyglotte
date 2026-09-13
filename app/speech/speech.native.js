@@ -56,6 +56,7 @@ function remoteActive(opts) {
 let rQueue = [];
 let rCurrent = null; // { player, file, sub }
 let rPlaying = false;
+let rGen = 0; // incrémenté par stopSpeaking() : périme les lectures en vol
 let ttsSeq = 0;
 
 function disposeCurrent() {
@@ -70,6 +71,7 @@ function disposeCurrent() {
 function stopRemoteSpeech() {
   rQueue = [];
   rPlaying = false;
+  rGen++;
   disposeCurrent();
 }
 
@@ -77,7 +79,12 @@ async function pumpRemote() {
   if (rPlaying || !rQueue.length) return;
   rPlaying = true;
   const job = rQueue.shift();
+  const gen = rGen;
+  // Un état de lecture peut être notifié plusieurs fois : ne clore qu'une fois.
+  let closed = false;
   const done = (fallback) => {
+    if (closed || gen !== rGen) return; // déjà clos, ou arrêté entre-temps
+    closed = true;
     rPlaying = false;
     if (fallback) speakLocal(job.text, { ...job.opts, queue: true }); // repli voix système
     else if (job.opts.onEnd) job.opts.onEnd();
@@ -99,6 +106,11 @@ async function pumpRemote() {
 
     // Sur iOS, laisser la session en mode enregistrement rend la lecture inaudible.
     await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    // stopSpeaking() a pu tomber pendant la requête : ne pas parler quand même.
+    if (gen !== rGen) {
+      try { file.delete(); } catch (_) { /* déjà supprimé */ }
+      return;
+    }
     const player = createAudioPlayer(file.uri);
     player.setPlaybackRate(job.opts.rate || 1);
     const sub = player.addListener("playbackStatusUpdate", (status) => {

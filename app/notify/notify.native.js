@@ -3,6 +3,7 @@
 // serveur ni compte. Interface commune avec notify.web.js.
 
 import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
 
 import { nextReminder, reminderBody } from "../core/reminders";
 
@@ -22,14 +23,12 @@ Notifications.setNotificationHandler({
 
 let channelReady = false;
 async function ensureChannel() {
-  if (channelReady) return;
+  if (channelReady || Platform.OS !== "android") return;
   channelReady = true;
-  if (Notifications.setNotificationChannelAsync) {
-    await Notifications.setNotificationChannelAsync(CHANNEL, {
-      name: "Rappels de révision",
-      importance: Notifications.AndroidImportance?.DEFAULT ?? 3,
-    }).catch(() => {});
-  }
+  await Notifications.setNotificationChannelAsync(CHANNEL, {
+    name: "Rappels de révision",
+    importance: Notifications.AndroidImportance.DEFAULT,
+  }).catch(() => {});
 }
 
 // Demande l'autorisation si elle n'a pas déjà été accordée ou refusée.
@@ -65,11 +64,12 @@ export async function scheduleReminder(deck, now = Date.now()) {
       content: {
         title: "🗂️ Polyglotte — c'est l'heure des révisions",
         body: reminderBody(prochain.count),
-        ...(Notifications.AndroidImportance ? { channelId: CHANNEL } : {}),
       },
+      // `channelId` se déclare sur le déclencheur (ignoré hors Android).
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: new Date(prochain.at),
+        channelId: CHANNEL,
       },
     });
     return prochain;

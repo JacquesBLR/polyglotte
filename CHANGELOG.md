@@ -44,6 +44,12 @@ hors du navigateur.
   `app/package.json` — un nom oublié servait l'ancienne app aux visiteurs sans rien casser
   à la construction
 
+### Fixed
+- Serveur vocal : couper la parole (retour à l'accueil, nouveau tour) pendant que la voix
+  Piper était encore en cours de téléchargement laissait la phrase se jouer quand même,
+  par-dessus la suite. Les lectures en vol sont maintenant périmées par l'arrêt —
+  corrigé des deux côtés, web et natif
+
 ## [2.0.0-beta.5] — 2026-08-31
 
 ### Fixed
