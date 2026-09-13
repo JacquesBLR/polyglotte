@@ -48,6 +48,8 @@ complète mais l'oral est approximatif.
   chemin, se présenter, voyage, travail.
 - 📈 **Trois niveaux** : débutant (A1–A2), intermédiaire (B1–B2), avancé (C1).
 - 📋 **Résumé de session** : vocabulaire vu, erreurs commises, phrases à réviser.
+- 🔔 **Rappels de révision** (app iOS/Android) : notification locale quand des cartes
+  arrivent à échéance — sur l'appareil, sans serveur ni compte.
 
 ## Démarrage rapide (recommandé : clé gérée par le serveur)
 
@@ -128,9 +130,70 @@ La qualité de la synthèse dépend des voix installées sur le système :
 - **macOS** : Réglages → Accessibilité → Contenu énoncé → Voix du système.
 - **Windows** : Paramètres → Heure et langue → Langue → ajouter la langue avec synthèse vocale.
 
+## Serveur vocal local (Whisper + Piper)
+
+Le suisse allemand et le tunisien n'ont pas de moteur vocal dédié : les moteurs du
+navigateur et de l'appareil les rendent mal. `serveur-vocal/` est un service FastAPI à
+faire tourner sur une machine à soi (le DGX, par exemple) qui expose `/stt`
+(faster-whisper) et `/tts` (7 voix Piper : ca, es, en-GB, de, pt-PT, pt-BR, ar).
+
+⚙️ → **Serveur vocal** : colle son URL et appuie sur **🎙️ Tester le serveur vocal**.
+Quand il est configuré, les langues au support **partiel** passent par lui — micro en mode
+appuyer-parler-retoucher — avec repli automatique sur les moteurs du système en cas
+d'échec. Les autres langues continuent d'utiliser les moteurs du système, plus rapides.
+
+Installation, voix et exposition HTTPS (nécessaire depuis la PWA, qui est servie en
+HTTPS) : voir [`serveur-vocal/README.md`](serveur-vocal/README.md).
+
+## Application iOS (TestFlight)
+
+L'app native se construit avec **EAS Build** (dans le cloud d'Expo — aucun Mac requis) ;
+`app/eas.json` contient les profils. Il faut un compte Expo (gratuit) et un compte
+développeur Apple.
+
+```sh
+cd app
+npm install -g eas-cli      # ou npx eas-cli@latest à chaque commande
+npx eas login               # compte Expo
+npx eas init                # relie le projet (écrit extra.eas.projectId dans app.json)
+
+# 1. Build de développement, à installer sur ton iPhone/iPad pour développer.
+#    Indispensable : la reconnaissance vocale native n'existe pas dans Expo Go.
+npx eas device:create       # enregistre l'appareil (ad hoc)
+npx eas build -p ios --profile development
+
+# 2. Build de production, puis envoi sur TestFlight.
+npx eas build -p ios --profile production
+npx eas submit -p ios --latest
+```
+
+Au premier build, EAS propose de se connecter à Apple et crée seul les certificats, le
+profil de provisionnement et l'app dans App Store Connect. Les identifiants de soumission
+(`appleId`, `ascAppId`, `appleTeamId`) se renseignent dans `app/eas.json`.
+
+**Spécificités natives** : reconnaissance vocale système (`SFSpeechRecognizer`), serveur
+vocal pour les langues au support partiel, et **rappels de révision** — une notification
+locale à 19 h le premier jour où des cartes sont à revoir (⚙️ → réglage désactivé par
+défaut ; planifiée sur l'appareil, sans serveur ni compte).
+
 ## Architecture
 
-Application 100 % statique, sans dépendance :
+Deux applications cohabitent dans le dépôt : la **v2** (`app/`, Expo, servie à la racine
+du site) et la **v1** gelée (statique, archivée sous `/v1/`).
+
+**v2 — app universelle Expo** (iOS, Android, web depuis une seule base de code) :
+
+| Chemin | Rôle |
+|---|---|
+| `app/App.js` | Navigation, conversation, état de session |
+| `app/core/` | Cœur partagé, sans dépendance à la plateforme : registre des langues, prompts, schémas JSON, appels aux moteurs, streaming, FSRS, rappels — couvert par les tests |
+| `app/speech/` | Abstraction vocale, une implémentation par plateforme (`.web.js` / `.native.js`) : moteurs du système ou serveur vocal |
+| `app/notify/`, `app/export/`, `app/pwa/` | Mêmes couches par plateforme : rappels locaux, export de fichier, service worker |
+| `app/ui/` | Écrans grammaire, exercices, progrès et réglages |
+| `app/eas.json` | Profils de build et de soumission EAS (iOS) |
+| `serveur-vocal/` | Service FastAPI optionnel : `/stt` (faster-whisper) et `/tts` (voix Piper) |
+
+**v1 — webapp statique gelée** (correctifs seulement) :
 
 | Fichier | Rôle |
 |---|---|
@@ -141,7 +204,8 @@ Application 100 % statique, sans dépendance :
 
 Détails techniques notables :
 
-- **Registre de langues central** (`LANGUAGES` dans `app.js`) : locales vocales, persona,
+- **Registre de langues central** (`LANGUAGES`, dans `app/core/languages.js` pour la v2 et
+  `js/app.js` pour la v1) : locales vocales, persona,
   direction d'écriture, translittération, niveau de support — ajouter une langue = une entrée.
 - **Deux modes de clé API détectés automatiquement** : proxy local (`server.py`) ou appels
   directs navigateur → API Anthropic.
