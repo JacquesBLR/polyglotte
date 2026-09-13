@@ -65,6 +65,16 @@ verifie(
   `APP_VERSION=${versionV1}, cache=${cacheV1}`,
 );
 
+// 4. Le cache du service worker v2 suit la version de l'app (invariant documenté
+// dans app/public/sw.js) : un nom périmé sert l'ancienne app aux visiteurs.
+const versionV2 = JSON.parse(readFileSync("app/package.json", "utf8")).version;
+const cacheV2 = readFileSync("app/public/sw.js", "utf8").match(/CACHE\s*=\s*"([^"]+)"/)?.[1];
+verifie(
+  "app/public/sw.js : nom de cache v2 synchronisé avec la version de l'app",
+  cacheV2 === `polyglotte-v2-shell-${versionV2}`,
+  `version=${versionV2}, cache=${cacheV2}`,
+);
+
 if (erreurs.length) {
   console.error("\n❌ Incohérences détectées :");
   for (const e of erreurs) console.error(`  - ${e}`);

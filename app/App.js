@@ -3,7 +3,7 @@
 // l'abstraction vocale (app/speech) et les écrans (app/ui).
 
 import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { AppState, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 
 import { callModel, hasCredentials } from "./core/api";
@@ -12,6 +12,7 @@ import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
+import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
 import * as speech from "./speech/speech";
 import {
@@ -35,6 +36,7 @@ const DEFAULT_SETTINGS = {
   rate: 1,
   reversedCards: false,
   voiceUrl: "",
+  reminders: false,
 };
 
 const LEVELS = [
@@ -78,6 +80,24 @@ export default function App() {
   useEffect(() => {
     speech.configure({ voiceUrl: settings.voiceUrl });
   }, [settings.voiceUrl]);
+
+  // Rappels de révision (#37) : replanifiés à chaque changement d'écran et à
+  // chaque retour sur l'app — le carnet a pu bouger entre-temps (mots ajoutés
+  // en conversation, cartes notées dans l'écran Progrès).
+  useEffect(() => {
+    if (!REMINDERS_SUPPORTED) return undefined;
+    let vivant = true;
+    const replanifie = async () => {
+      if (!settings.reminders) return cancelReminders();
+      const deck = await loadJSON(keys.deck, []);
+      if (vivant) await scheduleReminder(deck);
+    };
+    replanifie();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") replanifie();
+    });
+    return () => { vivant = false; sub.remove(); };
+  }, [settings.reminders, keys.deck, screen]);
 
   useEffect(() => {
     registerServiceWorker();

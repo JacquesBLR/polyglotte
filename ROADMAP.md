@@ -89,14 +89,19 @@ développeur Apple).
 **La v1 est gelée depuis le 31/08/2026** : correctifs seulement, toute nouveauté va dans
 la v2. Tests unitaires du cœur livrés ([#41](../../issues/41)) ; **bascule `/v2/` → racine
 exécutée le 31/08/2026** ([#42](../../issues/42)) : la v2 est servie à la racine, la v1
-archivée sous `/v1/`, l'ancien emplacement `/v2/` redirige. Reste le build iOS
-([#37](../../issues/37)).
+archivée sous `/v1/`, l'ancien emplacement `/v2/` redirige.
+
+**Build iOS ([#37](../../issues/37))** — débloqué le 13/09/2026 par l'ouverture du compte
+développeur Apple. Côté code, livré en 2.0.0-beta.6 : chaîne EAS (`app/eas.json`),
+reconnaissance vocale native (`expo-speech-recognition`), serveur vocal branché en natif
+et rappels de révision locaux. Restent les étapes qui demandent les comptes : `eas init`,
+premier build de développement sur appareil, puis build de production et envoi TestFlight.
 
 ## Après la 1.0 (pistes)
 
 - ~~STT/TTS via serveur local (Whisper, voix Piper dédiées) pour les langues à support
   vocal partiel~~ ([#45](../../issues/45) — **livré le 31/08/2026** : `serveur-vocal/` sur
-  le DGX + intégration web ; branchement natif à faire avec le build dev, #37).
+  le DGX + intégration web ; **branchement natif livré le 13/09/2026** avec #37).
 - Streaming des réponses avec lecture phrase par phrase (latence) ([#43](../../issues/43)).
 - Configuration hybride fine (conversation en local, corrections via Claude).
 - Répétition espacée : algorithme FSRS, cartes inversées (français → langue cible)
