@@ -41,3 +41,28 @@ test("repli épuisé : le serveur qui vient d'échouer n'est pas rappelé", () =
     "plus de voix, plus de serveur : il faut le dire, pas boucler",
   );
 });
+
+test("langue qui préfère le serveur : il passe devant la voix du navigateur", () => {
+  // Catalan (#79) : reconnaissance vocale « full », mais voix iOS compacte médiocre.
+  assert.equal(
+    choisitVoix({ support: "full", voixServeur: true, voixNavigateur: true, distantDisponible: true }),
+    "distant",
+  );
+});
+
+test("langue qui préfère le serveur, serveur absent : la voix du navigateur, pas le silence", () => {
+  assert.equal(
+    choisitVoix({ support: "full", voixServeur: true, voixNavigateur: true, distantDisponible: false }),
+    "local",
+  );
+});
+
+test("langue qui préfère le serveur, repli épuisé : le navigateur reprend la main", () => {
+  assert.equal(
+    choisitVoix({
+      support: "full", voixServeur: true, voixNavigateur: true,
+      distantDisponible: true, repliEpuise: true,
+    }),
+    "local",
+  );
+});

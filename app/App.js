@@ -249,7 +249,7 @@ export default function App() {
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
-              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, langue: s.cfg.label, rate: settings.rate, queue: true }))
+              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, voixServeur: s.cfg.voixServeur, langue: s.cfg.label, rate: settings.rate, queue: true }))
           : null;
         opts.onDelta = (accumulated) => {
           const partial = partialStringField(accumulated, "reply");
@@ -302,6 +302,7 @@ export default function App() {
           ttsPrefixes: s.cfg.ttsPrefixes,
           stt: s.cfg.stt,
           support: s.cfg.support,
+          voixServeur: s.cfg.voixServeur,
           langue: s.cfg.label,
           rate: settings.rate,
         });
@@ -495,7 +496,7 @@ export default function App() {
             )}
             {m.role === "tutor" && (
               <View style={[st.bubble, st.bubbleTutor]}>
-                <Pressable onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, langue: session.current.cfg.label, rate: settings.rate }); }}>
+                <Pressable onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, voixServeur: session.current.cfg.voixServeur, langue: session.current.cfg.label, rate: settings.rate }); }}>
                   <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
                 </Pressable>
                 {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}

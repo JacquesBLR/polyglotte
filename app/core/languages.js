@@ -7,7 +7,12 @@ export const LANGUAGES = {
     tutor: { name: "Núria", city: "Barcelone", f: true },
     stt: "ca-ES", ttsPrefixes: ["ca", "es"],
     rtl: false, reading: null, support: "full",
-    voiceHint: "Installe une voix catalane (« Montserrat » sur iOS/macOS) pour la meilleure synthèse ; repli sur une voix espagnole sinon.",
+    // La reconnaissance vocale du navigateur suffit (d'où support "full"), mais sa voix de
+    // synthèse, elle, est médiocre : iOS installe par défaut une voix catalane « compacte »
+    // au grain très audible. La voix du serveur (Piper ca_ES-upc_ona) est bien meilleure,
+    // alors on la demande (#79) — repli sur le navigateur si le serveur est injoignable.
+    voixServeur: true,
+    voiceHint: "Voix catalane du serveur vocal ; repli sur la voix du navigateur (iOS : préfère la variante « Améliorée » dans Réglages → Accessibilité → Contenu énoncé → Voix).",
     promptExtra: "Sois attentive aux calques du français et de l'espagnol, fréquents chez les francophones.",
     scenarios: [
       { id: "calcotada", label: "🌍 Une calçotada entre amis", prompt: "Jeu de rôle : tu invites l'élève à une calçotada près de Tarragone. Fais-lui vivre le rituel : calçots grillés au feu, sauce romesco, porró de vi, mains noircies et grand bavoir. Vocabulaire de la fête et de la table." },
