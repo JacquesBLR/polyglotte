@@ -53,8 +53,19 @@ export const RESPONSE_SCHEMA = {
       },
       description: "0 à 2 mots/expressions importants et nouveaux de cet échange, à mémoriser. Vide si rien de notable.",
     },
+    // Missions de scénario (#91) — en fin de schéma : le streaming lit "reply" en tête.
+    missions: {
+      type: "array",
+      items: { type: "string" },
+      description: "Au message [START] uniquement : 3 missions EN FRANÇAIS, à l'infinitif (3 à 8 mots), que l'élève devra accomplir dans ce scénario. Tableau vide à tous les autres tours.",
+    },
+    missions_accomplies: {
+      type: "array",
+      items: { type: "integer" },
+      description: "Numéros (1 à 3) des missions que l'élève vient d'accomplir dans son dernier message. Vide sinon.",
+    },
   },
-  required: ["reply", "translation", "reading", "correction", "suggestions", "cultural_note", "vocabulary"],
+  required: ["reply", "translation", "reading", "correction", "suggestions", "cultural_note", "vocabulary", "missions", "missions_accomplies"],
   additionalProperties: false,
 };
 

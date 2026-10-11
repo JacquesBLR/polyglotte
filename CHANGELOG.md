@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.25] — 2026-10-12
+
+### Added
+- 🎭 **Missions de scénario** (#91). Un scénario donnait un décor au tuteur, pas de but à
+  l'élève : il répondait aux questions jusqu'à décider d'arrêter, sans savoir ce qu'il
+  devait réussir ni s'il y était arrivé. Le tuteur propose désormais **trois missions** au
+  premier tour, en français, graduées au niveau (A1–A2 : saluer, commander, demander un
+  prix ; B1–B2 : se renseigner, négocier, expliquer un problème ; C1 : convaincre, nuancer,
+  plaisanter), affichées en bandeau sous l'en-tête et cochées au fil des tours. Toutes
+  accomplies : le tuteur félicite et propose de conclure. Même mécanique que les objectifs
+  des *Roleplays* de Speak, le but affiché du *Roleplay* de Duolingo Max et les *scenario
+  goals* de Praktika
+- `RESPONSE_SCHEMA` gagne `missions` et `missions_accomplies`, placés en fin de schéma pour
+  que le streaming phrase par phrase continue de lire `reply` en tête. `app/core/mission.js`
+  (pur) valide et cumule ce que le modèle déclare : identifiants hors bornes ignorés, une
+  mission cochée ne se décoche jamais, aucune réussite jugée par l'app elle-même
+- L'historique note le total et le nombre de missions accomplies par session ; l'écran
+  Progrès compte les « missions accomplies »
+
 ## [2.0.0-beta.24] — 2026-10-12
 
 ### Added

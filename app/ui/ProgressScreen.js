@@ -8,6 +8,7 @@ import { erreursDues } from "../core/erreurs";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
+import { nbMissionsAccomplies } from "../core/mission";
 import { JOURS_COURTS, bilanHebdo, messageHebdo, semainesTenues } from "../core/objectif";
 import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
@@ -225,6 +226,7 @@ export default function ProgressScreen({ settings, keys }) {
   const stats = [
     [history.length, "sessions"],
     [computeStreak(history), "jours d'affilée"],
+    [nbMissionsAccomplies(history), "missions accomplies"],
     [deck.length, "mots au carnet"],
     [due.length, "à réviser"],
     [erreurs.length, "erreurs au carnet"],

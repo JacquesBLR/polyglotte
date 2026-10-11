@@ -1,8 +1,10 @@
 // Prompts pédagogiques — iso-fonctionnels avec l'app v1, paramétrés par un contexte
 // pur : { cfg (langConfig résolu), level, levelLabel, scenarioId, immersion, mode,
-// erreurs (cartes du carnet d'erreurs à réactiver, #87 — optionnel) }.
+// erreurs (cartes du carnet d'erreurs à réactiver, #87 — optionnel),
+// missions (missions déjà annoncées par le tuteur, réinjectées, #91 — optionnel) }.
 
 import { blocErreursPrompt } from "./erreurs.js";
+import { blocMissionsPrompt } from "./mission.js";
 
 export const LEVEL_INSTRUCTIONS = {
   debutant: `L'élève est DÉBUTANT (A1–A2). Utilise des phrases très courtes et simples, les temps
@@ -61,7 +63,7 @@ Champs :
 
 export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
-  const { cfg, level, scenarioId, immersion, erreurs } = ctx;
+  const { cfg, level, scenarioId, immersion, erreurs, missions } = ctx;
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   const readingRule = cfg.reading
     ? `- "reading" : ${cfg.reading}.`
@@ -99,6 +101,7 @@ ${correctionRules}
 - "vocabulary" : 0 à 2 mots ou expressions importants et NOUVEAUX de cet échange (issus de ta réplique ou du message
   de l'élève), utiles à mémoriser : terme en langue cible, traduction française, translittération latine si l'écriture
   n'est pas latine (sinon null). Tableau vide si rien de notable — ne remplis jamais artificiellement.
+${blocMissionsPrompt(level, missions)}
 - Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser.
 - Le message spécial "[START]" signifie que l'élève démarre la conversation : salue-le dans la langue cible et lance le scénario.
 - Note : l'historique ne contient que tes répliques dans la langue cible, sans les traductions ni corrections précédentes.`;
