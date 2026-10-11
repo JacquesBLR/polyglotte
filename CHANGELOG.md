@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.10] — 2026-10-11
+
+Rendre diagnosticable, et réparable sans perte de données, une installation restée sur une
+version périmée — vécu sur l'iPhone, où rouvrir la PWA ne suffisait pas et où la seule issue
+semblait être de supprimer l'app, donc d'effacer le carnet.
+
+### Added
+- 🔢 **Version affichée dans ⚙️** (#61), en pied de réglages. La v2 ne l'affichait nulle
+  part : impossible de savoir si le code exécuté était celui qui venait d'être publié. Elle
+  est injectée par `app.json` (`extra.version`) et **vérifiée en CI** comme identique à celle
+  du `package.json` — un numéro affiché qui mentirait serait pire que pas de numéro
+- 🔄 **Bouton « Forcer la mise à jour »** (web) : désinscrit les service workers, vide les
+  caches et recharge, **sans toucher au stockage local**. Carnet de vocabulaire, historique et
+  profils sont conservés — contrairement à l'effacement des données du site ou à la
+  suppression de l'app, les deux seules voies qui existaient jusqu'ici
+
+### Changed
+- Au démarrage, l'app demande explicitement au navigateur de revérifier le service worker
+  (`registration.update()`) : en mode autonome sur iOS, rouvrir l'app ne déclenche pas
+  toujours ce contrôle, et une version publiée pouvait rester invisible
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.10`
+
 ## [2.0.0-beta.9] — 2026-10-11
 
 « Ça marche tout de suite » : les deux obstacles qui séparaient encore l'ouverture de l'app

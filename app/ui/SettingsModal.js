@@ -1,12 +1,21 @@
 // Réglages : profils, moteur IA (Claude / serveur OpenAI compatible), synthèse vocale.
 
 import { useEffect, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import Constants from "expo-constants";
 
 import { testLocalConnection } from "../core/api";
 import { REMINDERS_SUPPORTED } from "../notify/notify";
 import { DEFAULT_PROFILE } from "../storage";
+import { forceUpdate } from "../pwa/pwa";
 import { C, Chip, ui } from "./common";
+
+// Version complète, injectée par app.json (extra.version) et contrôlée en CI comme
+// identique à celle du package.json (#61) : un numéro qui mentirait serait pire que pas
+// de numéro du tout.
+const VERSION = Constants.expoConfig?.extra?.version || "inconnue";
+// Le délogement n'a de sens que là où il y a un service worker.
+const PEUT_DELOGER = Platform.OS === "web";
 
 export default function SettingsModal({
   visible, settings, profiles, onClose, onSave,
@@ -191,6 +200,20 @@ export default function SettingsModal({
               </View>
             )}
 
+            <View style={st.piedVersion}>
+              <Text style={st.version}>Polyglotte {VERSION}</Text>
+              {PEUT_DELOGER && (
+                <Pressable onPress={forceUpdate} style={st.majBtn}>
+                  <Text style={st.majBtnText}>🔄 Forcer la mise à jour</Text>
+                </Pressable>
+              )}
+            </View>
+            {PEUT_DELOGER && (
+              <Text style={st.majAide}>
+                Vide le cache et recharge. Ton carnet, ton historique et tes profils sont conservés.
+              </Text>
+            )}
+
             <View style={[ui.chipRow, { justifyContent: "flex-end", marginTop: 8 }]}>
               <Pressable onPress={onClose} style={st.cancelBtn}><Text style={{ color: C.muted, fontSize: 16 }}>Annuler</Text></Pressable>
               <Pressable onPress={() => { onSave(draft); onClose(); }} style={st.saveBtn}>
@@ -211,6 +234,12 @@ const st = StyleSheet.create({
   switchRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 10, gap: 10 },
   cancelBtn: { borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16 },
   saveBtn: { backgroundColor: C.primary, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16 },
+  piedVersion: { flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 10 },
+  version: { color: C.muted, fontSize: 13 },
+  majBtn: { borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14, borderWidth: 1, borderColor: C.border },
+  majBtnText: { color: C.text, fontWeight: "600", fontSize: 14 },
+  majAide: { color: C.faint, fontSize: 12, marginTop: 6 },
   dangerBtn: { backgroundColor: C.error, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 14 },
   dangerBtnText: { color: "#fff", fontWeight: "600", fontSize: 14 },
 });
