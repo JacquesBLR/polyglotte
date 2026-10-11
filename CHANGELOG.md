@@ -5,6 +5,21 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.22] — 2026-10-11
+
+### Changed
+- 🇹🇳 **Le tunisien du tuteur est ancré dans un corpus** (#85). « La voix est correcte mais
+  a priori ce n'est pas du tunisien » : le défaut était dans le texte. La consigne se
+  résumait à « parle tunisien, pas arabe standard », et le modèle écrivait un arabe
+  maghrébin moyen dérivant vers l'ouest — relevé `أتاي` (le thé, forme marocaine) et `كيف`
+  au lieu de `كيفاش`
+- `app/core/derja.js` ajoute au prompt du seul tunisien les oppositions de formes
+  (برشا/بزاف, قداش/شحال, توة/دابا, متاع/ديال, نحب/بغيت, هاذا/هاد), leurs équivalents
+  arabizi, et trois phrases **citées** du corpus `fbougares/TUNIFRA` — 1 950 phrases de
+  radio tunisienne alignées au français, celui dont vient déjà l'extrait de référence de la
+  voix. Chaque opposition est comptée dans le corpus, pas devinée : برشا 158 contre بزاف 0,
+  متاع 287 contre ديال 0, توة 77 contre دابا 0
+
 ## [2.0.0-beta.21] — 2026-10-11
 
 ### Fixed

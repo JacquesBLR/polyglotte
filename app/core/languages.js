@@ -1,5 +1,7 @@
 // Registre des langues — extrait à l'identique de l'app v1 (js/app.js).
-// Donnée pure, aucune dépendance.
+// Donnée pure ; seule dépendance, le guide de style du tunisien, lui aussi pur.
+
+import { GUIDE_DERJA } from "./derja.js";
 
 export const LANGUAGES = {
   catalan: {
@@ -130,7 +132,7 @@ export const LANGUAGES = {
     // silence pur. On regroupe donc les phrases jusqu'à 60 caractères avant de synthétiser
     // (#81) — au-delà de 28 caractères la synthèse est franche, 60 laisse de la marge.
     voixMinCar: 60,
-    promptExtraBase: "Tu parles le tunisien (derja), PAS l'arabe standard : vocabulaire et tournures typiquement tunisiens. Les transcriptions vocales de l'élève arrivent souvent déformées vers l'arabe standard : interprète avec bienveillance.",
+    promptExtraBase: "Tu parles le tunisien (derja), PAS l'arabe standard : vocabulaire et tournures typiquement tunisiens. Les transcriptions vocales de l'élève arrivent souvent déformées vers l'arabe standard : interprète avec bienveillance." + GUIDE_DERJA,
     scenarios: [
       { id: "medina", label: "🌍 Dans la médina de Tunis", prompt: "Jeu de rôle : les souks de la médina de Tunis : chercher un artisan, marchander en derja, souffler autour d'un thé aux pins." },
       { id: "cafetn", label: "🌍 Au café tunisois", prompt: "Jeu de rôle : un café de quartier à Tunis : commander un direct ou un capucin, discussions foot et famille, expressions typiquement tunisoises." },
