@@ -49,7 +49,10 @@ complète mais l'oral est approximatif.
   tour et cochées au fil de la conversation, graduées au niveau (A1–A2 : saluer, commander ;
   B1–B2 : négocier, expliquer ; C1 : convaincre, nuancer).
 - 📈 **Trois niveaux** : débutant (A1–A2), intermédiaire (B1–B2), avancé (C1).
-- 📋 **Résumé de session** : vocabulaire vu, erreurs commises, phrases à réviser.
+- 📋 **Résumé de session** : vocabulaire vu, erreurs commises, phrases à réviser, points forts,
+  conseil pour la prochaine fois et **niveau CECRL observé** pendant la séance. Ses erreurs et
+  son vocabulaire rejoignent les carnets ; les bilans se relisent depuis l'écran Progrès, où
+  la tendance du niveau observé s'affiche séance après séance.
 - 🎯 **Objectif hebdomadaire** : des jours de pratique à tenir chaque semaine (3, 4, 5 ou 7),
   frise lundi → dimanche sur l'écran Progrès, minutes de la semaine et semaines tenues
   d'affilée — calculé depuis l'historique, rien de plus n'est stocké.
