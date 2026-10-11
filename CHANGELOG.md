@@ -5,6 +5,31 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.13] — 2026-10-11
+
+Le tuteur répondait à l'écran mais restait muet, sans la moindre erreur.
+
+### Fixed
+- 🔊 **Le tuteur se taisait sans le dire** (#67). La synthèse cherchait une voix du
+  navigateur au moment de parler et, n'en trouvant aucune, rendait la main en silence. Or
+  `getVoices()` est asynchrone, et sur iOS la liste reste vide tant que la synthèse n'a pas
+  servi une première fois : « pas encore de voix » était traité comme « cet appareil ne
+  parle pas »
+- L'amorce de la synthèse prononce un énoncé réellement prononçable, à volume nul, au lieu
+  d'une chaîne vide que le moteur peut ignorer — auquel cas la liste des voix ne se
+  remplissait jamais
+- À défaut de voix du navigateur, la réplique est lue par le serveur vocal du projet
+  (Piper), où une voix catalane est installée
+- Si plus rien n'est possible, l'app **le dit** — une fois, pas à chaque phrase
+
+### Added
+- `app/core/voix.js` : le choix du moteur de synthèse est une fonction pure, couverte par
+  6 tests (68 au total), y compris le drapeau qui interdit l'aller-retour entre les deux
+  moteurs quand chacun retombe sur l'autre
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.13`
+
 ## [2.0.0-beta.12] — 2026-10-11
 
 L'app installée sur l'écran d'accueil n'entendait rien : conversation lancée, micro actif,

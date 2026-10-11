@@ -62,9 +62,14 @@ export default function App() {
 
   const keys = keysFor(profiles.current);
 
-  // Serveur vocal distant (#45) : la couche vocale suit le réglage.
+  // Serveur vocal distant (#45) : la couche vocale suit le réglage. `onMuet` remonte le
+  // cas où plus aucune voix n'est disponible (#67) : sans lui, l'app se tairait sans rien
+  // dire, et le silence passerait pour une panne du tuteur.
   useEffect(() => {
-    speech.configure({ voiceUrl: settings.voiceUrl });
+    speech.configure({
+      voiceUrl: settings.voiceUrl,
+      onMuet: (texte) => setStatus({ text: texte, error: true }),
+    });
   }, [settings.voiceUrl]);
 
   // Rappels de révision (#37) : replanifiés à chaque changement d'écran et à
