@@ -1,5 +1,6 @@
 // Couche vocale NATIVE (iOS / Android) — interface identique à speech.web.js :
 //   ttsAvailable(), configure(opts), pickVoice(ttsPrefixes), onVoicesChanged(cb),
+//   messageMicroIndisponible(),
 //   speak(text, opts), stopSpeaking(), primeSpeech(), recognitionAvailable(),
 //   createRecognizer(opts).
 //
@@ -198,8 +199,14 @@ export function recognitionAvailable() {
 
 // Retourne { start(), stop() } ou null si la reconnaissance n'est pas disponible.
 export function createRecognizer(opts) {
-  if (remoteActive(opts)) return createRemoteRecognizer(opts);
-  return createLocalRecognizer(opts);
+  if (remoteActive(opts)) return createRemoteRecognizer(opts) || createLocalRecognizer(opts);
+  return createLocalRecognizer(opts) || (remote.url ? createRemoteRecognizer(opts) : null);
+}
+
+// Pendant natif de la version web : ici l'app est une vraie app, sans la limitation de
+// WebKit en mode autonome (#65) — le message reste donc générique.
+export function messageMicroIndisponible() {
+  return "La reconnaissance vocale n'est pas disponible ici — écris tes réponses.";
 }
 
 function createLocalRecognizer({ lang, onStart, onInterim, onResult, onError, onEnd }) {

@@ -333,10 +333,7 @@ export default function App() {
       });
     }
     if (!s.recognizer) {
-      setStatus({
-        text: "La reconnaissance vocale n'est pas disponible ici — écris tes réponses.",
-        error: true,
-      });
+      setStatus({ text: speech.messageMicroIndisponible(), error: true });
       return;
     }
     setStatus({ text: `🎤 Je t'écoute… parle en ${s.cfg.label.toLowerCase()} !`, error: false });
