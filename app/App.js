@@ -495,7 +495,7 @@ export default function App() {
             )}
             {m.role === "tutor" && (
               <View style={[st.bubble, st.bubbleTutor]}>
-                <Pressable onPress={() => speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, langue: session.current.cfg.label, rate: settings.rate })}>
+                <Pressable onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, langue: session.current.cfg.label, rate: settings.rate }); }}>
                   <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
                 </Pressable>
                 {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}

@@ -5,6 +5,24 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.18] — 2026-10-11
+
+### Fixed
+- 🔇 **L'audio du serveur vocal n'était jamais audible sur iPhone** (#77). Il arrivait
+  pourtant : le serveur journalise les requêtes de l'appareil en 200 OK, avec le bon texte.
+  `pumpRemote()` créait un `new Audio(url)` à chaque réplique ; Safari iOS n'autorise la
+  lecture que sur un élément débloqué par un geste utilisateur, et rejetait donc chaque
+  `play()`. L'échec partait dans le repli — voix du navigateur, ou silence si aucune voix
+  n'était chargée
+- Un élément audio unique est désormais amorcé dans le geste qui lance la conversation,
+  puis réutilisé pour toutes les lectures : iOS retient le déblocage par élément, pas pour
+  la page. Le bouton de relecture d'une réplique amorce aussi, étant lui-même un geste
+- Ce défaut existait depuis l'arrivée du serveur vocal : il ne touchait que les langues au
+  support partiel, jamais utilisées jusqu'ici
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.18`
+
 ## [2.0.0-beta.17] — 2026-10-11
 
 ### Fixed
