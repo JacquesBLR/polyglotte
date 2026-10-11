@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.19] — 2026-10-11
+
+### Changed
+- 🔊 **Le catalan est désormais lu par la voix du serveur vocal** (#79). iOS installe par
+  défaut une voix catalane « compacte », au grain très audible ; la voix Piper
+  `ca_ES-upc_ona-medium` du serveur (22 kHz) est nettement plus propre, et répond en 0,12 s
+- Nouvel attribut de langue `voixServeur`, distinct de `support` : il ne gouverne que la
+  synthèse. Déclarer le catalan `support: "partial"` aurait aussi routé le micro vers
+  Whisper et affiché un avertissement, alors que sa reconnaissance vocale navigateur est
+  excellente
+- Repli inchangé sur la voix du navigateur quand le serveur est injoignable, mais signalé
+  une fois à l'élève : la dégradation s'entend, autant la nommer
+
 ## [2.0.0-beta.18] — 2026-10-11
 
 ### Fixed

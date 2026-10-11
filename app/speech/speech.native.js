@@ -52,7 +52,8 @@ export function configure({ voiceUrl } = {}) {
 }
 
 function remoteActive(opts) {
-  return !!remote.url && opts.support === "partial";
+  // `voixServeur` : langue dont seule la synthèse gagne à passer par le serveur (#79).
+  return !!remote.url && (opts.support === "partial" || !!opts.voixServeur);
 }
 
 // ---------- Synthèse ----------

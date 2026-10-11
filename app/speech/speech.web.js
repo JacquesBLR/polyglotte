@@ -50,13 +50,24 @@ function signaleMuet() {
 // iPhone, le tunisien est alors lu par la voix arabe standard du système. Rien ne distingue
 // ce cas, à l'oreille, d'un serveur qui aurait répondu — d'où cet avis.
 function signaleRepli(opts) {
-  if (opts.support !== "partial") return;
-  const langue = opts.langue ? ` en ${opts.langue.toLowerCase()}` : "";
-  avise(
-    "repli",
-    `Serveur vocal injoignable : la réponse est lue par une voix du navigateur, qui n'est `
-    + `pas${langue}. Vérifie ta connexion au réseau du serveur, ou son URL dans ⚙️.`,
-  );
+  if (opts.support === "partial") {
+    const langue = opts.langue ? ` en ${opts.langue.toLowerCase()}` : "";
+    avise(
+      "repli",
+      `Serveur vocal injoignable : la réponse est lue par une voix du navigateur, qui n'est `
+      + `pas${langue}. Vérifie ta connexion au réseau du serveur, ou son URL dans ⚙️.`,
+    );
+    return;
+  }
+  // Langue qui préfère le serveur pour la seule qualité de la voix (#79) : le repli reste
+  // dans la bonne langue, mais se reconnaît à l'oreille. Le dire évite de croire l'app cassée.
+  if (opts.voixServeur) {
+    avise(
+      "repli",
+      "Serveur vocal injoignable : la réponse est lue par la voix du navigateur, de moins "
+      + "bonne qualité. Vérifie ta connexion au réseau du serveur, ou son URL dans ⚙️.",
+    );
+  }
 }
 
 // Un seul élément <audio>, réutilisé pour toutes les lectures distantes (#77). Safari iOS
@@ -222,6 +233,7 @@ export function speak(text, opts = {}) {
   const picked = ttsAvailable() ? pickVoice(opts.ttsPrefixes || []) : null;
   const choix = choisitVoix({
     support: opts.support,
+    voixServeur: !!opts.voixServeur,
     voixNavigateur: !!picked,
     distantDisponible: !!remote.url,
     repliEpuise: !!opts.repliEpuise,
