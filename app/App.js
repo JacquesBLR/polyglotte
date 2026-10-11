@@ -12,6 +12,7 @@ import { retireProvisoire } from "./core/messages";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
+import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
@@ -52,6 +53,7 @@ export default function App() {
 
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
+  const [missions, setMissions] = useState({ liste: [], atteintes: [] }); // missions de scénario (#91)
   const [status, setStatus] = useState({ text: "", error: false });
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
@@ -59,7 +61,7 @@ export default function App() {
   const [input, setInput] = useState("");
 
   // Références stables pour la session en cours (pas besoin de re-render).
-  const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null });
+  const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null, missions: { liste: [], atteintes: [] } });
   const scrollRef = useRef(null);
 
   const keys = keysFor(profiles.current);
@@ -176,16 +178,20 @@ export default function App() {
       erreurs = erreursAReactiver(carnet, langId);
       if (erreurs.length) saveJSON(keys.erreurs, marqueReactivees(carnet, erreurs));
     }
+    const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs };
     session.current = {
       cfg: c,
       mode,
-      system: buildTutorPrompt({ cfg: c, level, scenarioId, immersion, mode, erreurs }),
+      ctx, // conservé pour reconstruire le prompt une fois les missions annoncées (#91)
+      system: buildTutorPrompt(ctx),
       history: [],
       recognizer: null,
       id: mode === "chat" ? `${Date.now()}` : null,
+      missions: { liste: [], atteintes: [] },
     };
     setMessages([]);
     setSuggestions([]);
+    setMissions({ liste: [], atteintes: [] });
     setMicMuted(false);
     setScreen("chat");
     setStatus({ text: "", error: false });
@@ -203,6 +209,8 @@ export default function App() {
     }
     entry.turns++;
     entry.lastAt = Date.now();
+    // Missions (#91) : total annoncé et nombre accompli, relus par l'écran Progrès.
+    entry.missions = { total: s.missions.liste.length, atteintes: s.missions.atteintes.length };
     saveJSON(keys.history, history);
   };
 
@@ -248,6 +256,7 @@ export default function App() {
     // Streaming phrase par phrase (#43) : moteur compatible OpenAI, hors évaluation.
     const useStream = settings.provider === "local" && s.mode !== "eval";
     let streamed = false; // un message provisoire est affiché en cours de stream
+    let statutMission = ""; // message d'étape des missions, affiché après le tour
     try {
       const opts = {
         messages: s.history,
@@ -299,6 +308,19 @@ export default function App() {
           culturalNote: data.cultural_note,
         }]);
         setSuggestions(data.suggestions || []);
+        // Missions de scénario (#91) : annoncées au premier tour, cochées ensuite. L'état de
+        // référence vit dans la session (synchrone) ; le state ne sert qu'au rendu.
+        if (text === "[START]") {
+          s.missions = { liste: missionsValides(data.missions), atteintes: [] };
+          // L'historique ne porte que les répliques : sans réinjection, le modèle oublie sa
+          // liste dès le tour suivant et en réinvente une autre.
+          if (s.missions.liste.length) s.system = buildTutorPrompt({ ...s.ctx, missions: s.missions.liste });
+        } else {
+          const atteintes = fusionneAtteints(s.missions.atteintes, data.missions_accomplies, s.missions.liste.length);
+          statutMission = messageMission(s.missions.liste, atteintes, atteintes.length - s.missions.atteintes.length) || "";
+          s.missions = { ...s.missions, atteintes };
+        }
+        setMissions(s.missions);
         recordSessionTurn();
         if (correction) {
           loadJSON(keys.erreurs, []).then(carnet => {
@@ -313,7 +335,7 @@ export default function App() {
           });
         }
       }
-      setStatus({ text: "", error: false });
+      setStatus({ text: statutMission, error: false });
       if (settings.autospeak && !streamed) {
         speech.speak(data.reply, {
           ttsPrefixes: s.cfg.ttsPrefixes,
@@ -498,6 +520,16 @@ export default function App() {
         </Text>
         <Pressable onPress={endSession}><Text style={st.headerBtn}>✅</Text></Pressable>
       </View>
+      {session.current.mode === "chat" && missions.liste.length > 0 && (
+        <View style={st.missions}>
+          {missions.liste.map((m, i) => {
+            const ok = missions.atteintes.includes(i + 1);
+            return (
+              <Text key={i} style={[st.missionLigne, ok && st.missionOk]}>{ok ? "☑" : "☐"} {m}</Text>
+            );
+          })}
+        </View>
+      )}
       <ScrollView
         ref={scrollRef}
         style={st.chat}
@@ -625,6 +657,9 @@ const st = StyleSheet.create({
   summaryTitle: { fontWeight: "700", color: "#92400e", marginBottom: 6 },
   summaryText: { color: "#44403c", fontSize: 14, lineHeight: 21 },
   suggestions: { maxHeight: 44, marginBottom: 4 },
+  missions: { backgroundColor: "#fffbeb", borderBottomWidth: 1, borderBottomColor: "#fde68a", paddingHorizontal: 14, paddingVertical: 6, gap: 2 },
+  missionLigne: { fontSize: 13, color: "#92400e" },
+  missionOk: { color: C.ok, fontWeight: "600" },
   inputRow: { flexDirection: "row", gap: 8, padding: 10, alignItems: "center", backgroundColor: C.card, borderTopWidth: 1, borderTopColor: C.border },
   input: { flex: 1, borderWidth: 1, borderColor: C.border, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 14, fontSize: 15, color: C.text, backgroundColor: C.bg },
   roundBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: "#f5f5f4", alignItems: "center", justifyContent: "center" },
