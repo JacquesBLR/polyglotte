@@ -19,7 +19,7 @@ import * as speech from "./speech/speech";
 import {
   DEFAULT_PROFILE, keysFor, loadJSON, loadProfiles, removeProfileData, saveJSON, saveProfiles,
 } from "./storage";
-import { C, Chip, ui } from "./ui/common";
+import { C, Chip, MARGE_BAS, MARGE_HAUT, ui } from "./ui/common";
 import ExercisesScreen from "./ui/ExercisesScreen";
 import GrammarScreen from "./ui/GrammarScreen";
 import ProgressScreen from "./ui/ProgressScreen";
@@ -365,7 +365,7 @@ export default function App() {
     return (
       <View style={st.root}>
         <StatusBar style="light" />
-        <View style={st.header}>
+        <View style={st.header} {...MARGE_HAUT}>
           <Text style={st.headerTitle}>Polyglotte</Text>
           <Pressable onPress={() => setSettingsOpen(true)}><Text style={st.headerBtn}>⚙️</Text></Pressable>
         </View>
@@ -436,7 +436,7 @@ export default function App() {
     return (
       <View style={st.root}>
         <StatusBar style="light" />
-        <View style={st.header}>
+        <View style={st.header} {...MARGE_HAUT}>
           <Pressable onPress={() => { speech.stopSpeaking(); setScreen("home"); }}>
             <Text style={st.headerBtn}>←</Text>
           </Pressable>
@@ -467,7 +467,7 @@ export default function App() {
   return (
     <View style={st.root}>
       <StatusBar style="light" />
-      <View style={st.header}>
+      <View style={st.header} {...MARGE_HAUT}>
         <Pressable onPress={() => { speech.stopSpeaking(); stopMic(); setScreen("home"); }}>
           <Text style={st.headerBtn}>←</Text>
         </Pressable>
@@ -537,7 +537,7 @@ export default function App() {
         </ScrollView>
       )}
       {!!status.text && <Text style={[ui.status, { paddingHorizontal: 14 }, status.error && ui.statusError]}>{status.text}</Text>}
-      <View style={st.inputRow}>
+      <View style={st.inputRow} {...MARGE_BAS}>
         <Pressable onPress={toggleMute} style={[st.roundBtn, micMuted && st.roundBtnMuted]}>
           <Text style={st.roundBtnText}>{micMuted ? "🔇" : "🔈"}</Text>
         </Pressable>

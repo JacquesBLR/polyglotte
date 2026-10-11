@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.11] — 2026-10-11
+
+Installée sur l'écran d'accueil, la v2 passait sous la barre d'état : le titre était masqué
+par l'heure et les boutons de l'en-tête ne répondaient plus, iOS réservant les appuis de
+cette bande au système. Ni les réglages ni la sortie de conversation n'étaient atteignables.
+
+### Fixed
+- 📱 **Marges de sécurité des bords de l'écran** (#63). L'en-tête, la barre de saisie du chat
+  et la feuille de réglages tiennent compte de `env(safe-area-inset-*)` sur le web. Les règles
+  vivent dans le gabarit HTML, où `env()` a un sens, et sont rattachées aux vues par des
+  attributs `data-*` ; le natif garde ses propres marges
+- Le message « serveur injoignable » nomme la cause la plus fréquente — l'appareil n'est pas
+  connecté au réseau privé du serveur — au lieu de renvoyer d'abord à l'URL, qui est juste
+
+### Added
+- Contrôle de cohérence en CI : chaque marqueur `data-*` posé en JS doit avoir sa règle dans
+  le gabarit. En renommer un sans l'autre ne casse pas la construction mais désactivait
+  silencieusement la protection
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.11`
+
 ## [2.0.0-beta.10] — 2026-10-11
 
 Rendre diagnosticable, et réparable sans perte de données, une installation restée sur une

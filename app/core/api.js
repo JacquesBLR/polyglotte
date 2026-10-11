@@ -53,6 +53,14 @@ export async function callClaude(settings, { messages, system, schema, maxTokens
   return text;
 }
 
+// Un `fetch` qui échoue ne dit jamais pourquoi (la politique de même origine interdit au
+// navigateur d'en dire plus) : le message énumère donc les causes réelles, par ordre de
+// fréquence. Le moteur par défaut vit sur un réseau privé — hors de ce réseau, le nom
+// d'hôte ne se résout même pas (#63).
+export const MSG_INJOIGNABLE = "Serveur injoignable — es-tu bien connecté au réseau du serveur "
+  + "(Tailscale / VPN) ? Sinon, vérifie l'URL dans les réglages ⚙️, et le blocage "
+  + "HTTPS→HTTP si le serveur est en clair.";
+
 export async function callLocal(settings, { messages, system, schema, maxTokens = 2048, preferAlt = false }) {
   const base = (settings.localUrl || "").trim().replace(/\/+$/, "");
   const model = (preferAlt && settings.localModelAlt) || settings.localModel;
@@ -85,7 +93,7 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
         body: JSON.stringify(body),
       });
     } catch (_) {
-      throw new Error("Serveur injoignable — vérifie l'URL (et le blocage HTTPS→HTTP si serveur local).");
+      throw new Error(MSG_INJOIGNABLE);
     }
     if (!resp.ok) {
       let detail = "";
@@ -137,7 +145,7 @@ export async function testLocalConnection(settings) {
         }
       }
     } catch (_) {
-      throw new Error("Serveur injoignable — vérifie l'URL (et le blocage HTTPS→HTTP si serveur local).");
+      throw new Error(MSG_INJOIGNABLE);
     }
     const resp = await fetch(base + "/chat/completions", {
       method: "POST",

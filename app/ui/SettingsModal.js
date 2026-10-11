@@ -8,7 +8,7 @@ import { testLocalConnection } from "../core/api";
 import { REMINDERS_SUPPORTED } from "../notify/notify";
 import { DEFAULT_PROFILE } from "../storage";
 import { forceUpdate } from "../pwa/pwa";
-import { C, Chip, ui } from "./common";
+import { C, Chip, MARGE_BAS_FEUILLE, ui } from "./common";
 
 // Version complète, injectée par app.json (extra.version) et contrôlée en CI comme
 // identique à celle du package.json (#61) : un numéro qui mentirait serait pire que pas
@@ -84,7 +84,7 @@ export default function SettingsModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={st.overlay}>
-        <View style={st.card}>
+        <View style={st.card} {...MARGE_BAS_FEUILLE}>
           <ScrollView contentContainerStyle={{ gap: 10 }}>
             <Text style={st.title}>⚙️ Réglages</Text>
 

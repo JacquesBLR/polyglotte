@@ -84,6 +84,26 @@ verifie(
   `version=${versionV2}, cache=${cacheV2}`,
 );
 
+// 5. Marges de sécurité iOS (#63) : les attributs sont posés en JS, les règles vivent
+// dans le gabarit HTML. Renommer l'un sans l'autre ne casse rien à la construction mais
+// renvoie l'en-tête sous la barre d'état, où ses boutons cessent de répondre.
+const commun = readFileSync("app/ui/common.js", "utf8");
+const gabarit = readFileSync("app/public/index.html", "utf8");
+const marqueurs = [...commun.matchAll(/dataSet:\s*\{\s*(\w+):\s*"([^"]+)"/g)]
+  .map(([, cle, valeur]) => ({ cle, valeur }));
+verifie(
+  "app/ui/common.js : au moins un marqueur de marge de sécurité",
+  marqueurs.length > 0,
+  "aucun `dataSet` trouvé — le repère de la règle CSS a disparu",
+);
+for (const { cle, valeur } of marqueurs) {
+  verifie(
+    `app/public/index.html : règle CSS pour le marqueur data-${cle}="${valeur}"`,
+    gabarit.includes(`[data-${cle}="${valeur}"]`) || gabarit.includes(`[data-${cle}]`),
+    "le marqueur est posé en JS mais aucune règle ne le cible",
+  );
+}
+
 if (erreurs.length) {
   console.error("\n❌ Incohérences détectées :");
   for (const e of erreurs) console.error(`  - ${e}`);

@@ -6,7 +6,7 @@
 // Expo SDK 57 installe `expo/fetch` (WinterCG) comme fetch global — dans les
 // deux cas, `response.body` est un ReadableStream.
 
-import { callLocal, extractJson } from "./api.js";
+import { callLocal, extractJson, MSG_INJOIGNABLE } from "./api.js";
 
 // ---------- Fonctions pures (testées dans tests/stream.test.mjs) ----------
 
@@ -138,7 +138,7 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
   try {
     resp = await fetch(base + "/chat/completions", { method: "POST", headers, body: JSON.stringify(body) });
   } catch (_) {
-    throw new Error("Serveur injoignable — vérifie l'URL (et le blocage HTTPS→HTTP si serveur local).");
+    throw new Error(MSG_INJOIGNABLE);
   }
   if (!resp.ok) {
     let detail = "";
