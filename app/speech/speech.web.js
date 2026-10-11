@@ -5,24 +5,38 @@
 //   messageMicroIndisponible().
 
 import { choisitMicro } from "../core/micro";
+import { choisitVoix } from "../core/voix";
 
 export function ttsAvailable() {
   return typeof window !== "undefined" && !!window.speechSynthesis;
 }
 
 // ---------- Serveur vocal distant (#45) ----------
-// STT (Whisper) et TTS (Piper) servis depuis le DGX (serveur-vocal/). Utilisé
-// uniquement pour les langues au support vocal partiel (suisse allemand, tunisien),
-// où les moteurs du navigateur sont approximatifs ; repli local en cas d'échec.
+// STT (Whisper) et TTS (Piper) servis depuis le DGX (serveur-vocal/). Préféré pour les
+// langues au support vocal partiel (suisse allemand, tunisien), où les moteurs du
+// navigateur sont approximatifs, et pris en repli partout où ceux-ci font défaut : app
+// installée sur iPhone pour le micro (#65), liste de voix vide pour la synthèse (#67).
+// Le repli joue dans les deux sens, sans aller-retour (voir core/voix.js).
 
-const remote = { url: "" };
+const remote = { url: "", onMuet: null };
 
-export function configure({ voiceUrl } = {}) {
+// Signalé une fois, pas à chaque phrase : répéter le même avertissement à chaque réplique
+// noierait la conversation. Le drapeau retombe à chaque changement de réglage.
+let muetSignale = false;
+
+export function configure({ voiceUrl, onMuet } = {}) {
   remote.url = (voiceUrl || "").trim().replace(/\/+$/, "");
+  remote.onMuet = onMuet || null;
+  muetSignale = false;
 }
 
-function remoteActive(opts) {
-  return !!remote.url && opts.support === "partial";
+function signaleMuet() {
+  if (muetSignale || !remote.onMuet) return;
+  muetSignale = true;
+  remote.onMuet(
+    "Aucune voix disponible pour lire la réponse — vérifie l'URL du serveur vocal dans ⚙️ "
+    + "(et ta connexion au réseau du serveur). Le texte reste lisible à l'écran.",
+  );
 }
 
 let rQueue = [];
@@ -49,7 +63,9 @@ async function pumpRemote() {
   const done = (fallback) => {
     if (gen !== rGen) return; // arrêté entre-temps : ne pas relancer la file
     rPlaying = false;
-    if (fallback) speakLocal(job.text, { ...job.opts, queue: true }); // repli voix navigateur
+    // Repli voix du navigateur. `repliEpuise` interdit de revenir au serveur : sans lui,
+    // un appareil sans voix renverrait la phrase au serveur qui vient d'échouer.
+    if (fallback) speak(job.text, { ...job.opts, queue: true, repliEpuise: true });
     else if (job.opts.onEnd) job.opts.onEnd();
     pumpRemote();
   };
@@ -160,7 +176,17 @@ export function onVoicesChanged(cb) {
 // par phrase). Route vers le serveur vocal (Piper) pour les langues au support
 // partiel quand il est configuré ; voix du navigateur sinon.
 export function speak(text, opts = {}) {
-  if (remoteActive(opts)) {
+  // La voix est cherchée ici, et non dans speakLocal : c'est elle qui décide de
+  // l'aiguillage. Une liste de voix encore vide (iOS avant la première synthèse) donne
+  // `null`, et la réplique part alors au serveur vocal au lieu de se perdre.
+  const picked = ttsAvailable() ? pickVoice(opts.ttsPrefixes || []) : null;
+  const choix = choisitVoix({
+    support: opts.support,
+    voixNavigateur: !!picked,
+    distantDisponible: !!remote.url,
+    repliEpuise: !!opts.repliEpuise,
+  });
+  if (choix === "distant") {
     if (!opts.queue) {
       stopRemoteSpeech();
       if (ttsAvailable()) window.speechSynthesis.cancel();
@@ -169,12 +195,16 @@ export function speak(text, opts = {}) {
     pumpRemote();
     return;
   }
-  speakLocal(text, opts);
+  if (choix === "local") {
+    speakLocal(text, opts, picked);
+    return;
+  }
+  signaleMuet();
+  if (opts.onEnd) opts.onEnd();
 }
 
-function speakLocal(text, { ttsPrefixes = [], rate = 1, onEnd, queue = false } = {}) {
-  const picked = pickVoice(ttsPrefixes);
-  if (!ttsAvailable() || !picked) {
+function speakLocal(text, { rate = 1, onEnd, queue = false } = {}, picked) {
+  if (!picked) {
     if (onEnd) onEnd();
     return;
   }
@@ -199,9 +229,13 @@ export function stopSpeaking() {
 // depuis le gestionnaire du premier bouton pressé.
 export function primeSpeech() {
   if (!ttsAvailable()) return;
-  const utter = new SpeechSynthesisUtterance("");
+  // Une chaîne vide peut être ignorée par le moteur. Or sur iOS la liste des voix reste
+  // vide tant que la synthèse n'a pas servi une fois : amorcer avec du vide, c'est ne
+  // jamais amorcer, et toutes les répliques suivantes tombent sans voix (#67).
+  const utter = new SpeechSynthesisUtterance(" ");
   utter.volume = 0;
   window.speechSynthesis.speak(utter);
+  window.speechSynthesis.getVoices(); // déclenche le chargement asynchrone de la liste
 }
 
 export function recognitionAvailable() {

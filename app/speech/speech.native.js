@@ -44,6 +44,9 @@ function speechRecognition() {
 
 const remote = { url: "" };
 
+// `onMuet` fait partie de l'interface commune (#67) mais ne sert qu'au web : expo-speech
+// n'a pas de liste de voix à charger de façon asynchrone, et ne se tait donc pas sans
+// raison. Le paramètre est accepté et ignoré.
 export function configure({ voiceUrl } = {}) {
   remote.url = (voiceUrl || "").trim().replace(/\/+$/, "");
 }
