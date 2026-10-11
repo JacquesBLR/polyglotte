@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.20] — 2026-10-11
+
+### Fixed
+- 🔉 **Voix tunisienne saccadée** (#81), deux causes mesurées et indépendantes
+- F5-TTS rendait 0,5 à 1,25 s de silence avant la parole et ~0,3 s après. La lecture se
+  faisant phrase par phrase, ces silences s'additionnaient : 1,33 s puis 1,43 s de vide au
+  milieu d'une réplique de trois phrases. `derja.py` les rogne désormais à la source —
+  mesuré à moins de 50 ms sur cinq tirages, l'attaque survivant au contrôle par Whisper
+- Une phrase courte ne produisait **rien** : `أهلا بيك!` (9 caractères) rendait 0,74 s de
+  silence numérique, crête à -90 dB. Le rendu muet est rejoué une fois, puis refusé en 503,
+  et le serveur vocal retombe sur Piper (vérifié : 22 050 Hz au lieu de 24 000)
+- L'app ne lui envoie plus de fragments : le tunisien déclare `voixMinCar: 60`, et
+  `createSentenceStreamer` regroupe les phrases complètes jusqu'à cette taille avant de
+  synthétiser. Les autres langues, dont la synthèse encaisse une phrase courte, gardent le
+  comportement actuel (`minChars` à 0)
+
 ## [2.0.0-beta.19] — 2026-10-11
 
 ### Changed
