@@ -81,6 +81,12 @@ mise en cache pour un démarrage instantané (les conversations, elles, nécessi
 
 ### Moteur compatible OpenAI (hébergé ou local)
 
+> ⚙️ **Une installation neuve arrive déjà configurée** sur le moteur local du DGX (URL de la
+> passerelle, modèle et serveur vocal préremplis) — rien à saisir pour l'usage courant. Les
+> clés API restent vides, et tous les champs ci-dessous restent modifiables. Attention : les
+> réglages déjà enregistrés gagnent sur ces défauts, donc une installation existante garde
+> les siens.
+
 Dans ⚙️ → **Moteur IA** → « Serveur compatible OpenAI (local ou hébergé) » :
 
 **API hébergée — ex. Nous Portal (Hermes, mais aussi Claude, GPT, Gemini…) :**
