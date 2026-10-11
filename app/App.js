@@ -62,13 +62,14 @@ export default function App() {
 
   const keys = keysFor(profiles.current);
 
-  // Serveur vocal distant (#45) : la couche vocale suit le réglage. `onMuet` remonte le
-  // cas où plus aucune voix n'est disponible (#67) : sans lui, l'app se tairait sans rien
-  // dire, et le silence passerait pour une panne du tuteur.
+  // Serveur vocal distant (#45) : la couche vocale suit le réglage. `onAvis` remonte ce que
+  // la synthèse ne peut pas faire entendre : plus aucune voix disponible (#67), ou repli du
+  // serveur vocal sur une voix du navigateur qui n'est pas dans la bonne variante (#75).
+  // Sans ce canal, l'app se tairait — ou parlerait de travers — sans rien dire.
   useEffect(() => {
     speech.configure({
       voiceUrl: settings.voiceUrl,
-      onMuet: (texte) => setStatus({ text: texte, error: true }),
+      onAvis: (texte) => setStatus({ text: texte, error: true }),
     });
   }, [settings.voiceUrl]);
 
@@ -248,7 +249,7 @@ export default function App() {
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
-              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, rate: settings.rate, queue: true }))
+              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, langue: s.cfg.label, rate: settings.rate, queue: true }))
           : null;
         opts.onDelta = (accumulated) => {
           const partial = partialStringField(accumulated, "reply");
@@ -301,6 +302,7 @@ export default function App() {
           ttsPrefixes: s.cfg.ttsPrefixes,
           stt: s.cfg.stt,
           support: s.cfg.support,
+          langue: s.cfg.label,
           rate: settings.rate,
         });
       }
@@ -493,7 +495,7 @@ export default function App() {
             )}
             {m.role === "tutor" && (
               <View style={[st.bubble, st.bubbleTutor]}>
-                <Pressable onPress={() => speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, rate: settings.rate })}>
+                <Pressable onPress={() => speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, langue: session.current.cfg.label, rate: settings.rate })}>
                   <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
                 </Pressable>
                 {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}

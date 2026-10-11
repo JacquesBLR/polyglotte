@@ -5,6 +5,24 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.17] — 2026-10-11
+
+### Fixed
+- 🔈 **Le repli de la synthèse était silencieux** (#75). Quand l'appel au serveur vocal
+  échoue — appareil hors du réseau privé, serveur arrêté, erreur réseau — la réplique est
+  lue par une voix du navigateur sans que rien ne le signale. Pour une langue au support
+  partiel, cette voix est dans une tout autre variante : sur iPhone, le tunisien était lu
+  par la voix arabe standard du système. Rien ne distinguait, à l'oreille, « le serveur a
+  parlé » de « le serveur n'a jamais répondu ». L'app le dit maintenant, une fois, en
+  nommant la langue dont la voix de secours s'écarte
+- **🎙️ Tester le serveur vocal** indique si la voix tunisienne est active : un coup d'œil
+  aux réglages répond désormais à la question
+
+### Changed
+- Le canal d'avis de la couche vocale s'appelle `onAvis` et non plus `onMuet` : il ne
+  porte plus seulement le silence
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.17`
+
 ## [2.0.0-beta.16] — 2026-10-11
 
 ### Fixed
