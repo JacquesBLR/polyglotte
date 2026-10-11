@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.8] — 2026-10-11
+
+### Fixed
+- ⚙️ **Le préremplissage des réglages s'applique enfin aux installations existantes** (#56) :
+  la fusion laissait gagner une chaîne vide enregistrée sur le défaut, si bien que les URL
+  livrées en beta.7 ne profitaient qu'aux installations neuves. Les champs moteur vides sont
+  désormais garnis **une fois**, puis un marqueur (`defautsDgx`) est enregistré
+- Ce marqueur préserve le geste inverse : effacer l'URL du serveur vocal pour le couper tient
+  au rechargement suivant, l'URL par défaut ne réapparaît pas
+- Un moteur `claude` sans clé API — qui n'avait jamais pu servir une conversation — bascule
+  sur le moteur local désormais renseigné ; une clé saisie est respectée
+- Les clés (`apiKey`, `localKey`) ne sont jamais garnies
+
+### Changed
+- `DEFAULT_SETTINGS` et la fusion vivent dans `app/core/settings.js` — fonctions pures,
+  couvertes par 8 tests dédiés (`tests/settings.test.mjs`), dont la non-réapparition d'une
+  URL effacée volontairement
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.8`
+
 ## [2.0.0-beta.7] — 2026-10-11
 
 ### Changed
