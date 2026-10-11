@@ -141,7 +141,8 @@ La qualité de la synthèse dépend des voix installées sur le système :
 Le suisse allemand et le tunisien n'ont pas de moteur vocal dédié : les moteurs du
 navigateur et de l'appareil les rendent mal. `serveur-vocal/` est un service FastAPI à
 faire tourner sur une machine à soi (le DGX, par exemple) qui expose `/stt`
-(faster-whisper) et `/tts` (7 voix Piper : ca, es, en-GB, de, pt-PT, pt-BR, ar).
+(faster-whisper) et `/tts` (7 voix Piper : ca, es, en-GB, de, pt-PT, pt-BR, ar),
+plus une voix tunisienne dédiée (voir plus bas).
 
 ⚙️ → **Serveur vocal** : colle son URL et appuie sur **🎙️ Tester le serveur vocal**.
 Quand il est configuré, les langues au support **partiel** passent par lui — micro en mode
@@ -150,6 +151,41 @@ d'échec. Les autres langues continuent d'utiliser les moteurs du système, plus
 
 Installation, voix et exposition HTTPS (nécessaire depuis la PWA, qui est servie en
 HTTPS) : voir [`serveur-vocal/README.md`](serveur-vocal/README.md).
+
+### Voix tunisienne (derja)
+
+Piper ne publie qu'une voix arabe, **jordanienne et masculine** : lire de la derja avec
+elle donne du tunisien à l'accent levantin. `serveur-vocal/derja.py` est un second service,
+dans son propre environnement Python, qui synthétise en tunisien avec le modèle
+[`Ghazouaniwala/silma-tts-derja`](https://huggingface.co/Ghazouaniwala/silma-tts-derja)
+(fine-tune F5-TTS).
+
+```bash
+cd serveur-vocal && ./telecharge-derja.sh     # environnement, modèle, extrait de référence
+sudo cp polyglotte-derja.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now polyglotte-derja
+```
+
+Le serveur vocal l'appelle quand la langue est `ar-TN`, via `VOCAL_DERJA_URL`. **Le repli
+est automatique** : service absent, arrêté ou en erreur, la réplique repart par la voix
+arabe de Piper — une voix au mauvais accent vaut mieux que le silence.
+
+Pourquoi un service séparé : la pile F5-TTS tire torch et les bibliothèques CUDA, soit
+plusieurs gigaoctets. Le serveur vocal reste léger, démarre vite, et une panne de la
+synthèse derja ne coupe ni la transcription ni les autres langues. Le modèle n'est chargé
+qu'à la première requête.
+
+Mesuré sur le GPU du DGX : ~7 s à la première réplique (chargement compris), **~0,7 s**
+ensuite pour une phrase courte.
+
+> ⚠️ **Licences.** Le modèle est sous CC-BY-NC 4.0, et l'extrait de référence est dérivé
+> d'un corpus de recherche. Usage personnel ; à revérifier avant tout autre usage. Ni le
+> modèle ni l'extrait ne sont versionnés — `telecharge-derja.sh` les reconstruit.
+
+> F5-TTS calque sa prosodie sur un extrait de référence ; celui livré avec le modèle est
+> en anglais, ce que sa fiche donne pour sa faiblesse principale. Le script en choisit donc
+> un tunisien, en retenant la voix la plus aiguë parmi des extraits propres, la tutrice
+> annoncée dans l'app étant Selma.
 
 ### Relais vers le moteur LLM
 

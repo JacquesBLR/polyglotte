@@ -36,6 +36,9 @@ from pydantic import BaseModel
 STT_MODEL = os.environ.get("VOCAL_STT_MODEL", "small")
 VOIX_DIR = Path(os.environ.get("VOCAL_VOIX_DIR", Path(__file__).parent / "voix"))
 LLM_BASE = os.environ.get("VOCAL_LLM_BASE", "").rstrip("/")
+# Service de synthèse derja (#71), dans son propre environnement Python. Vide ⇒ le
+# tunisien retombe sur la voix arabe de Piper, comme avant.
+DERJA_URL = os.environ.get("VOCAL_DERJA_URL", "").rstrip("/")
 
 _client: "httpx.AsyncClient | None" = None
 
@@ -136,11 +139,31 @@ class TtsRequete(BaseModel):
     text: str
     lang: str = ""
 
+def est_tunisien(lang: str) -> bool:
+    return (lang or "").strip().lower().startswith("ar-tn")
+
+def tts_derja(texte: str) -> bytes | None:
+    """Synthèse par le service derja. Retourne None s'il est absent ou en échec :
+    l'appelant retombe alors sur Piper, une voix arabe vaut mieux que le silence."""
+    if not DERJA_URL:
+        return None
+    try:
+        # Généreux à dessein : la première requête charge le modèle sur le GPU.
+        reponse = httpx.post(f"{DERJA_URL}/tts", json={"text": texte}, timeout=120.0)
+        reponse.raise_for_status()
+        return reponse.content
+    except Exception:
+        return None
+
 @app.post("/tts")
 def tts(req: TtsRequete):
     texte = req.text.strip()
     if not texte:
         raise HTTPException(400, "Texte vide.")
+    if est_tunisien(req.lang):
+        audio = tts_derja(texte)
+        if audio:
+            return Response(content=audio, media_type="audio/wav")
     prefixe = prefixe_voix(req.lang)
     if not prefixe:
         raise HTTPException(404, f"Pas de voix Piper pour « {req.lang} » — repli côté client.")
@@ -174,6 +197,7 @@ def health():
         "stt": {"modele": STT_MODEL, "device": _whisper_device or "non chargé"},
         "tts": {"voix_chargees": sorted(_voix_chargees), "dir": str(VOIX_DIR)},
         "llm": {"relais": bool(LLM_BASE)},
+        "derja": {"service": bool(DERJA_URL)},
     }
 
 

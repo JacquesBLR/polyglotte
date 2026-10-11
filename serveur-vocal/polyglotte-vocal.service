@@ -17,6 +17,9 @@ Environment=VOCAL_STT_MODEL=small
 # Relais /v1/* vers la passerelle compatible OpenAI (#59) : sans CORS côté passerelle,
 # l'app web ne peut pas l'appeler directement. Vide ⇒ /v1/* répond 503.
 Environment=VOCAL_LLM_BASE=http://127.0.0.1:8646/v1
+# Synthèse tunisienne (#71) : service séparé, environnement Python distinct. Vide ou
+# injoignable ⇒ le tunisien retombe sur la voix arabe de Piper.
+Environment=VOCAL_DERJA_URL=http://127.0.0.1:8665
 
 [Install]
 WantedBy=multi-user.target

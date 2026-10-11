@@ -5,6 +5,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.15] — 2026-10-11
+
+### Added
+- 🇹🇳 **Voix tunisienne pour le tuteur** (#71). La derja était lue par la seule voix arabe
+  de Piper, jordanienne et masculine. `serveur-vocal/derja.py` synthétise désormais en
+  tunisien avec `Ghazouaniwala/silma-tts-derja` (fine-tune F5-TTS), dans un service et un
+  environnement Python séparés — la pile pèse plusieurs gigaoctets, que le serveur vocal
+  n'a pas à porter. Mesuré sur le GPU : ~7 s à la première réplique, **~0,7 s** ensuite
+- Repli automatique vérifié : service arrêté, la réplique repart par la voix arabe de
+  Piper en 0,1 s. Une voix au mauvais accent vaut mieux que le silence
+- `telecharge-derja.sh` : environnement, modèle et extrait de référence. F5-TTS calque sa
+  prosodie sur un extrait ; celui livré avec le modèle est en anglais, ce que sa fiche
+  donne pour sa faiblesse principale. Le script en choisit un tunisien, voix féminine —
+  la tutrice annoncée est Selma
+
+### Changed
+- La fiche du tunisien dit la nouvelle situation : synthèse tunisienne par le serveur
+  vocal, voix jordanienne en repli
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.15`
+
 ## [2.0.0-beta.14] — 2026-10-11
 
 ### Fixed
