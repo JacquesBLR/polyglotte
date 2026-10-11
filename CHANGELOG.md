@@ -5,6 +5,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.7] — 2026-10-11
+
+### Changed
+- ⚙️ **Réglages préremplis** (#54) : une installation neuve arrive configurée sur le DGX —
+  moteur `local` par défaut, URL de la passerelle compatible OpenAI et du serveur vocal
+  renseignées (toutes deux en HTTPS sur le tailnet, vérifiées joignables), modèle
+  `qwen3.8-nvfp4`. Plus d'URL à saisir au clavier tactile sur l'iPad. Les clés (`apiKey`,
+  `localKey`) restent vides : aucun secret dans le dépôt, et la passerelle n'en demande pas
+- Les réglages **déjà enregistrés gagnent** sur ces défauts : une installation existante ou
+  un profil déjà créé garde ses valeurs (y compris vides) — seuls une installation fraîche
+  et un nouveau profil héritent du préremplissage. Pour en profiter sur un profil existant,
+  saisir les URL une fois, ou créer un nouveau profil
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.7`
+
 ## [2.0.0-beta.6] — 2026-09-13
 
 Préparation du build iOS (#37) : l'app native gagne tout ce qui lui manquait pour tourner
