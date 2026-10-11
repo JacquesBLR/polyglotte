@@ -5,6 +5,30 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.12] — 2026-10-11
+
+L'app installée sur l'écran d'accueil n'entendait rien : conversation lancée, micro actif,
+aucune transcription, aucune erreur.
+
+### Fixed
+- 🎤 **Micro dans une app installée sur iPhone** (#65). WebKit **expose** la reconnaissance
+  vocale en mode autonome mais ne transcrit jamais rien : l'objet existe, `start()` réussit,
+  aucun résultat n'arrive — la détection de fonctionnalité ne peut pas voir le problème
+  ([WebKit 225298](https://bugs.webkit.org/show_bug.cgi?id=225298)). Dans ce mode, la
+  reconnaissance passe désormais par le serveur vocal du projet (Whisper), quelle que soit
+  la langue. L'interaction y est « appuyer, parler, retoucher le micro » et non l'écoute
+  continue
+- Replis symétriques : à défaut du moteur préféré, l'autre est pris plutôt que rien
+- Quand aucun moteur n'est utilisable, le message dit la cause et la sortie — ouvrir le site
+  dans Safari ou renseigner le serveur vocal — au lieu de constater l'absence
+
+### Added
+- `app/core/micro.js` : le choix du moteur est une fonction pure, couverte par 7 tests
+  (62 au total)
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.12`
+
 ## [2.0.0-beta.11] — 2026-10-11
 
 Installée sur l'écran d'accueil, la v2 passait sous la barre d'état : le titre était masqué

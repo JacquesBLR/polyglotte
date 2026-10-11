@@ -1,7 +1,10 @@
 // Couche vocale WEB — Web Speech API, portée à l'identique de l'app v1.
 // Interface commune avec speech.native.js :
 //   ttsAvailable(), pickVoice(ttsPrefixes), speak(text, opts), stopSpeaking(),
-//   primeSpeech(), recognitionAvailable(), createRecognizer(opts).
+//   primeSpeech(), recognitionAvailable(), createRecognizer(opts),
+//   messageMicroIndisponible().
+
+import { choisitMicro } from "../core/micro";
 
 export function ttsAvailable() {
   return typeof window !== "undefined" && !!window.speechSynthesis;
@@ -120,6 +123,21 @@ function createRemoteRecognizer({ lang, onStart, onInterim, onResult, onError, o
   };
 }
 
+// App installée sur l'écran d'accueil d'un iPhone. `navigator.standalone` est propre à
+// Safari iOS : ailleurs il est indéfini, et une PWA Android ou bureau garde donc la
+// reconnaissance du navigateur, qui y fonctionne.
+function autonomeIos() {
+  return typeof window !== "undefined" && window.navigator?.standalone === true;
+}
+
+// Le moteur distant a besoin du micro et d'un enregistreur, en plus d'une URL de serveur.
+function distantUtilisable() {
+  return !!remote.url
+    && typeof navigator !== "undefined"
+    && !!navigator.mediaDevices?.getUserMedia
+    && typeof MediaRecorder !== "undefined";
+}
+
 // Cherche une voix par ordre de préférence des préfixes de locale.
 // Retourne { voice, native } (native = premier préfixe trouvé) ou null.
 export function pickVoice(ttsPrefixes) {
@@ -198,8 +216,26 @@ const REC_ERRORS = {
 
 // Retourne { start(), stop() } ou null si la reconnaissance n'est pas disponible.
 export function createRecognizer(opts) {
-  if (remoteActive(opts)) return createRemoteRecognizer(opts);
-  return createLocalRecognizer(opts);
+  const choix = choisitMicro({
+    support: opts.support,
+    autonomeIos: autonomeIos(),
+    distantDisponible: distantUtilisable(),
+    localDisponible: recognitionAvailable(),
+  });
+  if (choix === "distant") return createRemoteRecognizer(opts);
+  if (choix === "local") return createLocalRecognizer(opts);
+  return null;
+}
+
+// Message affiché quand aucun moteur n'est utilisable : dire *pourquoi* et quoi faire,
+// plutôt que de constater l'absence.
+export function messageMicroIndisponible() {
+  if (autonomeIos() && !remote.url) {
+    return "Sur iOS, une app installée sur l'écran d'accueil ne peut pas utiliser la "
+      + "reconnaissance du navigateur. Renseigne l'URL du serveur vocal dans ⚙️, ouvre le "
+      + "site dans Safari, ou écris tes réponses.";
+  }
+  return "La reconnaissance vocale n'est pas disponible ici — écris tes réponses.";
 }
 
 function createLocalRecognizer({ lang, onStart, onInterim, onResult, onError, onEnd }) {
