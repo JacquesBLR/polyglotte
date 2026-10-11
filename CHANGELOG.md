@@ -5,6 +5,37 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.9] — 2026-10-11
+
+« Ça marche tout de suite » : les deux obstacles qui séparaient encore l'ouverture de l'app
+d'une conversation effective.
+
+### Fixed
+- 🔁 **Une version publiée arrive dès le premier rechargement** (#58) : le service worker
+  servait le **document** depuis le cache, or c'est lui qui désigne le bundle JS haché. La
+  version publiée n'arrivait donc qu'au rechargement suivant — et entre les deux, l'app se
+  comportait comme la version précédente, ouvrant la page de réglages au lieu de démarrer une
+  conversation. Le document passe en **réseau d'abord**, cache en secours hors ligne ; les
+  actifs hachés, immuables, restent en cache d'abord
+- 🌐 **Conversation possible depuis le web sur le moteur local** (#59) : la passerelle
+  compatible OpenAI ne renvoie aucun en-tête CORS (préflight vérifié : `405`, aucun
+  `Access-Control-*`), si bien que le navigateur bloquait chaque requête, réglages remplis ou
+  non. Le serveur du projet relaie désormais `/v1/*` vers elle — il appartient au projet, est
+  déjà exposé en HTTPS sur le tailnet, et porte déjà la politique CORS. Le flux est relayé
+  octet par octet : le streaming SSE phrase par phrase (#43) est préservé, vérifié par un
+  appel de bout en bout
+- Les réglages déjà migrés en beta.8 retenaient l'URL de passerelle inappelable : le marqueur
+  `defautsDgx` devient un **numéro de version** et une migration v2 la remplace par celle du
+  relais. Une URL saisie à la main n'est jamais réécrite
+
+### Changed
+- 🔒 CORS du serveur vocal resserré : origines énumérées (GitHub Pages + `localhost`) au lieu
+  de `*`. Depuis que ce serveur relaie le LLM, un CORS ouvert laisserait n'importe quelle page
+  du navigateur consommer le moteur local
+- `VOCAL_LLM_BASE` configure le relais, **sans valeur par défaut** : non renseignée, `/v1/*`
+  répond `503` et le serveur reste purement vocal. `/health` expose `llm.relais`
+- 4 tests de migration supplémentaires (55 au total)
+
 ## [2.0.0-beta.8] — 2026-10-11
 
 ### Fixed
