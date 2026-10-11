@@ -119,8 +119,8 @@ export const LANGUAGES = {
     stt: "ar-TN", ttsPrefixes: ["ar"],
     // rtl, reading et promptExtra sont résolus selon l'écriture choisie (langConfig).
     rtl: true, reading: null, support: "partial",
-    supportNote: "La derja n'a pas de moteur vocal dédié : la reconnaissance passe par l'arabe (approximative pour le dialecte) et la voix de synthèse est en arabe standard. La conversation écrite, elle, est pleinement en tunisien.",
-    voiceHint: "Voix arabe standard utilisée (pas de voix tunisienne existante).",
+    supportNote: "La derja n'a pas de moteur vocal dédié : la reconnaissance passe par l'arabe (approximative pour le dialecte) et la synthèse emprunte une voix jordanienne, masculine — le texte lu est bien du tunisien, l'accent ne l'est pas. La conversation écrite, elle, est pleinement en tunisien.",
+    voiceHint: "Voix jordanienne (masculine) : aucun des moteurs disponibles n'a de voix tunisienne.",
     promptExtraBase: "Tu parles le tunisien (derja), PAS l'arabe standard : vocabulaire et tournures typiquement tunisiens. Les transcriptions vocales de l'élève arrivent souvent déformées vers l'arabe standard : interprète avec bienveillance.",
     scenarios: [
       { id: "medina", label: "🌍 Dans la médina de Tunis", prompt: "Jeu de rôle : les souks de la médina de Tunis : chercher un artisan, marchander en derja, souffler autour d'un thé aux pins." },
