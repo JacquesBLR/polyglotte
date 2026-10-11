@@ -10,6 +10,7 @@ import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
 import { nbMissionsAccomplies } from "../core/mission";
 import { JOURS_COURTS, bilanHebdo, messageHebdo, semainesTenues } from "../core/objectif";
+import { moyennePrononciation } from "../core/prononciation";
 import { tendanceNiveau } from "../core/resume";
 import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
@@ -234,6 +235,9 @@ export default function ProgressScreen({ settings, keys }) {
     [erreurs.length, "erreurs au carnet"],
     [duesErreurs.length, "erreurs à revoir"],
   ];
+  // Prononciation (#95) : tuile présente seulement quand il y a des mesures.
+  const prononciation = moyennePrononciation(history);
+  if (prononciation !== null) stats.push([`${prononciation} %`, "prononciation (5 dernières séances)"]);
   const recent = [...deck].sort((a, b) => b.addedAt - a.addedAt).slice(0, 50);
   const erreursRecentes = [...erreurs].sort((a, b) => b.addedAt - a.addedAt).slice(0, 30);
 
@@ -297,6 +301,7 @@ export default function ProgressScreen({ settings, keys }) {
               `${h.turns || 0} tour${(h.turns || 0) > 1 ? "s" : ""}`,
               h.missions?.total ? `missions ${h.missions.atteintes}/${h.missions.total}` : null,
               h.niveauObserve ? `niveau ${h.niveauObserve}` : null,
+              h.prononciation?.n ? `prononciation ${h.prononciation.moyenne} %` : null,
             ].filter(Boolean).join(" · ");
             return (
               <Pressable key={h.id} onPress={() => setSeanceOuverte(ouverte ? null : h.id)} style={st.seance}>
