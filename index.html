@@ -33,11 +33,33 @@
         flex: 1;
       }
     </style>
+
+    <!-- Encoche et barre d'état (#63). En mode autonome sur iOS, la page occupe tout
+         l'écran (status-bar-style black-translucent + viewport-fit=cover) : sans ces
+         marges, l'en-tête passe sous l'heure et ses boutons cessent de répondre, iOS
+         réservant les appuis de cette bande au système.
+         Les marges sont portées par le CSS et non par une valeur JS : `env()` n'est
+         connu que du navigateur, et sa valeur change à la rotation de l'appareil.
+         `!important` est nécessaire : react-native-web injecte ses règles dans le
+         <head> après celle-ci, à spécificité égale. -->
+    <style id="polyglotte-safe-area">
+      [data-entete] {
+        padding-top: calc(14px + env(safe-area-inset-top)) !important;
+      }
+      /* Deux règles : chacune reprend la marge basse déjà portée par le composant,
+         qui diffère, et y ajoute l'encombrement de l'indicateur d'accueil. */
+      [data-pied="saisie"] {
+        padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+      }
+      [data-pied="feuille"] {
+        padding-bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+      }
+    </style>
   <link rel="icon" href="/polyglotte/favicon.ico"/></head>
 
   <body>
     <noscript>Cette application nécessite JavaScript.</noscript>
     <div id="root"></div>
-  <script src="/polyglotte/_expo/static/js/web/index-e6fa177770cd3b0688f75f35b7d9efc6.js" defer></script>
+  <script src="/polyglotte/_expo/static/js/web/index-d3842c8a33b68419377922fc0a0a6608.js" defer></script>
 </body>
 </html>
