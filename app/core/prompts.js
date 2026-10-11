@@ -1,5 +1,8 @@
 // Prompts pédagogiques — iso-fonctionnels avec l'app v1, paramétrés par un contexte
-// pur : { cfg (langConfig résolu), level, levelLabel, scenarioId, immersion, mode }.
+// pur : { cfg (langConfig résolu), level, levelLabel, scenarioId, immersion, mode,
+// erreurs (cartes du carnet d'erreurs à réactiver, #87 — optionnel) }.
+
+import { blocErreursPrompt } from "./erreurs.js";
 
 export const LEVEL_INSTRUCTIONS = {
   debutant: `L'élève est DÉBUTANT (A1–A2). Utilise des phrases très courtes et simples, les temps
@@ -58,7 +61,7 @@ Champs :
 
 export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
-  const { cfg, level, scenarioId, immersion } = ctx;
+  const { cfg, level, scenarioId, immersion, erreurs } = ctx;
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   const readingRule = cfg.reading
     ? `- "reading" : ${cfg.reading}.`
@@ -86,7 +89,7 @@ ${ADAPTIVE_INSTRUCTION}
 ${scenarioInstructions(cfg, scenarioId)}
 
 Spécificités de la langue : ${cfg.promptExtra}
-
+${blocErreursPrompt(erreurs)}
 Règles :
 - "reply" : ta réplique EN ${cfg.langFr.toUpperCase().replace(/^L[E'’A]\s*/, "")} uniquement, 1 à 3 phrases, qui se termine le plus souvent par une question pour relancer l'élève.
 - "translation" : la traduction française fidèle de "reply".

@@ -9,6 +9,7 @@ const BASE = {
   settings: "polyglotte.v2::settings",
   deck: "polyglotte.v2::deck",
   history: "polyglotte.v2::history",
+  erreurs: "polyglotte.v2::erreurs", // carnet d'erreurs (#87)
 };
 
 export const PROFILES_KEY = "polyglotte.v2::profiles";
@@ -21,6 +22,7 @@ export function keysFor(profile) {
     settings: BASE.settings + suffix,
     deck: BASE.deck + suffix,
     history: BASE.history + suffix,
+    erreurs: BASE.erreurs + suffix,
   };
 }
 
@@ -50,8 +52,8 @@ export function saveProfiles(profiles) {
   return saveJSON(PROFILES_KEY, profiles);
 }
 
-// Supprime toutes les données d'un profil (réglages, carnet, historique).
+// Supprime toutes les données d'un profil (réglages, carnets, historique).
 export async function removeProfileData(profile) {
   const k = keysFor(profile);
-  await AsyncStorage.multiRemove([k.settings, k.deck, k.history]).catch(() => {});
+  await AsyncStorage.multiRemove([k.settings, k.deck, k.history, k.erreurs]).catch(() => {});
 }

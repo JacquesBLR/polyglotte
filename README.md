@@ -48,6 +48,9 @@ complète mais l'oral est approximatif.
   chemin, se présenter, voyage, travail.
 - 📈 **Trois niveaux** : débutant (A1–A2), intermédiaire (B1–B2), avancé (C1).
 - 📋 **Résumé de session** : vocabulaire vu, erreurs commises, phrases à réviser.
+- 🩹 **Carnet d'erreurs** : chaque correction reçue en conversation devient une carte de
+  révision espacée (FSRS), et les erreurs les plus fragiles reviennent discrètement dans la
+  séance suivante — le tuteur amène la situation où la forme correcte sert, sans les lister.
 - 🔔 **Rappels de révision** (app iOS/Android) : notification locale quand des cartes
   arrivent à échéance — sur l'appareil, sans serveur ni compte.
 

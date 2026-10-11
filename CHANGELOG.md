@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.23] — 2026-10-12
+
+### Added
+- 🩹 **Carnet d'erreurs** (#87). Une correction du tuteur ne vivait qu'un tour dans la bulle,
+  puis disparaissait avec la session : l'élève refaisait la même faute à la séance suivante
+  et le tuteur la corrigeait comme si c'était la première fois. Chaque correction reçue en
+  conversation devient une carte FSRS (une par langue et par forme corrigée), révisable
+  depuis l'écran Progrès : la phrase fautive est montrée, l'élève formule la correction, on
+  révèle la forme correcte et l'explication, puis note ❌ 😅 ✅ 🚀 comme pour le vocabulaire
+- Les erreurs les plus fragiles (dues, puis les plus souvent ratées, trois au plus) entrent
+  dans le prompt de la séance suivante dans la même langue : le tuteur amène une situation
+  où la forme correcte est utile, sans les annoncer ni les lister — ce que font Speak
+  (*Review*), Praktika (*Mistakes*) et Loora. Une langue sans erreur garde un prompt
+  strictement identique (testé)
+- Le carnet d'erreurs est une clé de stockage par profil, purgée avec le profil
+
 ## [2.0.0-beta.22] — 2026-10-11
 
 ### Changed
