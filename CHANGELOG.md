@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.26] — 2026-10-12
+
+### Added
+- 📋 **Résumé de séance structuré** (#93). Le bilan de fin de session était un texte libre,
+  affiché une fois puis perdu : il ne se relisait pas et ce qu'il relevait n'allait nulle
+  part — en immersion, où aucune correction ne s'affiche, le carnet d'erreurs restait vide.
+  Le résumé arrive désormais structuré (`SUMMARY_SCHEMA`) : texte lisible inchangé, points
+  forts, erreurs, vocabulaire, phrases à réviser, conseil pour la prochaine fois et **niveau
+  CECRL observé** pendant la séance (pas le réglage). Comme le *lesson report* de Praktika
+  et le *session summary* de Speak
+- Ses erreurs et son vocabulaire sont versés aux carnets existants, avec leurs
+  dédoublonnages (une erreur déjà relevée en conversation n'est pas doublée) ; le bilan et
+  le niveau observé sont conservés dans l'entrée d'historique de la séance
+- Écran Progrès : section « Dernières séances » (date, langue, scénario, tours, missions,
+  niveau observé), chaque bilan dépliable, et la tendance du niveau observé sur les
+  dernières séances évaluées (A2 → B1 : « ça monte »)
+- Un modèle qui ne tiendrait pas le schéma rend au pire un texte : il est affiché tel
+  quel, rien d'autre ne casse (`app/core/resume.js`, pur, testé)
+
 ## [2.0.0-beta.25] — 2026-10-12
 
 ### Added

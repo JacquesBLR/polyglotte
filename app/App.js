@@ -14,7 +14,8 @@ import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreur
 import { addVocabulary } from "./core/leitner";
 import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
-import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
+import { entreeResume, integreResume, resumeValide } from "./core/resume";
+import { ASSESS_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
 import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
@@ -222,12 +223,33 @@ export default function App() {
       setBusy(true);
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
       try {
-        const text = await callModel(settings, {
+        const raw = await callModel(settings, {
           messages: [...s.history, { role: "user", content: summaryRequest({ cfg: s.cfg }) }],
           system: s.system,
-          maxTokens: 1024,
+          schema: SUMMARY_SCHEMA,
+          maxTokens: 2048,
         });
-        setMessages(m => [...m, { role: "summary", text }]);
+        // Résumé structuré (#93). Un modèle qui ne tiendrait pas le schéma rend au pire un
+        // texte : on l'affiche tel quel, rien d'autre ne casse.
+        let resume = null;
+        try { resume = resumeValide(JSON.parse(raw)); } catch (_) { resume = null; }
+        setMessages(m => [...m, { role: "summary", text: resume ? resume.texte : raw, resume }]);
+        if (resume) {
+          // Les erreurs et le vocabulaire du bilan rejoignent les carnets ; le bilan et le
+          // niveau observé, l'entrée d'historique de la séance.
+          const [deck, carnet, history] = await Promise.all([
+            loadJSON(keys.deck, []), loadJSON(keys.erreurs, []), loadJSON(keys.history, []),
+          ]);
+          const integre = integreResume(deck, carnet, resume, langId);
+          if (integre.deck !== deck) saveJSON(keys.deck, integre.deck);
+          if (integre.carnet !== carnet) saveJSON(keys.erreurs, integre.carnet);
+          const entry = history.find(h => h.id === s.id);
+          if (entry) {
+            entry.resume = entreeResume(resume);
+            entry.niveauObserve = resume.niveau_observe;
+            saveJSON(keys.history, history);
+          }
+        }
         setStatus({ text: "Résumé de session — reviens à l'accueil quand tu veux.", error: false });
       } catch (err) {
         setStatus({ text: err.message, error: true });
@@ -578,6 +600,21 @@ export default function App() {
               <View style={[st.bubble, st.bubbleSummary]}>
                 <Text style={st.summaryTitle}>📋 Résumé de session</Text>
                 <Text style={st.summaryText}>{m.text}</Text>
+                {m.resume?.points_forts?.length > 0 && (
+                  <Text style={st.summaryExtra}>👍 {m.resume.points_forts.join(" · ")}</Text>
+                )}
+                {!!m.resume?.conseil && <Text style={st.summaryExtra}>💡 {m.resume.conseil}</Text>}
+                {!!m.resume?.niveau_observe && (
+                  <Text style={st.summaryExtra}>🎓 Niveau observé aujourd'hui : {m.resume.niveau_observe}</Text>
+                )}
+                {m.resume && (m.resume.erreurs.length > 0 || m.resume.vocabulaire.length > 0) && (
+                  <Text style={st.summaryHint}>
+                    {m.resume.vocabulaire.length > 0 ? `${m.resume.vocabulaire.length} mot${m.resume.vocabulaire.length > 1 ? "s" : ""} au carnet` : ""}
+                    {m.resume.vocabulaire.length > 0 && m.resume.erreurs.length > 0 ? " · " : ""}
+                    {m.resume.erreurs.length > 0 ? `${m.resume.erreurs.length} erreur${m.resume.erreurs.length > 1 ? "s" : ""} à revoir` : ""}
+                    {" — retrouve-les dans 📊 Progrès."}
+                  </Text>
+                )}
               </View>
             )}
           </View>
@@ -656,6 +693,8 @@ const st = StyleSheet.create({
   bubbleSummary: { backgroundColor: "#fffbeb", alignSelf: "stretch", maxWidth: "100%", borderWidth: 1, borderColor: "#fde68a" },
   summaryTitle: { fontWeight: "700", color: "#92400e", marginBottom: 6 },
   summaryText: { color: "#44403c", fontSize: 14, lineHeight: 21 },
+  summaryExtra: { color: "#78350f", fontSize: 13, lineHeight: 19, marginTop: 6 },
+  summaryHint: { color: C.muted, fontSize: 12, marginTop: 6 },
   suggestions: { maxHeight: 44, marginBottom: 4 },
   missions: { backgroundColor: "#fffbeb", borderBottomWidth: 1, borderBottomColor: "#fde68a", paddingHorizontal: 14, paddingVertical: 6, gap: 2 },
   missionLigne: { fontSize: 13, color: "#92400e" },
