@@ -5,6 +5,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.24] — 2026-10-12
+
+### Added
+- 🎯 **Objectif hebdomadaire** (#89). L'écran Progrès comptait les sessions et la série de
+  jours d'affilée — une série se casse au premier jour manqué et ne dit rien de l'intention.
+  L'élève choisit désormais dans ⚙️ un nombre de jours de pratique par semaine (3, 4, 5 ou
+  7 ; défaut 4), et une carte « Cette semaine » ouvre l'écran Progrès : frise lundi →
+  dimanche, « 2 / 4 jours », minutes de la semaine, semaines tenues d'affilée, et un message
+  accordé (il reste n jours ; objectif atteint ; plus assez de jours, on repart lundi).
+  Même mécanique que l'objectif en jours de Speak et la frise hebdomadaire de Duolingo
+- Tout est calculé depuis l'historique des sessions (`app/core/objectif.js`, pur) : une
+  session compte pour le jour où elle a commencé, la semaine en cours n'est jamais comptée
+  contre l'élève tant qu'elle n'est pas finie, et les dates sont lues en heure locale —
+  les tests construisent les leurs de même, pour ne pas dépendre du fuseau de la machine
+- Le réglage est un nouveau champ de `DEFAULT_SETTINGS`, garni par la fusion existante :
+  aucune migration
+
 ## [2.0.0-beta.23] — 2026-10-12
 
 ### Added

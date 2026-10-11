@@ -1,5 +1,5 @@
-// Progrès : statistiques, carnet de vocabulaire et révision espacée (portage v1 #23/#24),
-// carnet d'erreurs et sa révision (#87).
+// Progrès : objectif de la semaine (#89), statistiques, carnet de vocabulaire et révision
+// espacée (portage v1 #23/#24), carnet d'erreurs et sa révision (#87).
 
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -8,6 +8,7 @@ import { erreursDues } from "../core/erreurs";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
+import { JOURS_COURTS, bilanHebdo, messageHebdo, semainesTenues } from "../core/objectif";
 import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
 import { loadJSON, saveJSON } from "../storage";
@@ -232,8 +233,27 @@ export default function ProgressScreen({ settings, keys }) {
   const recent = [...deck].sort((a, b) => b.addedAt - a.addedAt).slice(0, 50);
   const erreursRecentes = [...erreurs].sort((a, b) => b.addedAt - a.addedAt).slice(0, 30);
 
+  // Objectif de la semaine (#89) : calculé à chaque rendu depuis l'historique.
+  const hebdo = bilanHebdo(history, settings.objectifJours);
+  const tenues = semainesTenues(history, settings.objectifJours);
+
   return (
     <ScrollView contentContainerStyle={st.body}>
+      <View style={ui.card}>
+        <Text style={st.semaineTitre}>🎯 Cette semaine — {hebdo.pratiques} / {hebdo.cible} jours</Text>
+        <View style={st.frise}>
+          {hebdo.jours.map((ok, i) => (
+            <View key={i} style={[st.pastille, ok && st.pastilleOk, i === hebdo.aujourdhui && st.pastilleAujourdhui]}>
+              <Text style={[st.pastilleTexte, ok && st.pastilleTexteOk]}>{JOURS_COURTS[i]}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={ui.status}>
+          {messageHebdo(hebdo)}
+          {hebdo.minutes > 0 ? ` · ≈ ${hebdo.minutes} min` : ""}
+          {tenues > 0 ? ` · ${tenues} semaine${tenues > 1 ? "s" : ""} tenue${tenues > 1 ? "s" : ""} d'affilée` : ""}
+        </Text>
+      </View>
       <View style={st.statsGrid}>
         {stats.map(([value, label]) => (
           <View key={label} style={[ui.card, st.statCard]}>
@@ -304,6 +324,13 @@ const st = StyleSheet.create({
   deckLang: { fontSize: 11, color: C.muted, width: 62 },
   deckTerm: { fontSize: 15, color: C.text, fontWeight: "600" },
   deckTranslation: { fontSize: 13, color: C.muted },
+  semaineTitre: { fontSize: 15, fontWeight: "700", color: C.text },
+  frise: { flexDirection: "row", justifyContent: "space-between", gap: 6, marginVertical: 4 },
+  pastille: { flex: 1, aspectRatio: 1, maxWidth: 44, borderRadius: 999, borderWidth: 1, borderColor: C.border, backgroundColor: C.bg, alignItems: "center", justifyContent: "center" },
+  pastilleOk: { backgroundColor: C.ok, borderColor: C.ok },
+  pastilleAujourdhui: { borderColor: C.primary, borderWidth: 2 },
+  pastilleTexte: { fontSize: 13, fontWeight: "700", color: C.muted },
+  pastilleTexteOk: { color: "#fff" },
   erreurOriginal: { fontSize: 20, fontWeight: "600", color: C.error, textAlign: "center" },
   erreurExplication: { fontSize: 14, color: "#57534e", textAlign: "center", marginTop: 4 },
   erreurLigne: { fontSize: 14, color: C.error },

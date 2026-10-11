@@ -19,6 +19,9 @@ export const DEFAULT_SETTINGS = {
   reversedCards: false,
   voiceUrl: "https://spark-4569.tail34da6b.ts.net:8664",
   reminders: false,
+  // Objectif hebdomadaire (#89) : jours de pratique visés par semaine. Un champ ajouté
+  // après coup se garnit par la fusion ci-dessous, sans étape de migration.
+  objectifJours: 4,
   defautsDgx: 2,
 };
 
