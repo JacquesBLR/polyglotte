@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { callModel, hasCredentials } from "./core/api";
 import { streamOrCallLocal, partialStringField, createSentenceStreamer } from "./core/stream";
+import { retireProvisoire } from "./core/messages";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
@@ -259,7 +260,7 @@ export default function App() {
             speaker.push(partial.text);
             if (partial.complete) speaker.flush(partial.text);
           }
-          setMessages(m => [...(streamed ? m.slice(0, -1) : m), { role: "tutor", text: partial.text, streaming: true }]);
+          setMessages(m => [...retireProvisoire(m), { role: "tutor", text: partial.text, streaming: true }]);
           streamed = true;
           setStatus({ text: "", error: false });
         };
@@ -280,7 +281,7 @@ export default function App() {
       } else {
         const correction = data.correction && data.correction.original !== data.correction.corrected
           ? data.correction : null;
-        setMessages(m => [...(streamed ? m.slice(0, -1) : m), {
+        setMessages(m => [...retireProvisoire(m), {
           role: "tutor",
           text: data.reply,
           reading: data.reading,
@@ -310,7 +311,7 @@ export default function App() {
       }
     } catch (err) {
       s.history.pop();
-      if (streamed) setMessages(m => m.slice(0, -1));
+      setMessages(retireProvisoire);   // retire le provisoire s'il y en a un
       setStatus({ text: err.message, error: true });
     }
     setBusy(false);

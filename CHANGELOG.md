@@ -5,6 +5,21 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.21] — 2026-10-11
+
+### Fixed
+- 💬 **Le message de l'élève disparaissait dès que le tuteur commençait à répondre** (#83).
+  Le retrait du message provisoire du streaming dépendait d'un drapeau extérieur
+  (`streamed`) lu **à l'intérieur** de la fonction de mise à jour : React l'exécute au
+  rendu suivant quand une mise à jour est déjà en attente, donc après que le drapeau est
+  passé à `true`. Le `slice(0, -1)` retirait alors la bulle de l'élève au lieu du provisoire
+- Le message provisoire est désormais reconnu à son propre drapeau `streaming`, dans la
+  liste (`retireProvisoire`) : l'opération ne dépend plus de l'ordre d'exécution ni du lot
+  dans lequel React la range. Testée dans les deux ordres, avec l'ancien comportement
+  documenté en régression
+- Même ternaire dans le `catch` : une erreur survenant après l'affichage de la réponse
+  définitive (enregistrement du tour, paquet de vocabulaire) effaçait cette réponse
+
 ## [2.0.0-beta.20] — 2026-10-11
 
 ### Fixed
