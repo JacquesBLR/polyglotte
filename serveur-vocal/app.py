@@ -10,10 +10,13 @@ Endpoints :
   GET  /voices          — voix TTS disponibles (par préfixe de langue)
   POST /stt             — multipart : file=<audio webm/ogg/wav>, lang=<code, ex. ca-ES>
   POST /tts             — JSON { text, lang } → audio/wav
+  *    /v1/*            — passe-plat vers la passerelle LLM (streaming préservé)
 
 Configuration par variables d'environnement :
   VOCAL_STT_MODEL  (défaut "small")  — taille du modèle Whisper
   VOCAL_VOIX_DIR   (défaut "./voix") — répertoire des modèles Piper (.onnx + .onnx.json)
+  VOCAL_LLM_BASE   (sans défaut)     — base OpenAI de la passerelle, ex.
+                                       http://127.0.0.1:8646/v1 ; vide = /v1/* désactivé
 """
 
 import io
@@ -21,15 +24,20 @@ import json
 import os
 import tempfile
 import wave
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import httpx
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 
 STT_MODEL = os.environ.get("VOCAL_STT_MODEL", "small")
 VOIX_DIR = Path(os.environ.get("VOCAL_VOIX_DIR", Path(__file__).parent / "voix"))
+LLM_BASE = os.environ.get("VOCAL_LLM_BASE", "").rstrip("/")
+
+_client: "httpx.AsyncClient | None" = None
 
 # Préfixe de langue (envoyé par l'app, insensible à la région) → nom de voix Piper.
 # Pas de voix japonaise chez Piper : l'app garde alors sa synthèse Web Speech.
@@ -43,9 +51,27 @@ VOIX = {
     "ar": "ar_JO-kareem-medium",     # aussi utilisée pour ar-TN (pas de voix tunisienne)
 }
 
-app = FastAPI(title="Serveur vocal Polyglotte")
-app.add_middleware(  # l'app est servie depuis GitHub Pages : CORS indispensable
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Ferme proprement le client du relais LLM à l'arrêt (cf. plus bas)."""
+    yield
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None
+
+
+app = FastAPI(title="Serveur vocal Polyglotte", lifespan=lifespan)
+# L'app est servie depuis GitHub Pages : CORS indispensable. Les origines sont
+# énumérées plutôt que « * » (#59) — depuis que /v1/* relaie le LLM, un CORS ouvert
+# laisserait n'importe quelle page du navigateur consommer le moteur local.
+ORIGINES = ["https://jacquesblr.github.io"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ORIGINES,
+    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",  # dev local
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ---------- STT : faster-whisper ----------
@@ -144,4 +170,63 @@ def health():
         "ok": True,
         "stt": {"modele": STT_MODEL, "device": _whisper_device or "non chargé"},
         "tts": {"voix_chargees": sorted(_voix_chargees), "dir": str(VOIX_DIR)},
+        "llm": {"relais": bool(LLM_BASE)},
     }
+
+
+# ---------- Passe-plat LLM (#59) ----------
+#
+# La passerelle compatible OpenAI du DGX ne renvoie aucun en-tête CORS : le navigateur
+# bloque donc les appels directs depuis l'app servie par GitHub Pages. Plutôt que d'ouvrir
+# CORS sur une infra partagée par tous les projets, on relaie ici — ce serveur appartient
+# au projet, est déjà exposé en HTTPS sur le tailnet, et porte déjà la politique CORS.
+#
+# Le flux est relayé tel quel, octet par octet : le streaming SSE de la conversation
+# (lecture phrase par phrase, #43) doit continuer d'arriver au fur et à mesure. Aucun
+# `await` sur le corps complet, donc, et pas de mise en tampon.
+
+def get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None:
+        # Génération longue possible : pas de timeout de lecture, mais une connexion qui
+        # ne s'établit pas doit échouer vite.
+        _client = httpx.AsyncClient(timeout=httpx.Timeout(None, connect=10.0))
+    return _client
+
+
+# En-têtes repris dans chaque sens : le reste (hop-by-hop, longueur, encodage) est
+# recalculé par uvicorn, et les en-têtes CORS sont posés par le middleware.
+_ENTETES_ALLER = ("content-type", "authorization", "accept")
+_ENTETES_RETOUR = ("content-type", "cache-control")
+
+
+@app.api_route("/v1/{chemin:path}", methods=["GET", "POST"])
+async def relais_llm(chemin: str, requete: Request):
+    if not LLM_BASE:
+        raise HTTPException(503, "Relais LLM non configuré (VOCAL_LLM_BASE).")
+
+    client = get_client()
+    amont = client.build_request(
+        requete.method,
+        f"{LLM_BASE}/{chemin}",
+        content=requete.stream(),
+        headers={k: v for k, v in requete.headers.items() if k.lower() in _ENTETES_ALLER},
+        params=requete.query_params,
+    )
+    try:
+        reponse = await client.send(amont, stream=True)
+    except httpx.RequestError as err:
+        raise HTTPException(502, f"Passerelle LLM injoignable : {err}") from err
+
+    async def flux():
+        try:
+            async for bloc in reponse.aiter_raw():
+                yield bloc
+        finally:
+            await reponse.aclose()
+
+    return StreamingResponse(
+        flux(),
+        status_code=reponse.status_code,
+        headers={k: v for k, v in reponse.headers.items() if k.lower() in _ENTETES_RETOUR},
+    )

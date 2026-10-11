@@ -151,6 +151,27 @@ d'échec. Les autres langues continuent d'utiliser les moteurs du système, plus
 Installation, voix et exposition HTTPS (nécessaire depuis la PWA, qui est servie en
 HTTPS) : voir [`serveur-vocal/README.md`](serveur-vocal/README.md).
 
+### Relais vers le moteur LLM
+
+Le même service peut relayer `/v1/*` vers un serveur compatible OpenAI, via la variable
+`VOCAL_LLM_BASE` (sans valeur par défaut : non renseignée, `/v1/*` répond `503` et le
+service reste purement vocal).
+
+À quoi ça sert : un navigateur n'appelle un serveur d'une autre origine que si celui-ci
+renvoie les en-têtes CORS voulus. Beaucoup de serveurs d'inférence ne le font pas, et la
+requête échoue alors sans que les réglages y soient pour quelque chose. Passer par ce relais
+règle le problème sans toucher au serveur d'inférence — utile quand il est partagé avec
+d'autres usages. Le flux est relayé tel quel, donc le streaming phrase par phrase
+fonctionne à travers lui.
+
+Les origines autorisées sont énumérées dans `serveur-vocal/app.py` (`ORIGINES`) : GitHub
+Pages et `localhost`. C'est volontairement restrictif — un relais LLM ouvert à toutes les
+origines laisserait n'importe quelle page du navigateur consommer le moteur. Si tu sers
+l'app depuis une autre adresse (une IP de LAN, par exemple), ajoute-la là.
+
+> ⚠️ Ce relais ne porte **aucune authentification** : il hérite de celle du réseau sur
+> lequel il est exposé. Ne l'expose pas sur l'internet public.
+
 ## Application iOS (TestFlight)
 
 L'app native se construit avec **EAS Build** (dans le cloud d'Expo — aucun Mac requis) ;

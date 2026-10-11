@@ -14,6 +14,9 @@ ExecStart=/home/omniapp/Documents/projets/polyglotte/serveur-vocal/.venv/bin/uvi
 Restart=on-failure
 RestartSec=5
 Environment=VOCAL_STT_MODEL=small
+# Relais /v1/* vers la passerelle compatible OpenAI (#59) : sans CORS côté passerelle,
+# l'app web ne peut pas l'appeler directement. Vide ⇒ /v1/* répond 503.
+Environment=VOCAL_LLM_BASE=http://127.0.0.1:8646/v1
 
 [Install]
 WantedBy=multi-user.target
