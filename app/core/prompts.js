@@ -120,10 +120,19 @@ ${LEVEL_INSTRUCTIONS[level]}
 Spécificités de la langue : ${cfg.promptExtra}`;
 }
 
+// Demande de résumé structuré (#93) : le texte lisible garde le plan historique ; les
+// champs détaillés alimentent les carnets, l'historique et le suivi du niveau observé.
 export function summaryRequest({ cfg }) {
-  return `[Fin de session] En FRANÇAIS, fais un résumé pédagogique de notre conversation :
-1. Le vocabulaire important vu aujourd'hui en ${cfg.langFr} (mot → traduction française${cfg.reading ? ", avec translittération latine" : ""}).
-2. Les erreurs que j'ai faites et les points de grammaire à retenir.
-3. Deux ou trois phrases utiles à réviser.
-Réponds en texte simple, sans tableau.`;
+  return `[Fin de session] En FRANÇAIS, fais le bilan pédagogique de notre conversation.
+- "texte" : le résumé lisible, en texte simple sans tableau : 1. le vocabulaire important vu aujourd'hui en ${cfg.langFr}
+  (mot → traduction française${cfg.reading ? ", avec translittération latine" : ""}) ; 2. les erreurs que j'ai faites et les points
+  de grammaire à retenir ; 3. deux ou trois phrases utiles à réviser.
+- "points_forts" : 2 ou 3 choses que j'ai bien faites.
+- "erreurs" : mes erreurs significatives (0 à 5), avec la phrase fautive, la version correcte en ${cfg.langFr} et une
+  explication brève — uniquement des erreurs que j'ai réellement faites.
+- "vocabulaire" : les mots et expressions importants de la séance (0 à 8)${cfg.reading ? ", avec translittération latine" : ""}.
+- "phrases_a_reviser" : 2 ou 3 phrases utiles en ${cfg.langFr}.
+- "conseil" : un conseil concret pour la prochaine séance, une phrase.
+- "niveau_observe" : le niveau CECRL que j'ai réellement montré pendant cette séance (A1, A2, B1, B2 ou C1), indépendamment
+  du niveau réglé ; null si la séance est trop courte pour juger.`;
 }

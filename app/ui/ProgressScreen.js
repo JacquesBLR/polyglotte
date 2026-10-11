@@ -10,6 +10,7 @@ import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
 import { nbMissionsAccomplies } from "../core/mission";
 import { JOURS_COURTS, bilanHebdo, messageHebdo, semainesTenues } from "../core/objectif";
+import { tendanceNiveau } from "../core/resume";
 import { saveTextFile } from "../export/export";
 import * as speech from "../speech/speech";
 import { loadJSON, saveJSON } from "../storage";
@@ -31,6 +32,7 @@ export default function ProgressScreen({ settings, keys }) {
   const [review, setReview] = useState(null); // { queue, index, revealed }
   const [erreurs, setErreurs] = useState([]);
   const [revueErreurs, setRevueErreurs] = useState(null); // { queue, index, revealed }
+  const [seanceOuverte, setSeanceOuverte] = useState(null); // id de la séance dont le bilan est déplié (#93)
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -239,6 +241,11 @@ export default function ProgressScreen({ settings, keys }) {
   const hebdo = bilanHebdo(history, settings.objectifJours);
   const tenues = semainesTenues(history, settings.objectifJours);
 
+  // Dernières séances et niveau observé (#93).
+  const seances = [...history].filter(h => h && Number.isFinite(h.date)).sort((a, b) => b.date - a.date).slice(0, 8);
+  const tendance = tendanceNiveau(history);
+  const dateCourte = (ms) => new Date(ms).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+
   return (
     <ScrollView contentContainerStyle={st.body}>
       <View style={ui.card}>
@@ -275,6 +282,44 @@ export default function ProgressScreen({ settings, keys }) {
         <Text style={ui.secondaryBtnText}>📤 Exporter le carnet (Anki)</Text>
       </Pressable>
       {!!status && <Text style={ui.status}>{status}</Text>}
+      {seances.length > 0 && (
+        <>
+          <Text style={ui.sectionTitle}>Dernières séances</Text>
+          {tendance && (
+            <Text style={ui.status}>
+              🎓 Niveau observé : {tendance.de} → {tendance.a} sur les {tendance.n} dernières séances évaluées
+              {tendance.sens > 0 ? " — ça monte !" : tendance.sens < 0 ? " — une séance plus difficile, ça arrive." : " — stable."}
+            </Text>
+          )}
+          {seances.map(h => {
+            const ouverte = seanceOuverte === h.id;
+            const details = [
+              `${h.turns || 0} tour${(h.turns || 0) > 1 ? "s" : ""}`,
+              h.missions?.total ? `missions ${h.missions.atteintes}/${h.missions.total}` : null,
+              h.niveauObserve ? `niveau ${h.niveauObserve}` : null,
+            ].filter(Boolean).join(" · ");
+            return (
+              <Pressable key={h.id} onPress={() => setSeanceOuverte(ouverte ? null : h.id)} style={st.seance}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Text style={st.deckLang}>{dateCourte(h.date)}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={st.deckTerm}>{LANGUAGES[h.lang]?.label || h.lang} · {h.scenario || "libre"}</Text>
+                    <Text style={st.deckTranslation}>{details}</Text>
+                  </View>
+                  {!!h.resume && <Text style={{ color: C.faint }}>{ouverte ? "▴" : "▾"}</Text>}
+                </View>
+                {ouverte && !!h.resume && (
+                  <View style={st.bilan}>
+                    <Text style={st.bilanTexte}>{h.resume.texte}</Text>
+                    {h.resume.pointsForts?.length > 0 && <Text style={st.bilanExtra}>👍 {h.resume.pointsForts.join(" · ")}</Text>}
+                    {!!h.resume.conseil && <Text style={st.bilanExtra}>💡 {h.resume.conseil}</Text>}
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
+        </>
+      )}
       <Text style={ui.sectionTitle}>Carnet de vocabulaire</Text>
       {!deck.length && <Text style={ui.status}>Encore aucun mot — lance une conversation !</Text>}
       {recent.map(card => (
@@ -336,4 +381,8 @@ const st = StyleSheet.create({
   erreurOriginal: { fontSize: 20, fontWeight: "600", color: C.error, textAlign: "center" },
   erreurExplication: { fontSize: 14, color: "#57534e", textAlign: "center", marginTop: 4 },
   erreurLigne: { fontSize: 14, color: C.error },
+  seance: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 10, gap: 6 },
+  bilan: { backgroundColor: "#fffbeb", borderRadius: 8, padding: 10, gap: 6 },
+  bilanTexte: { color: "#44403c", fontSize: 13, lineHeight: 19 },
+  bilanExtra: { color: "#78350f", fontSize: 13, lineHeight: 19 },
 });

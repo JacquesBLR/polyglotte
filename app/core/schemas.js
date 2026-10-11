@@ -149,3 +149,52 @@ export const EXO_SCHEMA = {
   required: ["sentences"],
   additionalProperties: false,
 };
+
+// Résumé de séance structuré (#93) : le texte lisible reste affiché et lu ; les autres
+// champs alimentent les carnets et l'historique.
+export const SUMMARY_SCHEMA = {
+  type: "object",
+  properties: {
+    texte: { type: "string", description: "Le résumé pédagogique lisible, en français, en texte simple (sauts de ligne, pas de Markdown ni de tableau)." },
+    points_forts: { type: "array", items: { type: "string" }, description: "2 ou 3 points forts de la séance, en français." },
+    erreurs: {
+      type: "array",
+      description: "Les erreurs significatives de l'élève pendant la séance (0 à 5), les plus importantes d'abord.",
+      items: {
+        type: "object",
+        properties: {
+          original: { type: "string", description: "Ce que l'élève a dit, avec l'erreur." },
+          corrected: { type: "string", description: "La version correcte dans la langue cible." },
+          explanation: { type: "string", description: "Explication brève en français." },
+        },
+        required: ["original", "corrected", "explanation"],
+        additionalProperties: false,
+      },
+    },
+    vocabulaire: {
+      type: "array",
+      description: "Les mots et expressions importants de la séance (0 à 8).",
+      items: {
+        type: "object",
+        properties: {
+          term: { type: "string", description: "Mot ou expression en langue cible." },
+          translation: { type: "string", description: "Traduction française." },
+          reading: READING_FIELD,
+        },
+        required: ["term", "translation", "reading"],
+        additionalProperties: false,
+      },
+    },
+    phrases_a_reviser: { type: "array", items: { type: "string" }, description: "2 ou 3 phrases utiles à réviser, dans la langue cible." },
+    conseil: { type: "string", description: "Un conseil concret pour la prochaine séance, en français, une phrase." },
+    niveau_observe: {
+      anyOf: [
+        { type: "null" },
+        { type: "string", enum: ["A1", "A2", "B1", "B2", "C1"] },
+      ],
+      description: "Le niveau CECRL effectivement montré par l'élève pendant cette séance (pas le niveau réglé). null si la séance est trop courte pour juger.",
+    },
+  },
+  required: ["texte", "points_forts", "erreurs", "vocabulaire", "phrases_a_reviser", "conseil", "niveau_observe"],
+  additionalProperties: false,
+};
