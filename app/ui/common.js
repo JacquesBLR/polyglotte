@@ -1,6 +1,15 @@
 // Thème et petits composants partagés entre les écrans.
 
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Platform, Pressable, StyleSheet, Text } from "react-native";
+
+// Marges de sécurité des bords de l'écran (#63). En mode autonome sur iOS, la page passe
+// sous la barre d'état et l'indicateur d'accueil ; seul le CSS connaît la hauteur de ces
+// zones (`env(safe-area-inset-*)`), qui change à la rotation. On se contente donc de
+// marquer les vues concernées : les règles vivent dans public/index.html. Sur natif, où
+// ces marges sont déjà dans les styles, les marqueurs ne servent à rien.
+export const MARGE_HAUT = Platform.OS === "web" ? { dataSet: { entete: "oui" } } : null;
+export const MARGE_BAS = Platform.OS === "web" ? { dataSet: { pied: "saisie" } } : null;
+export const MARGE_BAS_FEUILLE = Platform.OS === "web" ? { dataSet: { pied: "feuille" } } : null;
 
 export const C = {
   primary: "#c2410c",
