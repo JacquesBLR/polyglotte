@@ -56,6 +56,15 @@ for (const fichier of suspects) {
   );
 }
 
+// 2 bis. La version affichée dans la v2 doit être celle du paquet (#61) : un numéro
+// affiché qui mentirait serait pire que pas de numéro du tout.
+const versionPaquet = JSON.parse(readFileSync("app/package.json", "utf8")).version;
+verifie(
+  "app/app.json : extra.version aligné sur app/package.json",
+  appJson.expo?.extra?.version === versionPaquet,
+  `package.json=${versionPaquet}, app.json=${appJson.expo?.extra?.version}`,
+);
+
 // 3. Le cache du service worker v1 suit APP_VERSION (invariant documenté dans sw.js).
 const versionV1 = readFileSync("js/app.js", "utf8").match(/APP_VERSION\s*=\s*"([^"]+)"/)?.[1];
 const cacheV1 = readFileSync("sw.js", "utf8").match(/CACHE\s*=\s*"([^"]+)"/)?.[1];

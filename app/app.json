@@ -45,6 +45,9 @@
           "microphonePermission": "Polyglotte enregistre ta voix pour la transcrire via ton serveur vocal, pour les langues dont l'oral n'est pas pris en charge par l'appareil."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "version": "2.0.0-beta.10"
+    }
   }
 }
