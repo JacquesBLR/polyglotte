@@ -59,6 +59,21 @@ function signaleRepli(opts) {
   );
 }
 
+// Un seul élément <audio>, réutilisé pour toutes les lectures distantes (#77). Safari iOS
+// n'autorise la lecture que sur un élément débloqué par un geste utilisateur : un
+// `new Audio()` construit à chaque réplique, hors du gestionnaire d'appui, voit son
+// `play()` rejeté — l'audio arrivait bien du serveur et ne sortait jamais du haut-parleur.
+// Le déblocage vaut pour l'élément, pas pour la page : d'où l'instance unique.
+let lecteur = null;
+// WAV mono d'un seul échantillon muet : de quoi débloquer l'élément sans rien faire
+// entendre.
+const SILENCE = "data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQIAAAAAAA==";
+
+function getLecteur() {
+  if (!lecteur && typeof Audio !== "undefined") lecteur = new Audio();
+  return lecteur;
+}
+
 let rQueue = [];
 let rCurrent = null; // { audio, url }
 let rPlaying = false;
@@ -103,7 +118,9 @@ async function pumpRemote() {
     // stopSpeaking() a pu tomber pendant la requête : ne pas parler quand même.
     if (gen !== rGen) return;
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    const audio = getLecteur();
+    if (!audio) throw new Error("pas de lecteur audio");
+    audio.src = url;
     audio.playbackRate = job.opts.rate || 1;
     rCurrent = { audio, url };
     audio.onended = () => { URL.revokeObjectURL(url); rCurrent = null; done(false); };
@@ -251,6 +268,19 @@ export function stopSpeaking() {
 // Safari iOS n'autorise la synthèse qu'après un geste utilisateur : à appeler
 // depuis le gestionnaire du premier bouton pressé.
 export function primeSpeech() {
+  // Déblocage de la lecture audio (#77) : à faire ici, car primeSpeech() est appelé
+  // depuis le gestionnaire du bouton qui lance la conversation — le seul moment où iOS
+  // l'autorise. Sans cela, la voix du serveur vocal n'est jamais audible sur iPhone.
+  const audio = getLecteur();
+  if (audio) {
+    try {
+      audio.src = SILENCE;
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (_) {
+      // Navigateur sans lecture audio : le repli voix du navigateur reste possible.
+    }
+  }
   if (!ttsAvailable()) return;
   // Une chaîne vide peut être ignorée par le moteur. Or sur iOS la liste des voix reste
   // vide tant que la synthèse n'a pas servi une fois : amorcer avec du vide, c'est ne
