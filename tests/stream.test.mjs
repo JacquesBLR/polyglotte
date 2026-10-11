@@ -65,3 +65,36 @@ test("takeSseData : événements data: complets, reste conservé", () => {
   assert.deepEqual(events, ['{"a":1}', "[DONE]"]);
   assert.equal(rest, 'data: {"par');
 });
+
+test("createSentenceStreamer : minChars regroupe les phrases courtes (#81)", () => {
+  // Voix clonée (derja) : un fragment rend du silence pur. Les phrases s'accumulent
+  // jusqu'à la taille minimale, et le reliquat part au flush.
+  const dites = [];
+  const s = createSentenceStreamer(p => dites.push(p), { minChars: 30 });
+  s.push("Salut. ");
+  assert.deepEqual(dites, [], "trop court : on attend la suite");
+  s.push("Salut. Comment vas-tu aujourd'hui ? ");
+  assert.deepEqual(dites, ["Salut. Comment vas-tu aujourd'hui ?"], "le groupe atteint 30 car.");
+  s.push("Salut. Comment vas-tu aujourd'hui ? Moi ça va. ");
+  assert.equal(dites.length, 1, "le reste attend encore");
+  s.flush("Salut. Comment vas-tu aujourd'hui ? Moi ça va. Et toi");
+  assert.deepEqual(dites, ["Salut. Comment vas-tu aujourd'hui ?", "Moi ça va. Et toi"]);
+});
+
+test("createSentenceStreamer : minChars absent, comportement inchangé", () => {
+  const dites = [];
+  const s = createSentenceStreamer(p => dites.push(p));
+  s.push("Un. Deux. ");
+  assert.deepEqual(dites, ["Un.", "Deux."], "chaque phrase part aussitôt");
+  s.flush("Un. Deux. Trois");
+  assert.deepEqual(dites, ["Un.", "Deux.", "Trois"]);
+});
+
+test("createSentenceStreamer : flush ne prononce rien si tout est déjà dit", () => {
+  const dites = [];
+  const s = createSentenceStreamer(p => dites.push(p), { minChars: 5 });
+  s.push("Bonjour tout le monde. ");
+  assert.equal(dites.length, 1);
+  s.flush("Bonjour tout le monde. ");
+  assert.equal(dites.length, 1, "pas de groupe vide prononcé");
+});

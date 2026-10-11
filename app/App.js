@@ -249,7 +249,8 @@ export default function App() {
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
-              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, voixServeur: s.cfg.voixServeur, langue: s.cfg.label, rate: settings.rate, queue: true }))
+              speech.speak(sentence, { ttsPrefixes: s.cfg.ttsPrefixes, stt: s.cfg.stt, support: s.cfg.support, voixServeur: s.cfg.voixServeur, langue: s.cfg.label, rate: settings.rate, queue: true }),
+              { minChars: s.cfg.voixMinCar || 0 })
           : null;
         opts.onDelta = (accumulated) => {
           const partial = partialStringField(accumulated, "reply");

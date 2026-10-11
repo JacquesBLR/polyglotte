@@ -126,6 +126,10 @@ export const LANGUAGES = {
     rtl: true, reading: null, support: "partial",
     supportNote: "La reconnaissance vocale passe par l'arabe : elle reste approximative pour le dialecte. La synthèse, en revanche, est bien tunisienne — une voix féminine produite par le serveur vocal du projet. Sans ce serveur, la lecture retombe sur une voix arabe jordanienne. La conversation écrite est pleinement en tunisien.",
     voiceHint: "Voix tunisienne (féminine) par le serveur vocal ; voix arabe jordanienne en repli.",
+    // La voix derja est clonée (F5-TTS) : elle dégénère sur un fragment et rend parfois du
+    // silence pur. On regroupe donc les phrases jusqu'à 60 caractères avant de synthétiser
+    // (#81) — au-delà de 28 caractères la synthèse est franche, 60 laisse de la marge.
+    voixMinCar: 60,
     promptExtraBase: "Tu parles le tunisien (derja), PAS l'arabe standard : vocabulaire et tournures typiquement tunisiens. Les transcriptions vocales de l'élève arrivent souvent déformées vers l'arabe standard : interprète avec bienveillance.",
     scenarios: [
       { id: "medina", label: "🌍 Dans la médina de Tunis", prompt: "Jeu de rôle : les souks de la médina de Tunis : chercher un artisan, marchander en derja, souffler autour d'un thé aux pins." },

@@ -178,6 +178,19 @@ qu'à la première requête.
 Mesuré sur le GPU du DGX : ~7 s à la première réplique (chargement compris), **~0,7 s**
 ensuite pour une phrase courte.
 
+**Deux garde-fous**, nés d'une voix jugée saccadée à l'usage (#81) :
+
+- le service **rogne le silence de tête et de queue** du rendu. F5-TTS en produit 0,5 à
+  1,25 s avant la parole, qui s'additionnaient entre chaque phrase d'une lecture en
+  streaming ;
+- un rendu sans parole (texte trop court : l'estimation de durée se fait sur le rapport
+  des longueurs avec l'extrait de référence) est **rejoué une fois, puis refusé en 503** —
+  le serveur vocal retombe alors sur Piper. `أهلا بيك!` seul rendait 0,74 s de silence
+  numérique.
+
+Côté app, le tunisien déclare `voixMinCar: 60` : les phrases sont regroupées jusqu'à 60
+caractères avant d'être synthétisées, pour ne jamais envoyer de fragment à une voix clonée.
+
 > ⚠️ **Licences.** Le modèle est sous CC-BY-NC 4.0, et l'extrait de référence est dérivé
 > d'un corpus de recherche. Usage personnel ; à revérifier avant tout autre usage. Ni le
 > modèle ni l'extrait ne sont versionnés — `telecharge-derja.sh` les reconstruit.

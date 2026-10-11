@@ -71,21 +71,36 @@ export function takeSentences(buffer) {
 
 // Accumule le texte du champ au fil du stream et appelle onSentence pour chaque
 // phrase complète, une seule fois. flush() prononce le reliquat final.
-export function createSentenceStreamer(onSentence) {
+//
+// `minChars` retient les phrases complètes jusqu'à ce que le groupe atteigne cette
+// taille (#81). Il n'existe que pour les voix clonées : la synthèse derja (F5-TTS)
+// estime la durée de l'énoncé sur le rapport des longueurs avec son extrait de
+// référence, et dégénère sur un fragment — « أهلا بيك! » rendait 0,74 s de silence pur.
+// Défaut 0 : chaque phrase part dès qu'elle est complète, comme avant.
+export function createSentenceStreamer(onSentence, { minChars = 0 } = {}) {
   let taken = 0;
+  let retenu = "";
+  function dis() {
+    const groupe = retenu.trim();
+    retenu = "";
+    if (groupe) onSentence(groupe);
+  }
   return {
     push(text) {
       const pending = text.slice(taken);
       const { sentences, rest } = takeSentences(pending);
-      if (sentences.length) {
-        taken += pending.length - rest.length;
-        for (const s of sentences) onSentence(s);
+      if (!sentences.length) return;
+      taken += pending.length - rest.length;
+      for (const s of sentences) {
+        retenu = retenu ? `${retenu} ${s}` : s;
+        if (retenu.length >= minChars) dis();
       }
     },
     flush(text) {
       const tail = text.slice(taken).trim();
       taken = text.length;
-      if (tail) onSentence(tail);
+      if (tail) retenu = retenu ? `${retenu} ${tail}` : tail;
+      dis();
     },
   };
 }
