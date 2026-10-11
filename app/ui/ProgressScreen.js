@@ -1,8 +1,10 @@
-// Progrès : statistiques, carnet de vocabulaire et révision espacée (portage v1 #23/#24).
+// Progrès : statistiques, carnet de vocabulaire et révision espacée (portage v1 #23/#24),
+// carnet d'erreurs et sa révision (#87).
 
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { erreursDues } from "../core/erreurs";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
@@ -25,11 +27,14 @@ export default function ProgressScreen({ settings, keys }) {
   const [deck, setDeck] = useState([]);
   const [history, setHistory] = useState([]);
   const [review, setReview] = useState(null); // { queue, index, revealed }
+  const [erreurs, setErreurs] = useState([]);
+  const [revueErreurs, setRevueErreurs] = useState(null); // { queue, index, revealed }
   const [status, setStatus] = useState("");
 
   useEffect(() => {
     loadJSON(keys.deck, []).then(setDeck);
     loadJSON(keys.history, []).then(setHistory);
+    loadJSON(keys.erreurs, []).then(setErreurs);
   }, [keys]);
 
   const exportDeck = async () => {
@@ -77,6 +82,88 @@ export default function ProgressScreen({ settings, keys }) {
     setDeck(nextDeck);
     saveJSON(keys.deck, nextDeck);
   };
+
+  // ---------- Carnet d'erreurs (#87) ----------
+
+  const duesErreurs = erreursDues(erreurs);
+
+  const speakErreur = (e) => {
+    const cfg = LANGUAGES[e.lang];
+    if (cfg) speech.speak(e.corrected, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, voixServeur: cfg.voixServeur, langue: cfg.label, rate: settings.rate });
+  };
+
+  const startRevueErreurs = () => {
+    if (!duesErreurs.length) return;
+    speech.primeSpeech();
+    setRevueErreurs({ queue: duesErreurs, index: 0, revealed: false });
+  };
+
+  const gradeErreur = (rating) => {
+    const e = revueErreurs.queue[revueErreurs.index];
+    const updated = reviewCard(e, rating);
+    const next = erreurs.map(x => (x.id === e.id ? updated : x));
+    setErreurs(next);
+    saveJSON(keys.erreurs, next);
+    const i = revueErreurs.index + 1;
+    if (i >= revueErreurs.queue.length) setRevueErreurs(null);
+    else setRevueErreurs({ queue: revueErreurs.queue, index: i, revealed: false });
+  };
+
+  const removeErreur = (id) => {
+    const next = erreurs.filter(e => e.id !== id);
+    setErreurs(next);
+    saveJSON(keys.erreurs, next);
+  };
+
+  if (revueErreurs) {
+    const e = revueErreurs.queue[revueErreurs.index];
+    const reveal = () => {
+      setRevueErreurs(r => ({ ...r, revealed: true }));
+      speakErreur(e); // la forme correcte, entendue au moment où elle est révélée
+    };
+    return (
+      <ScrollView contentContainerStyle={st.body}>
+        <Text style={ui.sectionTitle}>
+          Erreur {revueErreurs.index + 1} / {revueErreurs.queue.length} — {LANGUAGES[e.lang]?.label || e.lang}
+        </Text>
+        <View style={[ui.card, { alignItems: "center", paddingVertical: 24, gap: 8 }]}>
+          <Text style={st.erreurOriginal}>✗ {e.original}</Text>
+          {!revueErreurs.revealed && <Text style={st.reading}>Comment le dire correctement ? Formule-le, à voix haute ou dans ta tête.</Text>}
+          {revueErreurs.revealed && (
+            <>
+              <Pressable onPress={() => speakErreur(e)}>
+                <Text style={st.answer}>✓ {e.corrected}</Text>
+              </Pressable>
+              {!!e.explanation && <Text style={st.erreurExplication}>{e.explanation}</Text>}
+            </>
+          )}
+        </View>
+        {!revueErreurs.revealed ? (
+          <Pressable onPress={reveal} style={ui.primaryBtn}>
+            <Text style={ui.primaryBtnText}>Voir la correction</Text>
+          </Pressable>
+        ) : (
+          <View style={[ui.chipRow, { justifyContent: "center" }]}>
+            <Pressable onPress={() => gradeErreur(RATINGS.again)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.error }]}>
+              <Text style={ui.primaryBtnText}>❌ À revoir</Text>
+            </Pressable>
+            <Pressable onPress={() => gradeErreur(RATINGS.hard)} style={[ui.primaryBtn, st.grow, { backgroundColor: "#b45309" }]}>
+              <Text style={ui.primaryBtnText}>😅 Difficile</Text>
+            </Pressable>
+            <Pressable onPress={() => gradeErreur(RATINGS.good)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.ok }]}>
+              <Text style={ui.primaryBtnText}>✅ Bien</Text>
+            </Pressable>
+            <Pressable onPress={() => gradeErreur(RATINGS.easy)} style={[ui.primaryBtn, st.grow, { backgroundColor: C.primary }]}>
+              <Text style={ui.primaryBtnText}>🚀 Facile</Text>
+            </Pressable>
+          </View>
+        )}
+        <Pressable onPress={() => setRevueErreurs(null)}>
+          <Text style={[ui.status, { textAlign: "center" }]}>✕ Arrêter la révision</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
 
   if (review) {
     const { card, inverse } = review.queue[review.index];
@@ -139,8 +226,11 @@ export default function ProgressScreen({ settings, keys }) {
     [computeStreak(history), "jours d'affilée"],
     [deck.length, "mots au carnet"],
     [due.length, "à réviser"],
+    [erreurs.length, "erreurs au carnet"],
+    [duesErreurs.length, "erreurs à revoir"],
   ];
   const recent = [...deck].sort((a, b) => b.addedAt - a.addedAt).slice(0, 50);
+  const erreursRecentes = [...erreurs].sort((a, b) => b.addedAt - a.addedAt).slice(0, 30);
 
   return (
     <ScrollView contentContainerStyle={st.body}>
@@ -155,6 +245,9 @@ export default function ProgressScreen({ settings, keys }) {
       {langParts.length > 0 && <Text style={ui.status}>Pratique — {langParts.join(" · ")}</Text>}
       <Pressable onPress={startReview} disabled={!due.length} style={[ui.primaryBtn, !due.length && { opacity: 0.5 }]}>
         <Text style={ui.primaryBtnText}>🔁 Réviser ({due.length})</Text>
+      </Pressable>
+      <Pressable onPress={startRevueErreurs} disabled={!duesErreurs.length} style={[ui.primaryBtn, { backgroundColor: "#b45309" }, !duesErreurs.length && { opacity: 0.5 }]}>
+        <Text style={ui.primaryBtnText}>🩹 Revoir mes erreurs ({duesErreurs.length})</Text>
       </Pressable>
       <Pressable onPress={exportDeck} disabled={!deck.length} style={[ui.secondaryBtn, !deck.length && { opacity: 0.5 }]}>
         <Text style={ui.secondaryBtnText}>📤 Exporter le carnet (Anki)</Text>
@@ -177,6 +270,22 @@ export default function ProgressScreen({ settings, keys }) {
           </Pressable>
         </View>
       ))}
+      <Text style={ui.sectionTitle}>Carnet d'erreurs</Text>
+      {!erreurs.length && <Text style={ui.status}>Aucune erreur retenue — elles s'ajoutent à chaque correction du tuteur.</Text>}
+      {erreursRecentes.map(e => (
+        <View key={e.id} style={st.deckRow}>
+          <Text style={st.deckLang}>{LANGUAGES[e.lang]?.label || e.lang}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={st.erreurLigne}>✗ {e.original}</Text>
+            <Text style={st.deckTerm}>✓ {e.corrected}</Text>
+            {!!e.explanation && <Text style={st.deckTranslation}>{e.explanation}</Text>}
+          </View>
+          <Chip label="🔊" onPress={() => speakErreur(e)} />
+          <Pressable onPress={() => removeErreur(e.id)} style={{ padding: 6 }}>
+            <Text style={{ color: C.faint }}>✕</Text>
+          </Pressable>
+        </View>
+      ))}
     </ScrollView>
   );
 }
@@ -195,4 +304,7 @@ const st = StyleSheet.create({
   deckLang: { fontSize: 11, color: C.muted, width: 62 },
   deckTerm: { fontSize: 15, color: C.text, fontWeight: "600" },
   deckTranslation: { fontSize: 13, color: C.muted },
+  erreurOriginal: { fontSize: 20, fontWeight: "600", color: C.error, textAlign: "center" },
+  erreurExplication: { fontSize: 14, color: "#57534e", textAlign: "center", marginTop: 4 },
+  erreurLigne: { fontSize: 14, color: C.error },
 });

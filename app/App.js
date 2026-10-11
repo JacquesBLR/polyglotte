@@ -10,6 +10,7 @@ import { callModel, hasCredentials } from "./core/api";
 import { streamOrCallLocal, partialStringField, createSentenceStreamer } from "./core/stream";
 import { retireProvisoire } from "./core/messages";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
+import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
@@ -159,18 +160,26 @@ export default function App() {
 
   // ---------- Session ----------
 
-  const startSession = (mode) => {
+  const startSession = async (mode) => {
     if (!hasCredentials(settings)) {
       setSettingsOpen(true);
       setStatus({ text: "Configure d'abord ton moteur IA dans les réglages.", error: true });
       return;
     }
-    speech.primeSpeech();
+    speech.primeSpeech(); // avant tout `await` : l'amorçage doit rester dans le geste (#77)
     const c = langConfig(langId, tnScript);
+    // Carnet d'erreurs (#87) : les erreurs les plus fragiles de cette langue entrent dans le
+    // prompt, pour que le tuteur crée l'occasion de les réemployer. Pas en test de niveau.
+    let erreurs = [];
+    if (mode === "chat") {
+      const carnet = await loadJSON(keys.erreurs, []);
+      erreurs = erreursAReactiver(carnet, langId);
+      if (erreurs.length) saveJSON(keys.erreurs, marqueReactivees(carnet, erreurs));
+    }
     session.current = {
       cfg: c,
       mode,
-      system: buildTutorPrompt({ cfg: c, level, scenarioId, immersion, mode }),
+      system: buildTutorPrompt({ cfg: c, level, scenarioId, immersion, mode, erreurs }),
       history: [],
       recognizer: null,
       id: mode === "chat" ? `${Date.now()}` : null,
@@ -291,6 +300,12 @@ export default function App() {
         }]);
         setSuggestions(data.suggestions || []);
         recordSessionTurn();
+        if (correction) {
+          loadJSON(keys.erreurs, []).then(carnet => {
+            const next = ajouteErreur(carnet, langId, correction);
+            if (next !== carnet) saveJSON(keys.erreurs, next);
+          });
+        }
         if (Array.isArray(data.vocabulary) && data.vocabulary.length) {
           loadJSON(keys.deck, []).then(deck => {
             const next = addVocabulary(deck, langId, data.vocabulary);
