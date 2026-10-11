@@ -48,7 +48,10 @@ VOIX = {
     "de": "de_DE-thorsten-medium",   # aussi utilisée pour de-CH (pas de voix suisse)
     "pt-pt": "pt_PT-tugão-medium",
     "pt-br": "pt_BR-faber-medium",
-    "ar": "ar_JO-kareem-medium",     # aussi utilisée pour ar-TN (pas de voix tunisienne)
+    # Seule voix arabe publiée par Piper : jordanienne (levantine) et masculine. Elle sert
+    # aussi au tunisien, faute de mieux — l'app le dit maintenant à l'élève (#69) plutôt
+    # que d'annoncer un « arabe standard » qui n'est pas ce qu'il entend.
+    "ar": "ar_JO-kareem-medium",
 }
 
 @asynccontextmanager

@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.14] — 2026-10-11
+
+### Fixed
+- 🗣️ **La fiche du tunisien disait faux** (#69). Elle annonçait une voix de synthèse « en
+  arabe standard » ; c'est en réalité la seule voix arabe publiée par Piper, **jordanienne
+  et masculine**, alors que la tutrice annoncée est Selma. Le texte lu est bien du
+  tunisien — l'accent ne l'est pas, et l'app le dit désormais. Entendre un accent qu'on ne
+  reconnaît pas est déjà désagréable ; le découvrir en contradiction avec ce que l'app
+  affirme l'est davantage
+
+### Changed
+- Cache du service worker v2 en `polyglotte-v2-shell-2.0.0-beta.14`
+
 ## [2.0.0-beta.13] — 2026-10-11
 
 Le tuteur répondait à l'écran mais restait muet, sans la moindre erreur.
