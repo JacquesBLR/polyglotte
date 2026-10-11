@@ -5,6 +5,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextI
 import Constants from "expo-constants";
 
 import { testLocalConnection } from "../core/api";
+import { OBJECTIF_JOURS_DEFAUT, OBJECTIFS_JOURS } from "../core/objectif";
 import { REMINDERS_SUPPORTED } from "../notify/notify";
 import { DEFAULT_PROFILE } from "../storage";
 import { forceUpdate } from "../pwa/pwa";
@@ -195,6 +196,13 @@ export default function SettingsModal({
             <View style={st.switchRow}>
               <Text style={ui.label}>Révision : cartes inversées (français → langue cible, une sur deux)</Text>
               <Switch value={!!draft.reversedCards} onValueChange={v => set("reversedCards", v)} trackColor={{ true: C.primary }} />
+            </View>
+
+            <Text style={[ui.label, { marginTop: 10 }]}>Objectif : jours de pratique par semaine</Text>
+            <View style={ui.chipRow}>
+              {OBJECTIFS_JOURS.map(n => (
+                <Chip key={n} label={`${n} jours`} active={(draft.objectifJours || OBJECTIF_JOURS_DEFAUT) === n} onPress={() => set("objectifJours", n)} />
+              ))}
             </View>
 
             {REMINDERS_SUPPORTED && (
