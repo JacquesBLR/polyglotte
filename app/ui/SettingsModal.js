@@ -59,7 +59,11 @@ export default function SettingsModal({
       const h = await (await fetch(base + "/health")).json();
       const v = await (await fetch(base + "/voices")).json();
       const dispo = Object.values(v).filter(x => x.disponible).length;
-      setVoiceResult(`✅ Serveur joignable — Whisper « ${h.stt.modele} » (${h.stt.device}), ${dispo} voix Piper.`);
+      // L'état du service derja répond d'un coup d'œil à « pourquoi le tunisien n'a-t-il
+      // pas la bonne voix ? » (#75) : sans lui, rien ne distingue un serveur qui lit en
+      // tunisien d'un serveur qui retombe sur sa voix arabe.
+      const derja = h.derja?.service ? ", voix tunisienne active" : "";
+      setVoiceResult(`✅ Serveur joignable — Whisper « ${h.stt.modele} » (${h.stt.device}), ${dispo} voix Piper${derja}.`);
     } catch (_) {
       setVoiceResult("❌ Serveur vocal injoignable — vérifie l'URL (et le HTTPS depuis la PWA).");
     }

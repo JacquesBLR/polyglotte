@@ -18,24 +18,44 @@ export function ttsAvailable() {
 // installée sur iPhone pour le micro (#65), liste de voix vide pour la synthèse (#67).
 // Le repli joue dans les deux sens, sans aller-retour (voir core/voix.js).
 
-const remote = { url: "", onMuet: null };
+const remote = { url: "", onAvis: null };
 
-// Signalé une fois, pas à chaque phrase : répéter le même avertissement à chaque réplique
-// noierait la conversation. Le drapeau retombe à chaque changement de réglage.
-let muetSignale = false;
+// Signalés une fois chacun, pas à chaque phrase : répéter le même avertissement à chaque
+// réplique noierait la conversation. Les drapeaux retombent à chaque changement de réglage.
+const avisDonnes = { muet: false, repli: false };
 
-export function configure({ voiceUrl, onMuet } = {}) {
+export function configure({ voiceUrl, onAvis } = {}) {
   remote.url = (voiceUrl || "").trim().replace(/\/+$/, "");
-  remote.onMuet = onMuet || null;
-  muetSignale = false;
+  remote.onAvis = onAvis || null;
+  avisDonnes.muet = false;
+  avisDonnes.repli = false;
+}
+
+function avise(cle, texte) {
+  if (avisDonnes[cle] || !remote.onAvis) return;
+  avisDonnes[cle] = true;
+  remote.onAvis(texte);
 }
 
 function signaleMuet() {
-  if (muetSignale || !remote.onMuet) return;
-  muetSignale = true;
-  remote.onMuet(
+  avise(
+    "muet",
     "Aucune voix disponible pour lire la réponse — vérifie l'URL du serveur vocal dans ⚙️ "
     + "(et ta connexion au réseau du serveur). Le texte reste lisible à l'écran.",
+  );
+}
+
+// Le repli du serveur vocal vers une voix du navigateur n'est pas anodin pour les langues
+// au support partiel : la voix de secours est dans une tout autre variante (#75). Sur
+// iPhone, le tunisien est alors lu par la voix arabe standard du système. Rien ne distingue
+// ce cas, à l'oreille, d'un serveur qui aurait répondu — d'où cet avis.
+function signaleRepli(opts) {
+  if (opts.support !== "partial") return;
+  const langue = opts.langue ? ` en ${opts.langue.toLowerCase()}` : "";
+  avise(
+    "repli",
+    `Serveur vocal injoignable : la réponse est lue par une voix du navigateur, qui n'est `
+    + `pas${langue}. Vérifie ta connexion au réseau du serveur, ou son URL dans ⚙️.`,
   );
 }
 
@@ -65,7 +85,10 @@ async function pumpRemote() {
     rPlaying = false;
     // Repli voix du navigateur. `repliEpuise` interdit de revenir au serveur : sans lui,
     // un appareil sans voix renverrait la phrase au serveur qui vient d'échouer.
-    if (fallback) speak(job.text, { ...job.opts, queue: true, repliEpuise: true });
+    if (fallback) {
+      signaleRepli(job.opts);
+      speak(job.text, { ...job.opts, queue: true, repliEpuise: true });
+    }
     else if (job.opts.onEnd) job.opts.onEnd();
     pumpRemote();
   };
