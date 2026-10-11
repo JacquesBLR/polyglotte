@@ -203,6 +203,32 @@ caractères avant d'être synthétisées, pour ne jamais envoyer de fragment à 
 > la voix et retenait des hommes, le suivi de hauteur doublant d'octave sur de la parole
 > de podcast (#73).
 
+### Tunisien : d'où vient la langue elle-même
+
+La voix ne fait que lire : ce que le tuteur **écrit** doit d'abord être du tunisien. Laissé
+à lui-même, un modèle produit un « arabe maghrébin moyen » qui dérive vers l'ouest — il a
+écrit `أتاي` (le thé, forme marocaine) et `كيف` au lieu de `كيفاش`.
+
+`app/core/derja.js` ancre donc le prompt du tunisien dans un corpus : `fbougares/TUNIFRA`,
+1 950 phrases de radio tunisienne transcrites et alignées au français — celui dont vient
+déjà l'extrait de référence de la voix. Les oppositions du guide y sont comptées, pas
+devinées :
+
+| forme tunisienne | n | forme d'un autre dialecte | n |
+|---|---|---|---|
+| برشا / برشة | 158 | بزاف | 0 |
+| قداش | 21 | شحال | 0 |
+| توة | 77 | دابا | 0 |
+| متاع | 287 | ديال | 0 |
+| نحب | 43 | بغيت | 0 |
+| هاذا / هاذي | 76 | هاد | 0 |
+
+Trois phrases du corpus sont citées en exemple dans le guide : du tunisien attesté, pas
+reconstitué. Le guide ne part que dans le prompt du tunisien.
+
+> ⚠️ Corpus de recherche, cité à l'échelle de l'extrait. Même réserve que pour l'extrait
+> de référence de la voix : usage personnel, à revérifier avant tout autre usage.
+
 ### Relais vers le moteur LLM
 
 Le même service peut relayer `/v1/*` vers un serveur compatible OpenAI, via la variable
