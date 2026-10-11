@@ -184,8 +184,11 @@ ensuite pour une phrase courte.
 
 > F5-TTS calque sa prosodie sur un extrait de référence ; celui livré avec le modèle est
 > en anglais, ce que sa fiche donne pour sa faiblesse principale. Le script en choisit donc
-> un tunisien, en retenant la voix la plus aiguë parmi des extraits propres, la tutrice
-> annoncée dans l'app étant Selma.
+> un tunisien et féminin, la tutrice annoncée dans l'app étant Selma. Le genre est établi
+> par un classifieur, **d'abord validé sur les voix Piper de genre connu** : le script
+> s'arrête s'il se trompe sur l'une d'elles. Une première version jugeait à la hauteur de
+> la voix et retenait des hommes, le suivi de hauteur doublant d'octave sur de la parole
+> de podcast (#73).
 
 ### Relais vers le moteur LLM
 
