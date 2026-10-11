@@ -12,6 +12,7 @@ import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { addVocabulary } from "./core/leitner";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA } from "./core/schemas";
+import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
 import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
 import * as speech from "./speech/speech";
@@ -23,27 +24,6 @@ import ExercisesScreen from "./ui/ExercisesScreen";
 import GrammarScreen from "./ui/GrammarScreen";
 import ProgressScreen from "./ui/ProgressScreen";
 import SettingsModal from "./ui/SettingsModal";
-
-// Réglages d'une installation neuve. Les champs moteur pointent sur le DGX, dont la
-// passerelle compatible OpenAI et le serveur vocal sont exposés en HTTPS sur le tailnet :
-// hors tailnet ils sont injoignables, et les réglages restent modifiables (#54).
-// `apiKey` et `localKey` restent vides par principe — aucun secret dans le dépôt.
-// Note : les réglages déjà enregistrés gagnent sur ces valeurs (voir le chargement
-// ci-dessous), donc seuls une installation fraîche et un nouveau profil en héritent.
-const DEFAULT_SETTINGS = {
-  provider: "local",
-  apiKey: "",
-  model: "claude-opus-5",
-  localUrl: "https://spark-4569.tail34da6b.ts.net:8646/v1",
-  localKey: "",
-  localModel: "qwen3.8-nvfp4",
-  localModelAlt: "",
-  autospeak: true,
-  rate: 1,
-  reversedCards: false,
-  voiceUrl: "https://spark-4569.tail34da6b.ts.net:8664",
-  reminders: false,
-};
 
 const LEVELS = [
   ["debutant", "Débutant"],
@@ -109,10 +89,18 @@ export default function App() {
     registerServiceWorker();
     loadProfiles().then(async (p) => {
       setProfiles(p);
-      const saved = await loadJSON(keysFor(p.current).settings, null);
-      setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
+      const cle = keysFor(p.current).settings;
+      appliqueReglages(await loadJSON(cle, null), cle);
     });
   }, []);
+
+  // Applique les réglages enregistrés, garnis des défauts manquants (#56). Si le
+  // garnissage a changé quelque chose, on réenregistre pour que le marqueur tienne.
+  const appliqueReglages = (saved, cle) => {
+    const { settings: next, modifie } = fusionneReglages(saved);
+    setSettings(next);
+    if (modifie) saveJSON(cle, next);
+  };
 
   const saveSettings = (next) => {
     setSettings(next);
@@ -126,7 +114,7 @@ export default function App() {
     setProfiles(next);
     saveProfiles(next);
     const saved = await loadJSON(keysFor(name).settings, null);
-    setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
+    appliqueReglages(saved, keysFor(name).settings);
     setSettingsOpen(false);
     setScreen("home");
     setStatus({ text: `Profil « ${name} » actif.`, error: false });
@@ -150,7 +138,7 @@ export default function App() {
     setProfiles(next);
     saveProfiles(next);
     const saved = await loadJSON(keysFor(DEFAULT_PROFILE).settings, null);
-    setSettings(saved ? { ...DEFAULT_SETTINGS, ...saved } : DEFAULT_SETTINGS);
+    appliqueReglages(saved, keysFor(DEFAULT_PROFILE).settings);
     setSettingsOpen(false);
     setScreen("home");
     setStatus({ text: `Profil « ${name} » supprimé.`, error: false });
