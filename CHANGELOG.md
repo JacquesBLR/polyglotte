@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.27] — 2026-10-12
+
+### Added
+- 🗣️ **« Répète après moi »** (#95). Le retour sur la prononciation n'existait que dans
+  l'écran Exercices ; en conversation, le cœur du produit, l'élève pouvait réécouter une
+  réplique mais pas la répéter en sachant ce qui avait été compris. Chaque bulle du tuteur
+  a désormais un bouton 🎤 Répéter : la reconnaissance vocale de la langue cible écoute,
+  l'alignement mot à mot de `diff.js` colore les mots reconnus et manqués, affiche le
+  score, l'appréciation et ce qui a été entendu, et l'on réessaie — comme la répétition des
+  répliques chez Speak et le *pronunciation feedback* de Praktika
+- Rien n'est envoyé au tuteur : le recognizer de répétition est distinct de celui de la
+  conversation et jeté après l'essai. Les scores d'une séance sont agrégés dans son entrée
+  d'historique (`prononciation {n, moyenne, meilleur}`) ; l'écran Progrès affiche la
+  moyenne des cinq dernières séances mesurées et celle de chaque séance. Tout est local,
+  sans appel au modèle (`app/core/prononciation.js`, pur, testé)
+
 ## [2.0.0-beta.26] — 2026-10-12
 
 ### Added

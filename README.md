@@ -39,6 +39,9 @@ complète mais l'oral est approximatif.
 
 - 🎤 **Conversation orale** : reconnaissance vocale dans la langue cible (Web Speech API),
   synthèse vocale avec la meilleure voix disponible, mode mains libres, bouton « réécouter ».
+- 🗣️ **« Répète après moi »** : chaque réplique du tuteur se répète au micro ; les mots
+  reconnus et manqués sont colorés, avec un score et ce qui a été entendu — moyenne de
+  prononciation par séance sur l'écran Progrès. Local, sans appel au modèle.
 - ✏️ **Corrections pédagogiques** : chaque erreur importante est corrigée avec une explication
   brève en français (une correction par tour, uniquement si le tuteur est certain).
 - 🇫🇷 **Traductions** françaises (désactivables) et **translittérations** (rōmaji, arabizi,

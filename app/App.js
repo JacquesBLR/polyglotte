@@ -13,6 +13,7 @@ import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
 import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
+import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
 import { ASSESS_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
@@ -55,6 +56,7 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [missions, setMissions] = useState({ liste: [], atteintes: [] }); // missions de scénario (#91)
+  const [repeteEnCours, setRepeteEnCours] = useState(null); // index de la réplique en cours de répétition (#95)
   const [status, setStatus] = useState({ text: "", error: false });
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
@@ -413,6 +415,45 @@ export default function App() {
     if (session.current.recognizer && listening) session.current.recognizer.stop();
   };
 
+  // « Répète après moi » (#95) : l'élève répète la réplique `i` du tuteur ; ce qui est entendu
+  // est aligné mot à mot sur le texte, jamais envoyé au tuteur. Le recognizer est distinct de
+  // celui de la conversation et jeté après l'essai.
+  const repeter = (i, texte) => {
+    if (busy || listening || repeteEnCours !== null) return;
+    const s = session.current;
+    speech.primeSpeech();
+    speech.stopSpeaking();
+    const poseResultat = (resultat) =>
+      setMessages(m => m.map((x, j) => (j === i ? { ...x, repetition: resultat } : x)));
+    const rec = speech.createRecognizer({
+      lang: s.cfg.stt,
+      support: s.cfg.support,
+      onStart: () => setRepeteEnCours(i),
+      onInterim: (t) => setStatus({ text: `🎤 « ${t} »`, error: false }),
+      onResult: (t) => {
+        const resultat = scorePrononciation(texte, t, langId);
+        poseResultat(resultat);
+        setStatus({ text: "", error: false });
+        if (s.id) {
+          loadJSON(keys.history, []).then(history => {
+            const k = history.findIndex(h => h.id === s.id);
+            if (k === -1) return;
+            history[k] = integreScore(history[k], resultat.score);
+            saveJSON(keys.history, history);
+          });
+        }
+      },
+      onError: (msg) => setStatus({ text: msg, error: true }),
+      onEnd: () => setRepeteEnCours(null),
+    });
+    if (!rec) {
+      setStatus({ text: speech.messageMicroIndisponible(), error: true });
+      return;
+    }
+    setStatus({ text: "🎤 Répète la phrase…", error: false });
+    rec.start();
+  };
+
   const toggleMute = () => {
     const muted = !micMuted;
     setMicMuted(muted);
@@ -594,6 +635,33 @@ export default function App() {
                     </Pressable>
                   </View>
                 )}
+                {!m.streaming && (
+                  <View style={st.repeterRow}>
+                    <Chip
+                      label={repeteEnCours === i ? "🎤 J'écoute…" : m.repetition ? "🎤 Réessayer" : "🎤 Répéter"}
+                      active={repeteEnCours === i}
+                      disabled={busy || listening || (repeteEnCours !== null && repeteEnCours !== i)}
+                      onPress={() => repeter(i, m.text)}
+                    />
+                    {m.repetition && (
+                      <Text style={st.repetitionScore}>{appreciation(m.repetition.score)} — {m.repetition.score} %</Text>
+                    )}
+                  </View>
+                )}
+                {m.repetition && (
+                  <View style={st.repetition}>
+                    <Text style={[st.repetitionMots, targetStyle]}>
+                      {m.repetition.tokens.map((t, k) => (
+                        <Text key={k} style={m.repetition.reconnus[k] ? st.motOk : st.motManque}>
+                          {t}{m.repetition.isCharBased || k === m.repetition.tokens.length - 1 ? "" : " "}
+                        </Text>
+                      ))}
+                    </Text>
+                    <Text style={st.repetitionEntendu}>
+                      {m.repetition.entendu ? `Entendu : « ${m.repetition.entendu} »` : "Je n'ai rien entendu."}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
             {m.role === "summary" && (
@@ -688,6 +756,13 @@ const st = StyleSheet.create({
   correctionExpl: { fontSize: 13, color: "#57534e" },
   culture: { backgroundColor: "#eff6ff", borderRadius: 8, padding: 8, marginTop: 6 },
   cultureText: { fontSize: 13, color: "#1e40af" },
+  repeterRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" },
+  repetitionScore: { fontSize: 13, color: C.muted, fontWeight: "600" },
+  repetition: { backgroundColor: "#f5f5f4", borderRadius: 8, padding: 8, marginTop: 4, gap: 2 },
+  repetitionMots: { fontSize: 15 },
+  motOk: { color: C.ok },
+  motManque: { color: C.error, fontWeight: "700", textDecorationLine: "underline" },
+  repetitionEntendu: { fontSize: 12, color: C.muted, fontStyle: "italic" },
   assessed: { backgroundColor: "#f0fdf4", borderRadius: 8, padding: 10, marginTop: 6 },
   assessedLevel: { fontSize: 16, fontWeight: "800", color: C.ok },
   bubbleSummary: { backgroundColor: "#fffbeb", alignSelf: "stretch", maxWidth: "100%", borderWidth: 1, borderColor: "#fde68a" },
