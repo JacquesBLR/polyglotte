@@ -45,7 +45,9 @@ complète mais l'oral est approximatif.
   translittération arabe) pour les écritures non latines.
 - 💬 **Suggestions de réponses** cliquables adaptées au niveau.
 - 🎭 **Scénarios de jeu de rôle** ancrés dans la ville du tuteur : café, marché, demander son
-  chemin, se présenter, voyage, travail.
+  chemin, se présenter, voyage, travail — chacun avec **trois missions** proposées au premier
+  tour et cochées au fil de la conversation, graduées au niveau (A1–A2 : saluer, commander ;
+  B1–B2 : négocier, expliquer ; C1 : convaincre, nuancer).
 - 📈 **Trois niveaux** : débutant (A1–A2), intermédiaire (B1–B2), avancé (C1).
 - 📋 **Résumé de session** : vocabulaire vu, erreurs commises, phrases à réviser.
 - 🎯 **Objectif hebdomadaire** : des jours de pratique à tenir chaque semaine (3, 4, 5 ou 7),
