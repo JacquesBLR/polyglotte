@@ -5,6 +5,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.16] — 2026-10-11
+
+### Fixed
+- 🇹🇳 **La voix tunisienne était masculine** (#73), alors que la tutrice annoncée est
+  Selma. `telecharge-derja.sh` choisissait l'extrait de référence à la hauteur médiane la
+  plus élevée ; sur de la parole de podcast, le suivi de hauteur verrouille souvent une
+  harmonique au lieu du fondamental, et mesurait un homme à 220 Hz. Le critère retenait
+  donc préférentiellement les voix masculines — l'inverse du but
+- Le genre est désormais établi par un classifieur, **validé au préalable sur les voix
+  Piper de genre connu** ; le script s'arrête s'il se trompe sur l'une d'elles. Mieux vaut
+  pas d'extrait qu'un extrait choisi au hasard
+- La recherche porte sur la partie entraînement du corpus : les parties de test et de
+  validation ne contiennent qu'un épisode de podcast chacune, sans aucune voix féminine
+
 ## [2.0.0-beta.15] — 2026-10-11
 
 ### Added

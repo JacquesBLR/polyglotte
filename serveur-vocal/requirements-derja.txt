@@ -1,2 +1,4 @@
 f5-tts
 huggingface_hub
+# Étalonnage du classifieur de genre sur des voix de genre connu (#73).
+piper-tts
