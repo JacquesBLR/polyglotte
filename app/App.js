@@ -24,18 +24,24 @@ import GrammarScreen from "./ui/GrammarScreen";
 import ProgressScreen from "./ui/ProgressScreen";
 import SettingsModal from "./ui/SettingsModal";
 
+// Réglages d'une installation neuve. Les champs moteur pointent sur le DGX, dont la
+// passerelle compatible OpenAI et le serveur vocal sont exposés en HTTPS sur le tailnet :
+// hors tailnet ils sont injoignables, et les réglages restent modifiables (#54).
+// `apiKey` et `localKey` restent vides par principe — aucun secret dans le dépôt.
+// Note : les réglages déjà enregistrés gagnent sur ces valeurs (voir le chargement
+// ci-dessous), donc seuls une installation fraîche et un nouveau profil en héritent.
 const DEFAULT_SETTINGS = {
-  provider: "claude",
+  provider: "local",
   apiKey: "",
   model: "claude-opus-5",
-  localUrl: "",
+  localUrl: "https://spark-4569.tail34da6b.ts.net:8646/v1",
   localKey: "",
-  localModel: "",
+  localModel: "qwen3.8-nvfp4",
   localModelAlt: "",
   autospeak: true,
   rate: 1,
   reversedCards: false,
-  voiceUrl: "",
+  voiceUrl: "https://spark-4569.tail34da6b.ts.net:8664",
   reminders: false,
 };
 
