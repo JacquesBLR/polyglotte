@@ -1,0 +1,23 @@
+# Unité systemd du service de synthèse derja (#71) — à installer sur le DGX :
+#   sudo cp serveur-vocal/polyglotte-derja.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now polyglotte-derja
+#
+# Prérequis : serveur-vocal/telecharge-derja.sh (environnement, modèle, référence).
+[Unit]
+Description=Synthèse vocale tunisienne (derja) pour Polyglotte
+After=network-online.target
+
+[Service]
+User=omniapp
+WorkingDirectory=/home/omniapp/Documents/projets/polyglotte/serveur-vocal
+# 127.0.0.1 uniquement : ce service n'est appelé que par le serveur vocal, jamais
+# directement depuis l'extérieur. Il n'a pas d'authentification.
+ExecStart=/home/omniapp/Documents/projets/polyglotte/serveur-vocal/.venv-tts/bin/uvicorn derja:app --host 127.0.0.1 --port 8665
+Restart=on-failure
+RestartSec=5
+# Le modèle n'est chargé qu'à la première requête : démarrage immédiat, mémoire GPU
+# occupée seulement si quelqu'un apprend le tunisien.
+Environment=VOCAL_DERJA_NFE=32
+
+[Install]
+WantedBy=multi-user.target
