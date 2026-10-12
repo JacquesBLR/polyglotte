@@ -16,6 +16,7 @@ import { fusionneAtteints, messageMission, missionsValides } from "./core/missio
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
+import { ajouteMesure, creeChrono, ligneConsole, mesure, messageLenteur } from "./core/latence";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
 import { ASSESS_SCHEMA, EXPLAIN_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
@@ -219,6 +220,21 @@ export default function App() {
     saveJSON(keys.history, history);
   };
 
+  // Sonde de latence (#98) : journalise la mesure (console + journal local borné) et rend
+  // le message d'alerte, vide si le tuteur a répondu dans les temps.
+  const sonde = (nature, chrono, stream = false) => {
+    const m = mesure(nature, chrono.fin(), {
+      stream,
+      modele: settings.provider === "local" ? settings.localModel : settings.model,
+    });
+    console.info(ligneConsole(m));
+    loadJSON(keys.latence, []).then(journal => {
+      const next = ajouteMesure(journal, m);
+      if (next !== journal) saveJSON(keys.latence, next);
+    }).catch(() => {});
+    return messageLenteur(m);
+  };
+
   const endSession = async () => {
     speech.stopSpeaking();
     stopMic();
@@ -227,12 +243,14 @@ export default function App() {
       setBusy(true);
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
       try {
+        const chrono = creeChrono();
         const raw = await callModel(settings, {
           messages: [...s.history, { role: "user", content: summaryRequest({ cfg: s.cfg }) }],
           system: s.system,
           schema: SUMMARY_SCHEMA,
           maxTokens: 2048,
         });
+        const alerte = sonde("resume", chrono);
         // Résumé structuré (#93). Un modèle qui ne tiendrait pas le schéma rend au pire un
         // texte : on l'affiche tel quel, rien d'autre ne casse.
         let resume = null;
@@ -254,7 +272,7 @@ export default function App() {
             saveJSON(keys.history, history);
           }
         }
-        setStatus({ text: "Résumé de session — reviens à l'accueil quand tu veux.", error: false });
+        setStatus({ text: alerte || "Résumé de session — reviens à l'accueil quand tu veux.", error: false });
       } catch (err) {
         setStatus({ text: err.message, error: true });
       }
@@ -291,6 +309,8 @@ export default function App() {
         maxTokens: 2048,
       };
       let raw;
+      const chrono = creeChrono();
+      let recu = false; // au moins un fragment de texte reçu en streaming
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
@@ -298,6 +318,8 @@ export default function App() {
               { minChars: s.cfg.voixMinCar || 0 })
           : null;
         opts.onDelta = (accumulated) => {
+          chrono.premierJeton();
+          recu = true;
           const partial = partialStringField(accumulated, "reply");
           if (!partial || !partial.text) return;
           if (speaker) {
@@ -312,6 +334,7 @@ export default function App() {
       } else {
         raw = await callModel(settings, opts);
       }
+      const alerteLenteur = sonde("tour", chrono, recu);
       const data = JSON.parse(raw);
       s.history.push({ role: "assistant", content: data.reply });
       if (s.mode === "eval") {
@@ -361,7 +384,7 @@ export default function App() {
           });
         }
       }
-      setStatus({ text: statutMission, error: false });
+      setStatus({ text: [statutMission, alerteLenteur].filter(Boolean).join(" "), error: false });
       if (settings.autospeak && !streamed) {
         speech.speak(data.reply, {
           ttsPrefixes: s.cfg.ttsPrefixes,
@@ -470,7 +493,10 @@ export default function App() {
     pose({ etat: "chargement" });
     try {
       const { system, messages: msgs } = expliqueRequete({ cfg: s.cfg, level: lvl, correction });
+      const chrono = creeChrono();
       const raw = await callModel(settings, { system, messages: msgs, schema: EXPLAIN_SCHEMA, maxTokens: 700 });
+      const alerte = sonde("explique", chrono);
+      if (alerte) setStatus({ text: alerte, error: false });
       const explication = expliqueValide(raw);
       if (!explication) throw new Error("Le tuteur n'a pas su expliquer cette correction — réessaie.");
       pose({ etat: "ok", ...explication });
