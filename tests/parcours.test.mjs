@@ -178,6 +178,49 @@ test("prochainBilan : proposé quand les six leçons d'un niveau CECRL sont vali
   assert.equal(prochainBilan("inconnu", tout, new Set()), null);
 });
 
+// ---------- Préparer une leçon (#116) ----------
+import { NB_PHRASES_CLES, demandePhrasesCles, phrasesClesValides, schemaPhrasesCles } from "../app/core/parcours.js";
+
+test("phrases clés : consigne ancrée dans la leçon, schéma selon l'écriture", () => {
+  const u = leconParId("a1-cafe");
+  const d = demandePhrasesCles(u, langConfig("japonais"));
+  assert.ok(d.includes("Commander à boire et à manger") && d.includes("Tokyo") && !d.includes("{ville}"));
+  for (const m of u.missions) assert.ok(d.includes(m));
+  assert.match(d, /que l'élève pourra dire LUI-MÊME/);
+  assert.ok("reading" in schemaPhrasesCles({ lecture: true }).properties.phrases.items.properties);
+  const latin = schemaPhrasesCles({ lecture: false }).properties.phrases.items;
+  assert.ok(!("reading" in latin.properties));
+  assert.deepEqual(latin.required, Object.keys(latin.properties));
+});
+
+test("phrasesClesValides : nettoyage, doublons, mission bornée, au plus 5", () => {
+  const ph = (phrase, mission = 1) => ({ phrase, traduction: "t", usage: "u", mission });
+  const v = phrasesClesValides({ phrases: [ph(" Un cafè, si us plau. "), ph("un cafè, si us plau."), ph("", 2), ph("La carta?", 7), ph("Quant és?", 0), null] });
+  assert.equal(v.length, 3);
+  assert.equal(v[0].phrase, "Un cafè, si us plau.");
+  assert.equal(v[1].mission, null, "mission 7 hors bornes");
+  assert.equal(v[2].mission, null);
+  assert.equal(v[0].reading, null);
+  assert.equal(phrasesClesValides({ phrases: [] }), null);
+  assert.equal(phrasesClesValides(null), null);
+  assert.equal(phrasesClesValides({ phrases: Array.from({ length: 8 }, (_, i) => ph(`P${i}`)) }).length, NB_PHRASES_CLES);
+});
+
+test("prompt : les phrases préparées sont transmises au tuteur, rien sinon", () => {
+  const u = leconParId("a1-cafe");
+  const cfg = langConfig("catalan");
+  const ctx = { cfg, level: "debutant", scenarioId: "lecon", immersion: false, mode: "chat", missions: u.missions };
+  const sans = buildTutorPrompt({ ...ctx, lecon: u });
+  assert.doesNotMatch(sans, /a préparé ces phrases/);
+  const avec = buildTutorPrompt({ ...ctx, lecon: { ...u, phrasesCles: [{ phrase: "Un cafè amb llet, si us plau." }, null, { phrase: "" }] } });
+  assert.match(avec, /L'élève a préparé ces phrases avant la séance : « Un cafè amb llet, si us plau. »\./);
+});
+
+test("numero : une leçon recopiée avec ses phrases clés garde son numéro (vu en e2e : « A1·0 »)", () => {
+  const u = leconParId("a1-presentations");
+  assert.equal(numero({ ...u, phrasesCles: [{ phrase: "x" }] }), "A1·1");
+});
+
 test("libelleSeance : leçon, bilan, scénario", async () => {
   const { libelleSeance } = await import("../app/core/parcours.js");
   assert.equal(libelleSeance({ lecon: "a1-cafe", scenario: "lecon" }), "📚 A1·3 Commander à boire et à manger");

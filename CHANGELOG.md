@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.39] — 2026-10-12
+
+### Added
+- **Préparer une leçon** (#116, sur #111 et #114). Une leçon du parcours commençait
+  directement par la conversation. Un débutant arrivait alors à « Commander à boire et à
+  manger » sans les phrases dont il avait besoin. Speak ouvre chaque leçon par une phase
+  *Learn* où l'on écoute puis répète les phrases clés. Babbel présente phrases et
+  vocabulaire avant le dialogue, et Pimsleur fait écouter puis répéter.
+  Chaque leçon de l'écran Parcours offre désormais « 📖 Préparer » en plus de
+  « ▶ Parler ». Le tuteur génère 5 **phrases clés** que l'élève pourra dire lui-même,
+  rattachées aux missions de la leçon. Chaque phrase vient avec sa traduction, sa
+  translittération si besoin et une note d'usage. Toucher une phrase la lit à voix haute.
+  Les phrases préparées sont ensuite **transmises au tuteur**, qui amène les situations où
+  les réemployer, sans les réciter.
+  Vérifié de bout en bout dans Chromium via gw (japonais A1·1) : les 5 phrases arrivent
+  rattachées aux 3 missions, puis la conversation démarre. Ce test a révélé un défaut,
+  corrigé ici : une leçon recopiée avec ses phrases s'affichait « A1·0 », car son numéro
+  était cherché par identité d'objet et non par identifiant.
+  Relecture adverse du soir : une réponse tardive (retour au programme pendant le
+  chargement, ou autre leçon préparée entre-temps) réaffichait une préparation périmée ;
+  elle est désormais ignorée.
+
 ## [2.0.0-beta.38] — 2026-10-12
 
 ### Added

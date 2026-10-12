@@ -833,7 +833,7 @@ export default function App() {
         )}
         {screen === "progress" && <ProgressScreen settings={settings} keys={keys} />}
         {screen === "parcours" && (
-          <ParcoursScreen cfg={cfg} level={level} validees={validees} niveauxOk={niveauxOk} onStart={(lecon) => startSession("chat", lecon)} />
+          <ParcoursScreen settings={settings} cfg={cfg} level={level} validees={validees} niveauxOk={niveauxOk} onStart={(lecon) => startSession("chat", lecon)} onOpenSettings={() => setSettingsOpen(true)} />
         )}
         <SettingsModal
           visible={settingsOpen}

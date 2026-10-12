@@ -293,20 +293,30 @@ export function avancement(level, validees) {
 // Numéro affiché d'une leçon dans son niveau CECRL : « A1·3 ».
 export function numero(lecon) {
   if (lecon.bilan) return lecon.cecrl;
-  const rang = PROGRAMME.filter(u => u.cecrl === lecon.cecrl).indexOf(lecon) + 1;
+  // Par identifiant : une leçon recopiée (phrases clés ajoutées, #116) garde son numéro.
+  const rang = PROGRAMME.filter(u => u.cecrl === lecon.cecrl).findIndex(u => u.id === lecon.id) + 1;
   return `${lecon.cecrl}·${rang}`;
 }
 
 // Consigne de prompt d'une leçon, à la place des instructions de scénario. Le point de
 // grammaire est formulé pour le français : le tuteur le transpose à la langue enseignée (un
 // point qui n'y existe pas — les articles en japonais — laisse place à son équivalent).
+// Phrases préparées par l'élève (#116) : le tuteur amène les situations qui les appellent.
+function blocPhrasesPreparees(phrases) {
+  const l = (Array.isArray(phrases) ? phrases : []).map(p => p && p.phrase).filter(Boolean);
+  if (!l.length) return "";
+  return `
+L'élève a préparé ces phrases avant la séance : ${l.map(x => `« ${x} »`).join(", ")}. Amène les situations où il peut les
+dire ; s'il les emploie, n'en fais pas un exercice, continue la conversation. Ne les lui récite pas.`;
+}
+
 export function blocLecon(lecon, cfg) {
   const ville = (t) => t.replaceAll("{ville}", cfg.tutor.city);
   return `LEÇON DU PARCOURS « ${lecon.titre} » (niveau ${lecon.cecrl} du CECRL). ${ville(lecon.situation)}
 Point de grammaire à faire pratiquer : ${lecon.grammaire}. Transpose-le à ${cfg.langFr} ; s'il n'y existe pas tel quel,
 travaille son équivalent naturel. Amène des questions qui obligent l'élève à employer ces formes, sans faire de cours.
 Lexique visé : ${ville(lecon.lexique)}. Réemploie-le dans tes répliques et dans tes suggestions.
-Reste au niveau ${lecon.cecrl} : ni plus facile, ni plus difficile.`;
+Reste au niveau ${lecon.cecrl} : ni plus facile, ni plus difficile.${blocPhrasesPreparees(lecon.phrasesCles)}`;
 }
 
 // Bilan à proposer (#114) : le premier niveau CECRL du niveau de l'app dont les six leçons
@@ -317,6 +327,71 @@ export function prochainBilan(level, validees, niveauxOk) {
     if (!niveauxOk.has(c) && lecons.every(u => validees.has(u.id))) return c;
   }
   return null;
+}
+
+// ---------- Préparer une leçon : phrases clés (#116) ----------
+//
+// Une leçon commençait directement par la conversation : un débutant arrivait à « Commander
+// à boire et à manger » sans les phrases nécessaires. Speak ouvre chaque leçon par une phase
+// Learn (écouter et répéter les phrases clés), Babbel présente phrases et vocabulaire avant
+// le dialogue, Pimsleur fait écouter puis répéter. Ici : 5 phrases clés rattachées aux
+// missions, écoutées avant de parler, puis transmises au tuteur pour qu'il les fasse
+// réemployer.
+
+export const NB_PHRASES_CLES = 5;
+
+export function schemaPhrasesCles({ lecture = true } = {}) {
+  const item = {
+    phrase: { type: "string", description: "Phrase clé en langue cible, prononçable, au niveau de la leçon." },
+    traduction: { type: "string", description: "Traduction française." },
+    ...(lecture ? { reading: { anyOf: [{ type: "null" }, { type: "string", description: "Translittération latine." }] } } : {}),
+    usage: { type: "string", description: "Quand l'employer, en français, une courte phrase." },
+    mission: { type: "integer", description: "Numéro (1 à 3) de la mission que cette phrase aide à accomplir." },
+  };
+  return {
+    type: "object",
+    properties: {
+      phrases: {
+        type: "array",
+        description: `Exactement ${NB_PHRASES_CLES} phrases clés, dans l'ordre où elles serviront.`,
+        items: { type: "object", properties: item, required: Object.keys(item), additionalProperties: false },
+      },
+    },
+    required: ["phrases"],
+    additionalProperties: false,
+  };
+}
+
+export function demandePhrasesCles(lecon, cfg) {
+  const ville = (t) => t.replaceAll("{ville}", cfg.tutor.city);
+  return `Prépare l'élève à la leçon « ${lecon.titre} » (niveau ${lecon.cecrl}) en ${cfg.langFr}. Situation : ${ville(lecon.situation)}
+Missions de la leçon :
+${lecon.missions.map((m, i) => `${i + 1}. ${m}`).join("\n")}
+Donne ${NB_PHRASES_CLES} phrases clés que l'élève pourra dire LUI-MÊME pendant la conversation (pas tes répliques à toi),
+au niveau ${lecon.cecrl}, qui emploient ${lecon.grammaire} et le lexique « ${ville(lecon.lexique)} ». Couvre les trois missions.`;
+}
+
+const texte = (v) => (typeof v === "string" ? v.trim() : "");
+
+// Normalise les phrases clés ; null si aucune n'est exploitable. Mission hors bornes → null.
+export function phrasesClesValides(data, nbMissions = 3) {
+  const brut = data && Array.isArray(data.phrases) ? data.phrases : [];
+  const vues = new Set();
+  const ok = [];
+  for (const p of brut) {
+    if (!p || typeof p !== "object") continue;
+    const phrase = texte(p.phrase);
+    if (!phrase || vues.has(phrase.toLowerCase())) continue;
+    vues.add(phrase.toLowerCase());
+    ok.push({
+      phrase,
+      traduction: texte(p.traduction),
+      reading: texte(p.reading) || null,
+      usage: texte(p.usage),
+      mission: Number.isInteger(p.mission) && p.mission >= 1 && p.mission <= nbMissions ? p.mission : null,
+    });
+  }
+  return ok.length ? ok.slice(0, NB_PHRASES_CLES) : null;
 }
 
 // Libellé d'une séance de l'historique pour l'écran Progrès : la leçon plutôt que le
