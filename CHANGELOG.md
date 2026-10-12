@@ -5,6 +5,36 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.41] — 2026-10-12
+
+### Added
+- **Compréhension orale** (#113). L'app entraînait à parler et à transcrire, mais pas à
+  comprendre à l'oreille un texte suivi. Le mode « compréhension orale » de la v1 (#20)
+  n'avait pas été porté.
+  - **Histoire à écouter** (exercices) : le tuteur raconte une courte histoire au niveau de
+    l'élève, ancrée dans sa ville. Elle compte 4 à 5 phrases en débutant et jusqu'à 10 en
+    avancé. Le texte reste **masqué** tant que l'élève ne le demande pas. Viennent ensuite
+    **3 questions à choix multiple en français**, corrigées localement sans second appel.
+    À la fin, l'élève voit son score, puis le texte et sa traduction. Le modèle suivi est
+    celui de Duolingo Stories, des Podcasts de Babbel et de Pimsleur : l'oreille d'abord.
+    Une réponse malformée du modèle est filtrée par `histoireValide` : bonne réponse hors
+    bornes, choix en double (l'indice suit la bonne réponse) ou question vide. Aucune
+    exception n'est levée.
+  - **Mode écoute** en conversation (parité v1) : un interrupteur sur l'accueil masque le
+    texte, la translittération et la traduction de chaque réplique du tuteur. Il reste
+    « 🔊 Réécouter » et « 👁 Afficher ».
+  Vérifié de bout en bout dans Chromium, à travers un relais local vers gw : l'histoire
+  espagnole s'affiche texte masqué, les questions sont corrigées et le score s'affiche ;
+  en conversation catalane, la réplique est masquée puis révélée. Deux histoires réelles
+  ont aussi été générées via gw (japonais débutant : 356 jetons, 20 s ; catalan
+  intermédiaire : 502 jetons, 32 s), et leurs questions sont toutes exploitables.
+  Relecture adverse du soir : une bonne réponse en double à la casse près (« Paris » /
+  « paris ») donnait un indice -1, jamais juste ; corrigé.
+  Intégration après la chaîne du parcours : la séance (`session.current`) garde à la fois
+  les missions et la leçon (#111) et le mode écoute. `tests/seance-app.test.mjs` évalue
+  ce littéral tel qu'écrit dans App.js et rejoue la validation d'une leçon : il passe au
+  rouge si l'un des deux côtés manque (vérifié sur les deux variantes).
+
 ## [2.0.0-beta.40] — 2026-10-12
 
 ### Added

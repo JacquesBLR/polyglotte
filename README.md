@@ -48,6 +48,9 @@ complète mais l'oral est approximatif.
   (ser/estar en espagnol, cas en allemand, particules et forme en て en japonais, racine
   trilitère en arabe, ma… ch en tunisien…), avec fiche ou carte mentale à la demande et ✓
   sur les points étudiés.
+- 📖 **Histoires à écouter** : une courte histoire au niveau, ancrée dans la ville du tuteur,
+  lue à voix haute avec le texte masqué, puis 3 questions de compréhension en français.
+  En conversation, le **mode écoute** masque le texte du tuteur jusqu'à ce que tu le demandes.
 - 🎤 **Conversation orale** : reconnaissance vocale dans la langue cible (Web Speech API),
   synthèse vocale avec la meilleure voix disponible, mode mains libres, bouton « réécouter ».
 - 🗣️ **« Répète après moi »** : chaque réplique du tuteur se répète au micro ; les mots

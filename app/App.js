@@ -62,6 +62,7 @@ export default function App() {
   const [level, setLevel] = useState("debutant");
   const [scenarioId, setScenarioId] = useState("libre");
   const [immersion, setImmersion] = useState(false);
+  const [ecoute, setEcoute] = useState(false); // mode écoute : texte du tuteur masqué (#113, parité v1 #20)
 
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -231,6 +232,7 @@ export default function App() {
       id: mode === "chat" ? `${Date.now()}` : null,
       missions: missionsInitiales,
       lecon: lec,
+      ecoute: mode === "chat" && ecoute, // figé à l'ouverture de la séance
       mystere: mys,
       questions: 0, // messages de l'élève avant la devinette
     };
@@ -781,6 +783,10 @@ export default function App() {
             <Text style={ui.label}>Immersion totale (aucune correction affichée)</Text>
             <Switch value={immersion} onValueChange={setImmersion} trackColor={{ true: C.primary }} />
           </View>
+          <View style={st.switchRow}>
+            <Text style={ui.label}>Mode écoute (texte du tuteur masqué, à afficher à la demande)</Text>
+            <Switch value={ecoute} onValueChange={setEcoute} trackColor={{ true: C.primary }} />
+          </View>
           <Pressable onPress={() => startSession("chat")} style={[ui.primaryBtn, { marginTop: 20 }]}>
             <Text style={ui.primaryBtnText}>🎙️ Commencer la conversation</Text>
           </Pressable>
@@ -911,11 +917,22 @@ export default function App() {
             )}
             {m.role === "tutor" && (
               <View style={[st.bubble, st.bubbleTutor]}>
-                <Pressable onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, voixServeur: session.current.cfg.voixServeur, langue: session.current.cfg.label, rate: settings.rate }); }}>
-                  <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
-                </Pressable>
-                {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}
-                {!!m.translation && <Text style={st.translation}>{m.translation}</Text>}
+                {session.current.ecoute && !m.revele ? (
+                  // Mode écoute (#113) : la réplique s'écoute d'abord ; texte, translittération et
+                  // traduction n'apparaissent qu'à la demande.
+                  <View style={st.ecouteRow}>
+                    <Chip label="🔊 Réécouter" onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, voixServeur: session.current.cfg.voixServeur, langue: session.current.cfg.label, rate: settings.rate }); }} />
+                    <Chip label="👁 Afficher" onPress={() => setMessages(ms => ms.map((x, j) => (j === i ? { ...x, revele: true } : x)))} />
+                  </View>
+                ) : (
+                  <>
+                    <Pressable onPress={() => { speech.primeSpeech(); speech.speak(m.text, { ttsPrefixes: session.current.cfg.ttsPrefixes, stt: session.current.cfg.stt, support: session.current.cfg.support, voixServeur: session.current.cfg.voixServeur, langue: session.current.cfg.label, rate: settings.rate }); }}>
+                      <Text style={[st.targetText, targetStyle]}>{m.text}</Text>
+                    </Pressable>
+                    {!!m.reading && <Text style={st.reading}>{m.reading}</Text>}
+                    {!!m.translation && <Text style={st.translation}>{m.translation}</Text>}
+                  </>
+                )}
                 {m.correction && (
                   <View style={st.correction}>
                     <Text style={st.correctionTitle}>✏️ Correction</Text>
@@ -1053,6 +1070,7 @@ export default function App() {
 
 const st = StyleSheet.create({
   parcoursTitre: { fontSize: 16, fontWeight: "700", color: C.text },
+  ecouteRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" },
   root: { flex: 1, backgroundColor: C.bg, ...(Platform.OS === "web" ? { maxWidth: 780, width: "100%", marginHorizontal: "auto" } : null) },
   header: {
     backgroundColor: C.primary,
