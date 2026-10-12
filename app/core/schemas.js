@@ -198,3 +198,26 @@ export const SUMMARY_SCHEMA = {
   required: ["texte", "points_forts", "erreurs", "vocabulaire", "phrases_a_reviser", "conseil", "niveau_observe"],
   additionalProperties: false,
 };
+
+// « Explique-moi » (#97) : la fiche de grammaire, réduite à une correction et complétée
+// d'un exemple et d'un contre-exemple. Dérivée de GRAMMAR_FICHE_SCHEMA plutôt que
+// recopiée, pour qu'une évolution de la fiche (titre, consignes de mise en forme) suive.
+export const EXPLAIN_SCHEMA = {
+  ...GRAMMAR_FICHE_SCHEMA,
+  properties: {
+    ...GRAMMAR_FICHE_SCHEMA.properties,
+    content: {
+      type: "string",
+      description: "Explication de la règle EN FRANÇAIS, 3 phrases au plus, au niveau CECRL de l'élève. Texte simple, pas de Markdown.",
+    },
+    exemple: {
+      type: "string",
+      description: "Une phrase correcte en langue cible qui applique la règle, suivie de sa traduction française entre parenthèses.",
+    },
+    contre_exemple: {
+      type: "string",
+      description: "La forme fautive (ou une forme voisine) en langue cible, suivie en français de la raison pour laquelle elle ne convient pas.",
+    },
+  },
+  required: [...GRAMMAR_FICHE_SCHEMA.required, "exemple", "contre_exemple"],
+};
