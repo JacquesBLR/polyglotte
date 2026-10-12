@@ -4,6 +4,7 @@
 // missions (missions déjà annoncées par le tuteur, réinjectées, #91 — optionnel),
 // mystere (personnage mystère tiré par l'app, #105 — seulement pour ce scénario) }.
 
+import { LIBELLES } from "./ecriture.js";
 import { blocErreursPrompt } from "./erreurs.js";
 import { blocMissionsPrompt } from "./mission.js";
 import { blocMystere, SCENARIO_MYSTERE } from "./mystere.js";
@@ -41,6 +42,9 @@ export function scenarioInstructions(cfg, scenarioId) {
   }[scenarioId];
 }
 
+// Écriture imposée à "reply" (#107) : contrôlée après le tour, elle est aussi dite au modèle.
+const regleEcriture = (cfg) => (LIBELLES[cfg.ecriture] ? `, écrite dans ${LIBELLES[cfg.ecriture]}` : "");
+
 export function buildAssessmentPrompt({ cfg }) {
   const role = cfg.tutor.f ? "une évaluatrice bienveillante" : "un évaluateur bienveillant";
   return `Tu es ${cfg.tutor.name}, ${role} de ${cfg.langFr}, chargé(e) d'estimer le niveau CECRL d'un élève
@@ -55,7 +59,7 @@ Déroulé :
 - Après 5 à 8 échanges, quand ton estimation est stable, conclus.
 
 Champs :
-- "reply" : ta question ou ta conclusion en ${cfg.langFr} (1 à 2 phrases).
+- "reply" : ta question ou ta conclusion en ${cfg.langFr}${regleEcriture(cfg)} (1 à 2 phrases).
 - "translation" : traduction française de reply.
 - "reading" : ${cfg.reading ? cfg.reading : "toujours null"}.
 - "done" : false tant que le test continue ; true quand tu conclus.
@@ -100,7 +104,7 @@ ${scenarioInstructions(cfg, scenarioId)}
 Spécificités de la langue : ${cfg.promptExtra}
 ${blocErreursPrompt(erreurs)}
 Règles :
-- "reply" : ta réplique EN ${cfg.langFr.toUpperCase().replace(/^L[E'’A]\s*/, "")} uniquement, 1 à 3 phrases, qui se termine le plus souvent par une question pour relancer l'élève.
+- "reply" : ta réplique EN ${cfg.langFr.toUpperCase().replace(/^L[E'’A]\s*/, "")} uniquement${regleEcriture(cfg)}, 1 à 3 phrases, qui se termine le plus souvent par une question pour relancer l'élève.
 - "translation" : la traduction française fidèle de "reply".
 ${readingRule}${correctionRules}
 - "suggestions" : 2 ou 3 réponses possibles courtes dans la langue cible que l'élève pourrait te dire ensuite, adaptées à son niveau.

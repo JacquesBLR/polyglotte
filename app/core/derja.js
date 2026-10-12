@@ -26,9 +26,15 @@ Oppositions à respecter (la forme tunisienne d'abord, celle à ne pas employer 
 - شنوة / شنيا (quoi) et كيفاش (comment), jamais واش, ni ماذا, ni هل.
 Marqueurs tunisiens à employer naturellement : باهي (bien, d'accord), ياخي (n'est-ce pas),
 زادا (aussi), اللي (qui, que), عالسلامة (salut), شنيا أحوالك (comment vas-tu).
-En arabizi, ces formes s'écrivent : barcha, 9addech, tawa, mta3, n7eb, hedha / hedhi,
-chnowa / chniya, kifech, bahi, yekhi, zeda, 3asslema.
 Exemples de tunisien réel, cités d'un corpus de radio tunisienne :
 - عالسلامة إيمان عالسلامة تسنيم شنيا أموركم (salut Imen, salut Tasnim, comment allez-vous ?)
 - وإنتي تسنيم كيفاش كان الظروف العمل في التقرير متاعك (et toi Tasnim, comment étaient les conditions de travail de ton reportage ?)
 - آنا الحقيقة إعتمدت على الإنترنت ماللول شفت برشا مصادر (moi honnêtement, j'ai d'abord utilisé internet, j'ai consulté beaucoup de sources)`;
+
+// Graphies arabizi des mêmes formes — données au seul mode arabizi. En écriture arabe, les
+// montrer au modèle l'invitait à passer à l'alphabet latin : sur 12 démarrages réels via gw
+// (2026-10-12), un [START] est sorti entièrement en arabizi et un tour a mêlé « kahwa
+// direct » à l'arabe (#107).
+export const GUIDE_DERJA_ARABIZI = `
+En arabizi, ces formes s'écrivent : barcha, 9addech, tawa, mta3, n7eb, hedha / hedhi,
+chnowa / chniya, kifech, bahi, yekhi, zeda, 3asslema.`;

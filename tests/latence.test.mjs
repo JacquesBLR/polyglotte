@@ -71,7 +71,7 @@ test("centile et statsLatence : médiane et 90e centile au rang le plus proche, 
   }
   j = ajouteMesure(j, mesure("resume", { premierJeton: 36000, total: 36000 }));
   const s = statsLatence(j, "tour");
-  assert.deepEqual(s, { n: 5, premierJeton: 1000, total: 13000, totalP90: 40000, lents: 1, replique: null });
+  assert.deepEqual(s, { appels: 5, echecs: 0, tauxEchec: 0, echecsParType: {}, n: 5, premierJeton: 1000, total: 13000, totalP90: 40000, lents: 1, replique: null });
   assert.equal(statsLatence(j, "resume").n, 1);
   assert.equal(statsLatence(j, "explique"), null);
   assert.equal(statsLatence(null, "tour"), null);

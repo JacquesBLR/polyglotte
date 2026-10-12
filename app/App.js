@@ -10,7 +10,7 @@ import { callModel, hasCredentials } from "./core/api";
 import { streamOrCallLocal, partialStringField, createSentenceStreamer } from "./core/stream";
 import { retireProvisoire } from "./core/messages";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
-import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreurs";
+import { ajouteErreur, erreursAMarquer, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
 import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
 import {
@@ -19,7 +19,8 @@ import {
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
-import { ajouteMesure, creeChrono, ligneConsole, mesure, messageLenteur } from "./core/latence";
+import { ajouteMesure, creeChrono, ligneConsole, mesure, mesureEchec, messageLenteur } from "./core/latence";
+import { LIBELLES, controleEcriture, ecritureConforme } from "./core/ecriture";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
 import { EXPLAIN_SCHEMA, MAX_TOKENS, SUMMARY_SCHEMA, schemaEvaluation, schemaTour } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
@@ -247,6 +248,21 @@ export default function App() {
     return messageLenteur(m);
   };
 
+  // Appel en échec (#107) : journalisé aussi (type, durée jusqu'à l'échec), pour que le taux
+  // d'échec apparaisse dans Progrès. Sans chrono (échec avant l'appel), rien n'est noté.
+  const sondeEchec = (nature, chrono, err, stream = false) => {
+    if (!chrono) return;
+    const m = mesureEchec(nature, chrono.fin(), err, {
+      stream,
+      modele: settings.provider === "local" ? settings.localModel : settings.model,
+    });
+    console.info(ligneConsole(m));
+    loadJSON(keys.latence, []).then(journal => {
+      const next = ajouteMesure(journal, m);
+      if (next !== journal) saveJSON(keys.latence, next);
+    }).catch(() => {});
+  };
+
   const endSession = async () => {
     speech.stopSpeaking();
     stopMic();
@@ -255,8 +271,10 @@ export default function App() {
       let texteComplet = null; // bilan lisible reçu en entier pendant le streaming (T3)
       setBusy(true);
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
+      let chrono = null;
+      let recu = false;
       try {
-        const chrono = creeChrono();
+        chrono = creeChrono();
         const opts = {
           messages: [...s.history, { role: "user", content: summaryRequest({ cfg: s.cfg }) }],
           system: s.system,
@@ -266,7 +284,6 @@ export default function App() {
         // Résumé en streaming (#103) : le bilan lisible (« texte », en tête du schéma)
         // s'affiche au fil de l'eau au lieu de 40 s d'écran figé ; les champs structurés
         // (carnets, niveau observé) sont exploités une fois la réponse complète.
-        let recu = false;
         let raw;
         if (settings.provider === "local") {
           opts.onDelta = (accumulated) => {
@@ -282,6 +299,7 @@ export default function App() {
           raw = await callModel(settings, opts);
         }
         const alerte = sonde("resume", chrono, recu);
+        chrono = null; // mesuré : une erreur après ce point n'est pas un échec d'appel
         // Résumé structuré (#93). Un modèle qui ne tiendrait pas le schéma rend au pire un
         // texte : on l'affiche tel quel, rien d'autre ne casse.
         let resume = null;
@@ -314,6 +332,7 @@ export default function App() {
         // en échec se redemande par ✅ au lieu d'être perdu. Coupé après un bilan lisible
         // complet, ce bilan reste affiché ; carnets et niveau observé ne sont pas versés
         // (champs structurés incomplets).
+        sondeEchec("resume", chrono, err, recu);
         setMessages(retireProvisoire);
         if (err.tronque && texteComplet) {
           setMessages(m => [...m, { role: "summary", text: texteComplet, resume: null }]);
@@ -347,6 +366,8 @@ export default function App() {
     const useStream = settings.provider === "local" && s.mode !== "eval";
     let streamed = false; // un message provisoire est affiché en cours de stream
     let statutMission = ""; // message d'étape des missions, affiché après le tour
+    let chrono = null; // chronomètre de l'appel, remis à null une fois mesuré
+    let recu = false; // au moins un fragment de texte reçu en streaming
     try {
       const opts = {
         messages: s.history,
@@ -364,8 +385,7 @@ export default function App() {
         maxTokens: s.mode === "eval" ? MAX_TOKENS.evaluation : MAX_TOKENS.tour,
       };
       let raw;
-      const chrono = creeChrono();
-      let recu = false; // au moins un fragment de texte reçu en streaming
+      chrono = creeChrono();
       if (useStream) {
         const speaker = settings.autospeak
           ? createSentenceStreamer(sentence =>
@@ -390,8 +410,23 @@ export default function App() {
       } else {
         raw = await callModel(settings, opts);
       }
+      let data;
+      try { data = JSON.parse(raw); } catch (_) { throw new Error("Le modèle a produit un JSON invalide — réessaie."); }
       const alerteLenteur = sonde(s.mode === "eval" ? "evaluation" : "tour", chrono, recu);
-      let data = JSON.parse(raw);
+      chrono = null;
+      // Contrôle d'écriture (#107) : une réplique hors de l'écriture de la langue (tunisien
+      // en arabizi alors que l'écriture arabe est choisie…) relance le tuteur une fois.
+      if (!ecritureConforme(data.reply, s.cfg.ecriture)) {
+        setStatus({ text: `${s.cfg.tutor.name} réécrit sa réplique dans ${LIBELLES[s.cfg.ecriture] || "la bonne écriture"}…`, error: false });
+        if (streamed) speech.stopSpeaking();
+        const ctl = await controleEcriture({
+          data, ecriture: s.cfg.ecriture, historique: s.history,
+          relance: (messages) => callModel(settings, { ...opts, messages, onDelta: undefined }),
+        });
+        console.info(`[écriture] relance ${ctl.conforme ? "réussie" : "sans effet"} (${s.cfg.ecriture})`);
+        data = ctl.data;
+        streamed = false; // voix coupée ci-dessus : la réplique retenue sera dite en entier
+      }
       // Personnage mystère (#105) : un métier échappé dans les champs en français est masqué.
       if (s.mystere) {
         const ex = expurge(data, s.mystere);
@@ -422,8 +457,12 @@ export default function App() {
         setSuggestions(data.suggestions || []);
         // Missions de scénario (#91) : annoncées au premier tour, cochées ensuite. L'état de
         // référence vit dans la session (synchrone) ; le state ne sert qu'au rendu.
-        if (text === "[START]" && s.ctx?.erreurs?.length) {
-          const aMarquer = s.ctx.erreurs;
+        // Erreurs injectées : marquées « réactivées » au premier tour RÉUSSI de la séance, pas
+        // seulement au [START] — un [START] en échec suivi d'un message de l'élève les
+        // laissait non marquées (#107, E4).
+        const aMarquer = erreursAMarquer(s);
+        if (aMarquer.length) {
+          s.erreursMarquees = true;
           loadJSON(keys.erreurs, []).then(carnet => {
             const next = marqueReactivees(carnet, aMarquer);
             if (next !== carnet) saveJSON(keys.erreurs, next);
@@ -472,6 +511,7 @@ export default function App() {
         });
       }
     } catch (err) {
+      sondeEchec(s.mode === "eval" ? "evaluation" : "tour", chrono, err, recu);
       s.history.pop();
       // Une réplique streamée a pu commencer à être dite avant l'échec (réponse coupée par
       // le plafond de jetons, flux interrompu) : la bulle disparaît, la voix aussi (T1).
@@ -596,11 +636,13 @@ export default function App() {
     const deja = explicationConsignee(carnet, lang, correction, lvl);
     if (deja) { pose({ etat: "ok", ...deja }); return; }
     pose({ etat: "chargement" });
+    let chrono = null;
     try {
       const { system, messages: msgs } = expliqueRequete({ cfg: s.cfg, level: lvl, correction });
-      const chrono = creeChrono();
+      chrono = creeChrono();
       const raw = await callModel(settings, { system, messages: msgs, schema: EXPLAIN_SCHEMA, maxTokens: MAX_TOKENS.explique });
       const alerte = sonde("explique", chrono);
+      chrono = null;
       if (alerte) setStatus({ text: alerte, error: false });
       const explication = expliqueValide(raw);
       if (!explication) throw new Error("Le tuteur n'a pas su expliquer cette correction — réessaie.");
@@ -609,6 +651,7 @@ export default function App() {
       const next = consigneExplication(frais, lang, correction, explication, lvl);
       if (next !== frais) saveJSON(keys.erreurs, next);
     } catch (err) {
+      sondeEchec("explique", chrono, err);
       pose({ etat: "erreur", message: err.message });
     }
   };

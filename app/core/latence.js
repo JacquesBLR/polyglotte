@@ -54,12 +54,49 @@ export function mesure(nature, chrono, { stream = false, modele = "", at = Date.
 
 const nombre = (v) => Number.isFinite(v) && v >= 0;
 
+// Appels en échec (#107) : sans eux, un serveur qui coupe ou une réponse tronquée restaient
+// invisibles dans les statistiques — seuls les succès étaient chronométrés. Chaque échec
+// est journalisé avec sa nature, son type et sa durée jusqu'à l'échec.
+export const TYPES_ECHEC = {
+  tronque: "coupé par le plafond de jetons",
+  coupure: "connexion coupée en cours de réponse",
+  reseau: "serveur injoignable",
+  serveur: "erreur du serveur",
+  json: "réponse illisible",
+  vide: "réponse vide",
+  autre: "autre",
+};
+
+// Type d'échec d'une erreur levée par core/api.js ou core/stream.js.
+export function typeEchec(err) {
+  if (!err) return "autre";
+  if (err.tronque) return "tronque";
+  if (err.coupure) return "coupure";
+  if (err.reseau || (err.name === "TypeError" && /fetch|network|réseau/i.test(String(err.message)))) return "reseau";
+  const msg = String(err.message || "");
+  if (Number.isFinite(err.status) || /^Erreur (API|du serveur) \(\d{3}\)|^Erreur \d{3}|^Limite de requêtes|^Clé API/.test(msg)) return "serveur";
+  if (/JSON/.test(msg) || err instanceof SyntaxError) return "json";
+  if (/vide|épuisé ses tokens/.test(msg)) return "vide";
+  return "autre";
+}
+
+// Mesure d'un appel en échec : même forme qu'une mesure, plus `echec` (type). Le premier
+// jeton reste celui observé (un flux coupé a pu commencer) ; `total` est la durée jusqu'à
+// l'échec.
+export function mesureEchec(nature, chrono, err, opts = {}) {
+  return { ...mesure(nature, chrono, opts), echec: typeEchec(err) };
+}
+
+const auDixieme = (ms) => Math.round(ms / 100) * 100;
+
 // Raison de lenteur ("premierJeton" | "total") ou null. Mesure invalide → null.
 export function lenteur(m) {
   const s = m && SEUILS[m.nature];
-  if (!s) return null;
-  if (s.premierJeton !== null && m.stream && nombre(m.premierJeton) && m.premierJeton >= s.premierJeton) return "premierJeton";
-  if (nombre(m.total) && m.total >= s.total) return "total";
+  if (!s || m.echec) return null; // un échec n'est pas « lent » : il est compté à part
+  // Comparaison au dixième de seconde affiché (enSecondes) : 59,95 s s'affichait « 60 s »
+  // sans alerte au seuil de 60 s (#107).
+  if (s.premierJeton !== null && m.stream && nombre(m.premierJeton) && auDixieme(m.premierJeton) >= s.premierJeton) return "premierJeton";
+  if (nombre(m.total) && auDixieme(m.total) >= s.total) return "total";
   return null;
 }
 
@@ -92,24 +129,54 @@ export function centile(valeurs, p) {
   return v[rang - 1];
 }
 
-// Statistiques d'une nature d'appel : { n, premierJeton (médiane), total (médiane),
-// totalP90, lents } — null si aucune mesure.
+// Médiane vraie : moyenne des deux valeurs centrales sur un nombre pair. Le rang le plus
+// proche prenait la valeur basse et minimisait la lenteur affichée (#107).
+export function mediane(valeurs) {
+  const v = (Array.isArray(valeurs) ? valeurs : []).filter(nombre).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const k = v.length >> 1;
+  return v.length % 2 ? v[k] : (v[k - 1] + v[k]) / 2;
+}
+
+// Statistiques d'une nature d'appel : { n (appels réussis), premierJeton (médiane), total
+// (médiane), totalP90, lents, appels (réussis + échecs), echecs, tauxEchec (0..1),
+// echecsParType } — null si aucune mesure. Les temps ne portent que sur les succès : une
+// coupure à 2 s ferait passer un serveur en panne pour rapide.
 export function statsLatence(journal, nature) {
-  const ms = (Array.isArray(journal) ? journal : []).filter(m => m && m.nature === nature);
-  if (!ms.length) return null;
+  const tous = (Array.isArray(journal) ? journal : []).filter(m => m && m.nature === nature);
+  if (!tous.length) return null;
+  const ms = tous.filter(m => !m.echec);
+  const echecs = tous.filter(m => m.echec);
+  const echecsParType = {};
+  for (const e of echecs) echecsParType[e.echec] = (echecsParType[e.echec] || 0) + 1;
   return {
+    appels: tous.length,
+    echecs: echecs.length,
+    tauxEchec: echecs.length / tous.length,
+    echecsParType,
     n: ms.length,
     // Premier mot : seulement les appels streamés — sans streaming il vaut le total (L1).
-    premierJeton: centile(ms.filter(m => m.stream).map(m => m.premierJeton), 50),
-    total: centile(ms.map(m => m.total), 50),
+    premierJeton: mediane(ms.filter(m => m.stream).map(m => m.premierJeton)),
+    total: mediane(ms.map(m => m.total)),
     totalP90: centile(ms.map(m => m.total), 90),
-    replique: centile(ms.map(m => m.replique), 50), // null si aucune mesure ne la porte
+    replique: mediane(ms.map(m => m.replique)), // null si aucune mesure ne la porte
     lents: ms.filter(m => lenteur(m)).length,
   };
 }
 
 // Ligne de journal console, une par appel.
 export function ligneConsole(m) {
+  if (m.echec) return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} ÉCHEC ${m.echec} après ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
   const rep = nombre(m.replique) ? `, réplique ${m.replique} ms` : "";
   return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} premier jeton ${m.premierJeton} ms${rep}, total ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
+}
+
+// Ligne « échecs » pour l'écran Progrès : chaîne vide sans échec. Pourcentage arrondi à
+// l'entier, types les plus fréquents d'abord.
+export function resumeEchecs(st) {
+  if (!st || !st.echecs) return "";
+  const pct = Math.round(st.tauxEchec * 100);
+  const types = Object.entries(st.echecsParType).sort((a, b) => b[1] - a[1])
+    .map(([t, k]) => `${k} ${TYPES_ECHEC[t] || t}`).join(", ");
+  return `${st.echecs} échec${st.echecs > 1 ? "s" : ""} sur ${st.appels} (${pct} %) : ${types}`;
 }

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { erreursDues } from "../core/erreurs";
-import { enSecondes, statsLatence } from "../core/latence";
+import { enSecondes, resumeEchecs, statsLatence } from "../core/latence";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
@@ -368,9 +368,12 @@ export default function ProgressScreen({ settings, keys }) {
               if (!s) return null;
               return (
                 <Text key={nature} style={st.bilanTexte}>
-                  {libelle} ({s.n}) : {nature === "tour" && s.premierJeton !== null ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
-                  réponse {enSecondes(s.total)} en médiane, {enSecondes(s.totalP90)} au pire 1 fois sur 10
-                  {s.lents ? ` — ${s.lents} lent${s.lents > 1 ? "s" : ""}` : ""}
+                  {libelle} ({s.appels}) : {s.n ? <>
+                    {nature === "tour" && s.premierJeton !== null ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
+                    réponse {enSecondes(s.total)} en médiane, {enSecondes(s.totalP90)} au pire 1 fois sur 10
+                    {s.lents ? ` — ${s.lents} lent${s.lents > 1 ? "s" : ""}` : ""}
+                  </> : "aucune réponse reçue"}
+                  {s.echecs ? `\n⚠️ ${resumeEchecs(s)}` : ""}
                 </Text>
               );
             })}
