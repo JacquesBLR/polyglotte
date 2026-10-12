@@ -363,12 +363,12 @@ export default function ProgressScreen({ settings, keys }) {
         <>
           <Text style={ui.sectionTitle}>Temps de réponse du tuteur</Text>
           <View style={st.seance}>
-            {[["tour", "Tours de conversation"], ["resume", "Résumés de séance"], ["explique", "Explications"]].map(([nature, libelle]) => {
+            {[["tour", "Tours de conversation"], ["evaluation", "Tests de niveau"], ["resume", "Résumés de séance"], ["explique", "Explications"]].map(([nature, libelle]) => {
               const s = statsLatence(latence, nature);
               if (!s) return null;
               return (
                 <Text key={nature} style={st.bilanTexte}>
-                  {libelle} ({s.n}) : {nature === "tour" ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
+                  {libelle} ({s.n}) : {nature === "tour" && s.premierJeton !== null ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
                   réponse {enSecondes(s.total)} en médiane, {enSecondes(s.totalP90)} au pire 1 fois sur 10
                   {s.lents ? ` — ${s.lents} lent${s.lents > 1 ? "s" : ""}` : ""}
                 </Text>

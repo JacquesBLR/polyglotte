@@ -252,6 +252,7 @@ export default function App() {
     stopMic();
     const s = session.current;
     if (s.mode === "chat" && s.history.length >= 4 && !busy) {
+      let texteComplet = null; // bilan lisible reçu en entier pendant le streaming (T3)
       setBusy(true);
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
       try {
@@ -273,7 +274,7 @@ export default function App() {
             recu = true;
             const partial = partialStringField(accumulated, "texte");
             if (!partial || !partial.text) return;
-            if (partial.complete) chrono.replique();
+            if (partial.complete) { chrono.replique(); texteComplet = partial.text; }
             setMessages(m => [...retireProvisoire(m), { role: "summary", text: partial.text, streaming: true }]);
           };
           raw = await streamOrCallLocal(settings, opts);
@@ -306,13 +307,24 @@ export default function App() {
           }
         }
         setStatus({ text: alerte || "Résumé de session — reviens à l'accueil quand tu veux.", error: false });
+        setSuggestions([]);
+        session.current.history = [];
       } catch (err) {
+        // Relecture du 12/10, T3 : l'historique n'est vidé qu'en cas de succès — un résumé
+        // en échec se redemande par ✅ au lieu d'être perdu. Coupé après un bilan lisible
+        // complet, ce bilan reste affiché ; carnets et niveau observé ne sont pas versés
+        // (champs structurés incomplets).
         setMessages(retireProvisoire);
-        setStatus({ text: err.message, error: true });
+        if (err.tronque && texteComplet) {
+          setMessages(m => [...m, { role: "summary", text: texteComplet, resume: null }]);
+          setStatus({ text: "Résumé incomplet : le bilan est affiché, mais carnets et niveau observé n'ont pas été mis à jour.", error: true });
+          setSuggestions([]);
+          session.current.history = [];
+        } else {
+          setStatus({ text: `${err.message} Appuie de nouveau sur ✅ pour réessayer le résumé.`, error: true });
+        }
       }
       setBusy(false);
-      setSuggestions([]);
-      session.current.history = [];
     } else {
       setScreen("home");
     }
@@ -378,7 +390,7 @@ export default function App() {
       } else {
         raw = await callModel(settings, opts);
       }
-      const alerteLenteur = sonde("tour", chrono, recu);
+      const alerteLenteur = sonde(s.mode === "eval" ? "evaluation" : "tour", chrono, recu);
       let data = JSON.parse(raw);
       // Personnage mystère (#105) : un métier échappé dans les champs en français est masqué.
       if (s.mystere) {
@@ -426,6 +438,8 @@ export default function App() {
           // L'historique ne porte que les répliques : sans réinjection, le modèle oublie sa
           // liste dès le tour suivant et en réinvente une autre.
           if (s.missions.liste.length) s.system = buildTutorPrompt({ ...s.ctx, missions: s.missions.liste });
+          // Aucune mission au [START] : le tour suivant les exige explicitement (M5).
+          else s.system = buildTutorPrompt({ ...s.ctx, missionsEnRetard: true });
         } else {
           const atteintes = fusionneAtteints(s.missions.atteintes, data.missions_accomplies, s.missions.liste.length);
           statutMission = messageMission(s.missions.liste, atteintes, atteintes.length - s.missions.atteintes.length) || "";
@@ -459,6 +473,9 @@ export default function App() {
       }
     } catch (err) {
       s.history.pop();
+      // Une réplique streamée a pu commencer à être dite avant l'échec (réponse coupée par
+      // le plafond de jetons, flux interrompu) : la bulle disparaît, la voix aussi (T1).
+      if (streamed) speech.stopSpeaking();
       setMessages(retireProvisoire);   // retire le provisoire s'il y en a un
       setStatus({ text: err.message, error: true });
     }

@@ -6,7 +6,7 @@
 // Expo SDK 57 installe `expo/fetch` (WinterCG) comme fetch global — dans les
 // deux cas, `response.body` est un ReadableStream.
 
-import { callLocal, extractJson, MSG_INJOIGNABLE, systemeJson } from "./api.js";
+import { callLocal, erreurTronquee, extractJson, MSG_INJOIGNABLE, systemeJson } from "./api.js";
 
 // ---------- Fonctions pures (testées dans tests/stream.test.mjs) ----------
 
@@ -201,6 +201,7 @@ export async function streamLocalChat(settings, { messages, system, schema, maxT
       ? "Le modèle a épuisé ses tokens en « réflexion » sans répondre — réessaie, ou choisis un modèle sans raisonnement."
       : "Réponse vide du modèle.");
   }
+  if (schema && finish === "length") throw erreurTronquee(full);
   return schema ? extractJson(full) : full;
 }
 

@@ -66,11 +66,11 @@ Champs :
 
 export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
-  const { cfg, level, scenarioId, immersion, erreurs, missions, mystere } = ctx;
+  const { cfg, level, scenarioId, immersion, erreurs, missions, missionsEnRetard, mystere } = ctx;
   // Personnage mystère (#105) : pas de missions, le jeu est l'objectif.
   const blocObjectif = scenarioId === SCENARIO_MYSTERE
     ? blocMystere(level, mystere, !!cfg.tutor.f)
-    : blocMissionsPrompt(level, missions);
+    : blocMissionsPrompt(level, missions, !!missionsEnRetard);
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   // Langue à alphabet latin : le schéma du tour n'a pas de champ "reading" (#103), la
   // consigne disparaît avec lui.

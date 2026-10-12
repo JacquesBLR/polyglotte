@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import {
   CECRL_PAR_NIVEAU, consigneExplication, expliqueRequete, expliqueValide, explicationConsignee,
 } from "../app/core/explique.js";
-import { ajouteErreur } from "../app/core/erreurs.js";
+import { ajouteErreur, cleErreur } from "../app/core/erreurs.js";
 import { langConfig } from "../app/core/languages.js";
 import { EXPLAIN_SCHEMA, GRAMMAR_FICHE_SCHEMA } from "../app/core/schemas.js";
 
@@ -77,7 +77,7 @@ test("consigneExplication : rattachée à l'entrée du carnet, sans muter, et re
   assert.notEqual(next, carnet);
   assert.equal(next.length, 1);
   assert.equal(carnet[0].explique, undefined, "le carnet d'origine n'est pas muté");
-  assert.deepEqual(next[0].explique, { ...bonne, level: "debutant", at: NOW + 5 });
+  assert.deepEqual(next[0].explique, { ...bonne, level: "debutant", at: NOW + 5, original: cleErreur(corr.original) });
   assert.equal(next[0].nextReview, carnet[0].nextReview, "la planification FSRS n'est pas touchée");
   assert.deepEqual(explicationConsignee(next, "catalan", corr, "debutant"), next[0].explique);
   assert.equal(explicationConsignee(next, "catalan", corr, "avance"), null, "autre niveau : on redemande");
