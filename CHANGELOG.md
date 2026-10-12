@@ -5,6 +5,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.32] — 2026-10-12
+
+### Added
+- 🕵️ **Personnage mystère** (#105) : un scénario où le tuteur joue un personnage dont le
+  **métier est secret**, que l'élève doit découvrir en le questionnant dans la langue cible.
+  Tous les autres scénarios sont des jeux de rôle où chacun sait tout ; ici, c'est
+  l'information manquante qui oblige à poser des questions, vérifier, reformuler — la tâche à
+  écart d'information (Doughty & Pica, *TESOL Quarterly* 20(2), 1986 ; Prabhu, 1987), moteur
+  de l'hypothèse de l'interaction (Long, 1996). Les jeux de rôle de Speak ou Duolingo Max
+  affichent leur objectif ; aucun ne le cache.
+  - le secret est **tiré par l'app** (12 métiers, 6 proposés) et n'entre que dans le prompt
+    système ; après 2 questions, « Je devine » propose les 6 métiers et la vérification est
+    **locale**, sans appel au modèle ; le prompt est ensuite reconstruit pour que le tuteur
+    parle librement de son métier ;
+  - consigne graduée par niveau (questions fermées et indices concrets au débutant, indices
+    indirects à l'avancé) ; pas de missions dans ce scénario (ni au prompt ni au schéma :
+    `schemaTour({ missions: false })`) ;
+  - filet de sécurité : un métier échappé dans les champs en français (traduction,
+    suggestions, vocabulaire) est masqué ou retiré avant affichage ;
+  - historique `mystere: { metier, trouve, questions }`, tuile « personnages devinés » et
+    détail par séance dans Progrès.
+- **Vérifié** : 3 parties réelles via gw (catalan débutant, japonais intermédiaire, espagnol
+  avancé ; 15 tours) — le tuteur n'a jamais nommé son métier dans sa réplique, une fuite dans
+  le vocabulaire (« 先生 = professeur, docteur ») a été retirée par le filet ; partie complète
+  jouée dans l'app web construite (Chromium headless) jusqu'à la révélation.
+
 ## [2.0.0-beta.31] — 2026-10-12
 
 ### Changed

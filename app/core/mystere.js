@@ -87,7 +87,7 @@ export function blocMystere(level, mystere, feminin = false) {
 - Réponds honnêtement et en restant dans ton rôle ; ${gradation}.
 - Si l'élève propose un métier dans son message, dis seulement si c'est juste ou non, sans nommer le bon.
 - "suggestions" : des QUESTIONS d'enquête que l'élève pourrait te poser ensuite (lieu, horaires, objets, clients…),
-  sans nommer aucun métier.
+  sans nommer aucun métier et sans contenir la réponse (pas ton activité principale : c'est à lui de la trouver).
 - "cultural_note" : null tant que le métier n'est pas trouvé.`;
 }
 
