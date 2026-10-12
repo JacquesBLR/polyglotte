@@ -192,6 +192,71 @@ export const PROGRAMME = [
 
 const PAR_ID = new Map(PROGRAMME.map(u => [u.id, u]));
 
+// ---------- Bilan de fin de niveau (#114) ----------
+//
+// Rien ne clôturait un niveau : une leçon validée n'était plus jamais réemployée, et rien
+// ne vérifiait que l'élève mobilise ENSEMBLE ce qu'il a appris séparément. Busuu termine
+// chaque niveau par un Checkpoint, Duolingo par des checkpoints qui mélangent les unités,
+// Babbel par un Review. Le bilan d'un niveau CECRL tire trois missions dans trois leçons
+// différentes de ce niveau — un nouveau tirage à chaque séance — et le tuteur enchaîne les
+// situations. Bilan validé (trois missions cochées) = niveau validé.
+
+export const NIVEAUX_CECRL = ["A1", "A2", "B1", "B2", "C1"];
+const idBilan = (cecrl) => `bilan-${cecrl.toLowerCase()}`;
+const BILANS = new Map(NIVEAUX_CECRL.map(c => [idBilan(c), c]));
+
+// Tirage de k indices distincts parmi n (Fisher-Yates partiel, aléa injectable et borné).
+function tirage(n, k, alea) {
+  const idx = [...Array(n).keys()];
+  for (let i = 0; i < Math.min(k, n); i++) {
+    const r = Number(alea());
+    const u = Number.isFinite(r) ? Math.min(Math.max(r, 0), 0.999999) : 0;
+    const j = i + Math.floor(u * (n - i));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  return idx.slice(0, Math.min(k, n));
+}
+
+// Séance de bilan d'un niveau CECRL : même forme qu'une leçon (`bilan: true`), missions
+// tirées dans trois leçons distinctes, dans l'ordre du programme. null si niveau inconnu.
+export function bilanNiveau(cecrl, alea = Math.random) {
+  const lecons = PROGRAMME.filter(u => u.cecrl === cecrl);
+  if (!lecons.length) return null;
+  const choisies = tirage(lecons.length, 3, alea).sort((a, b) => a - b).map(i => lecons[i]);
+  const tirees = choisies.map(u => ({ u, m: u.missions[tirage(u.missions.length, 1, alea)[0]] }));
+  // Une mission de clôture (« Prendre congé poliment ») tirée en premier fermait la
+  // conversation avant les autres (relecture du soir) : elle passe en dernier.
+  const cloture = (m) => /prendre congé|conclure/i.test(m);
+  tirees.sort((a, b) => cloture(a.m) - cloture(b.m));
+  const missions = tirees.map(t => t.m);
+  return {
+    id: idBilan(cecrl),
+    cecrl,
+    bilan: true,
+    titre: `Bilan ${cecrl}`,
+    missions,
+    sources: tirees.map(t => t.u.id),
+    grammaire: choisies.map(u => u.grammaire).join(" ; "),
+    lexique: choisies.map(u => u.lexique).join(" ; "),
+    situation: `Conversation de BILAN du niveau ${cecrl} à {ville} : enchaîne naturellement, l'une après l'autre, les situations `
+      + `des leçons « ${tirees.map(t => t.u.titre).join(" », « ")} », sans annoncer que c'est un test. Dès qu'une mission est `
+      + "accomplie, amène la situation de la suivante (change de décor si besoin : « bon, on va prendre un café ? »), sans "
+      + "revenir sur une mission déjà accomplie ni reposer une question déjà répondue. Ne simplifie pas pour aider : "
+      + "c'est l'occasion de vérifier ce que l'élève sait faire seul.",
+  };
+}
+
+// Niveaux CECRL validés d'une langue : ceux dont un bilan a vu ses missions toutes cochées.
+export function niveauxValides(history, lang) {
+  const ok = new Set();
+  for (const h of Array.isArray(history) ? history : []) {
+    if (!h || h.lang !== lang || !BILANS.has(h.lecon)) continue;
+    const m = h.missions;
+    if (m && m.total > 0 && m.atteintes >= m.total) ok.add(BILANS.get(h.lecon));
+  }
+  return ok;
+}
+
 export function leconParId(id) {
   return PAR_ID.get(id) || null;
 }
@@ -227,6 +292,7 @@ export function avancement(level, validees) {
 
 // Numéro affiché d'une leçon dans son niveau CECRL : « A1·3 ».
 export function numero(lecon) {
+  if (lecon.bilan) return lecon.cecrl;
   const rang = PROGRAMME.filter(u => u.cecrl === lecon.cecrl).indexOf(lecon) + 1;
   return `${lecon.cecrl}·${rang}`;
 }
@@ -241,6 +307,16 @@ Point de grammaire à faire pratiquer : ${lecon.grammaire}. Transpose-le à ${cf
 travaille son équivalent naturel. Amène des questions qui obligent l'élève à employer ces formes, sans faire de cours.
 Lexique visé : ${ville(lecon.lexique)}. Réemploie-le dans tes répliques et dans tes suggestions.
 Reste au niveau ${lecon.cecrl} : ni plus facile, ni plus difficile.`;
+}
+
+// Bilan à proposer (#114) : le premier niveau CECRL du niveau de l'app dont les six leçons
+// sont validées et qui n'est pas encore validé ; null sinon.
+export function prochainBilan(level, validees, niveauxOk) {
+  for (const c of CECRL_PAR_NIVEAU[level] || []) {
+    const lecons = PROGRAMME.filter(u => u.cecrl === c);
+    if (!niveauxOk.has(c) && lecons.every(u => validees.has(u.id))) return c;
+  }
+  return null;
 }
 
 // Libellé d'une séance de l'historique pour l'écran Progrès : la leçon plutôt que le

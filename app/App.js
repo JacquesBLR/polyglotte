@@ -18,7 +18,9 @@ import {
 } from "./core/mystere";
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, introEvaluation, summaryRequest } from "./core/prompts";
-import { avancement, leconsValidees, niveauApp, numero, prochaineLecon } from "./core/parcours";
+import {
+  avancement, bilanNiveau, leconsValidees, niveauApp, niveauxValides, numero, prochainBilan, prochaineLecon,
+} from "./core/parcours";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
 import { ajouteMesure, creeChrono, ligneConsole, mesure, mesureEchec, messageLenteur } from "./core/latence";
 import { LIBELLES, controleEcriture, ecritureConforme } from "./core/ecriture";
@@ -73,6 +75,7 @@ export default function App() {
   const [micMuted, setMicMuted] = useState(false);
   const [input, setInput] = useState("");
   const [validees, setValidees] = useState(new Set()); // leçons du parcours validées (#111)
+  const [niveauxOk, setNiveauxOk] = useState(new Set()); // niveaux CECRL validés par leur bilan (#114)
 
   // Références stables pour la session en cours (pas besoin de re-render).
   const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null, missions: { liste: [], atteintes: [] } });
@@ -114,7 +117,11 @@ export default function App() {
   useEffect(() => {
     if (screen !== "home" && screen !== "parcours") return undefined;
     let vivant = true;
-    loadJSON(keys.history, []).then(h => { if (vivant) setValidees(leconsValidees(h, langId)); }).catch(() => {});
+    loadJSON(keys.history, []).then(h => {
+      if (!vivant) return;
+      setValidees(leconsValidees(h, langId));
+      setNiveauxOk(niveauxValides(h, langId));
+    }).catch(() => {});
     return () => { vivant = false; };
   }, [screen, langId, keys.history]);
 
@@ -511,7 +518,9 @@ export default function App() {
           const atteintes = fusionneAtteints(s.missions.atteintes, data.missions_accomplies, s.missions.liste.length);
           statutMission = messageMission(s.missions.liste, atteintes, atteintes.length - s.missions.atteintes.length) || "";
           if (s.lecon && statutMission && atteintes.length >= s.missions.liste.length) {
-            statutMission = `🎉 Leçon « ${s.lecon.titre} » validée ! Appuie sur ✅ pour ton résumé, puis passe à la suivante.`;
+            statutMission = s.lecon.bilan
+              ? `🏅 Bilan réussi : niveau ${s.lecon.cecrl} validé ! Appuie sur ✅ pour ton résumé.`
+              : `🎉 Leçon « ${s.lecon.titre} » validée ! Appuie sur ✅ pour ton résumé, puis passe à la suivante.`;
           }
           s.missions = { ...s.missions, atteintes };
         }
@@ -732,19 +741,28 @@ export default function App() {
           {(() => {
             const suivante = prochaineLecon(level, validees);
             const av = avancement(level, validees);
+            const bilan = prochainBilan(level, validees, niveauxOk);
             return (
               <View style={[ui.card, { marginTop: 12 }]}>
                 <Text style={st.parcoursTitre}>
                   📚 Parcours {LEVELS.find(l => l[0] === level)[1].toLowerCase()} — {av.faites} / {av.total} leçon{av.total > 1 ? "s" : ""}
                 </Text>
+                {bilan && (
+                  <>
+                    <Text style={ui.label}>Les six leçons {bilan} sont validées : passe le bilan pour valider le niveau.</Text>
+                    <Pressable onPress={() => startSession("chat", bilanNiveau(bilan))} style={ui.primaryBtn}>
+                      <Text style={ui.primaryBtnText}>🏅 Passer le bilan {bilan}</Text>
+                    </Pressable>
+                  </>
+                )}
                 {suivante ? (
                   <>
                     <Text style={ui.label}>Prochaine leçon : {numero(suivante)} · {suivante.titre}</Text>
-                    <Pressable onPress={() => startSession("chat", suivante)} style={ui.primaryBtn}>
-                      <Text style={ui.primaryBtnText}>▶ Commencer la leçon</Text>
+                    <Pressable onPress={() => startSession("chat", suivante)} style={bilan ? ui.secondaryBtn : ui.primaryBtn}>
+                      <Text style={bilan ? ui.secondaryBtnText : ui.primaryBtnText}>▶ Commencer la leçon</Text>
                     </Pressable>
                   </>
-                ) : (
+                ) : !bilan && (
                   <Text style={ui.label}>Toutes les leçons de ce niveau sont validées 🎉 — passe au niveau suivant.</Text>
                 )}
                 <Pressable onPress={() => setScreen("parcours")}>
@@ -815,7 +833,7 @@ export default function App() {
         )}
         {screen === "progress" && <ProgressScreen settings={settings} keys={keys} />}
         {screen === "parcours" && (
-          <ParcoursScreen cfg={cfg} level={level} validees={validees} onStart={(lecon) => startSession("chat", lecon)} />
+          <ParcoursScreen cfg={cfg} level={level} validees={validees} niveauxOk={niveauxOk} onStart={(lecon) => startSession("chat", lecon)} />
         )}
         <SettingsModal
           visible={settingsOpen}

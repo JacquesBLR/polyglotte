@@ -4,12 +4,12 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { CECRL_PAR_NIVEAU, avancement, leconsDuNiveau, numero, prochaineLecon } from "../core/parcours";
+import { CECRL_PAR_NIVEAU, avancement, bilanNiveau, leconsDuNiveau, numero, prochaineLecon } from "../core/parcours";
 import { C, Chip, ui } from "./common";
 
 const NIVEAUX = [["debutant", "Débutant"], ["intermediaire", "Intermédiaire"], ["avance", "Avancé"]];
 
-export default function ParcoursScreen({ cfg, level, validees, onStart }) {
+export default function ParcoursScreen({ cfg, level, validees, niveauxOk = new Set(), onStart }) {
   const [niveau, setNiveau] = useState(level);
   const lecons = leconsDuNiveau(niveau);
   const suivante = prochaineLecon(niveau, validees);
@@ -39,6 +39,20 @@ export default function ParcoursScreen({ cfg, level, validees, onStart }) {
               </Pressable>
             );
           })}
+          {(() => {
+            // Bilan de fin de niveau (#114) : mis en avant quand les six leçons sont validées.
+            const pret = lecons.filter(u => u.cecrl === cecrl).every(u => validees.has(u.id));
+            const ok = niveauxOk.has(cecrl);
+            return (
+              <Pressable onPress={() => onStart(bilanNiveau(cecrl))} style={[ui.card, st.bilan, pret && !ok && st.enAvant]}>
+                <Text style={st.titre}>{ok ? `🏅 Niveau ${cecrl} validé` : `🏅 Bilan ${cecrl}`}</Text>
+                <Text style={st.detail}>
+                  {ok ? "Tu peux repasser le bilan quand tu veux : les missions sont tirées à nouveau."
+                    : `Trois missions tirées dans trois leçons ${cecrl} différentes, enchaînées dans une même conversation. Réussi = niveau ${cecrl} validé.`}
+                </Text>
+              </Pressable>
+            );
+          })()}
         </View>
       ))}
     </ScrollView>
@@ -48,6 +62,7 @@ export default function ParcoursScreen({ cfg, level, validees, onStart }) {
 const st = StyleSheet.create({
   body: { padding: 16, gap: 10 },
   enAvant: { borderColor: C.primary, borderWidth: 2 },
+  bilan: { backgroundColor: "#fffbeb" },
   titre: { fontSize: 16, fontWeight: "700", color: C.text },
   objectif: { fontSize: 14, color: "#44403c" },
   detail: { fontSize: 13, color: C.muted },
