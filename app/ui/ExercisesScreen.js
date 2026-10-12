@@ -1,10 +1,12 @@
-// Exercices : dictée (écoute → écrit) et prononciation (lit → répète) — portage v1 #21/#22.
+// Exercices : dictée (écoute → écrit) et prononciation (lit → répète) — portage v1 #21/#22 —,
+// et histoire à écouter avec questions de compréhension (#113).
 
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { callModel, hasCredentials } from "../core/api";
 import { gradeAttempt } from "../core/diff";
+import { demandeHistoire, histoireValide, schemaHistoire, scoreHistoire } from "../core/histoire";
 import { exoSystemPrompt } from "../core/prompts";
 import { EXO_SCHEMA } from "../core/schemas";
 import * as speech from "../speech/speech";
@@ -21,6 +23,37 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const recognizer = useRef(null);
+  // Histoire à écouter (#113) : texte masqué tant que l'élève ne le demande pas.
+  const [histoire, setHistoire] = useState(null);
+  const [reponses, setReponses] = useState([]);
+  const [texteVisible, setTexteVisible] = useState(false);
+  const dire = (texte) => speech.speak(texte, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, voixServeur: cfg.voixServeur, langue: cfg.label, rate: settings.rate });
+
+  const startHistoire = async () => {
+    speech.primeSpeech();
+    setBusy(true);
+    setStatus({ text: `${cfg.tutor.name} prépare une histoire…`, error: false });
+    try {
+      const raw = await callModel(settings, {
+        messages: [{ role: "user", content: demandeHistoire({ cfg, level }) }],
+        system: exoSystemPrompt({ cfg, level }),
+        schema: schemaHistoire({ lecture: !!cfg.reading }),
+        maxTokens: 2000,
+      });
+      let h = null;
+      try { h = histoireValide(JSON.parse(raw)); } catch (_) { h = null; }
+      if (!h) throw new Error("Le tuteur n'a pas su écrire l'histoire — réessaie.");
+      setHistoire(h);
+      setReponses([]);
+      setTexteVisible(false);
+      setKind("histoire");
+      setStatus({ text: "", error: false });
+      dire(h.texte);
+    } catch (err) {
+      setStatus({ text: err.message, error: true });
+    }
+    setBusy(false);
+  };
 
   const sentence = sentences[index];
   const finished = sentences.length > 0 && index >= sentences.length;
@@ -31,6 +64,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
       setStatus({ text: "Configure d'abord ton moteur IA dans les réglages.", error: true });
       return;
     }
+    if (k === "histoire") return startHistoire();
     if (k === "prononciation" && !speech.recognitionAvailable()) {
       setStatus({ text: "Reconnaissance vocale indisponible ici — utilise la dictée à la place.", error: true });
       return;
@@ -102,6 +136,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     if (recognizer.current && listening) recognizer.current.stop();
     setKind(null);
     setSentences([]);
+    setHistoire(null);
     setFeedback(null);
     setStatus({ text: "", error: false });
   };
@@ -116,11 +151,73 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         <Pressable onPress={() => start("prononciation")} disabled={busy} style={ui.secondaryBtn}>
           <Text style={ui.secondaryBtnText}>🗣️ Prononciation — lis à voix haute</Text>
         </Pressable>
+        <Pressable onPress={() => start("histoire")} disabled={busy} style={ui.secondaryBtn}>
+          <Text style={ui.secondaryBtnText}>📖 Histoire à écouter — puis 3 questions</Text>
+        </Pressable>
         {!!status.text && <Text style={[ui.status, status.error && ui.statusError]}>{status.text}</Text>}
         <Text style={{ color: C.faint, fontSize: 12, marginTop: 8 }}>
-          5 phrases adaptées à ton niveau, notées mot à mot. La prononciation nécessite la
-          reconnaissance vocale (navigateur web).
+          Dictée et prononciation : 5 phrases adaptées à ton niveau, notées mot à mot (la
+          prononciation demande la reconnaissance vocale). Histoire : écoute d'abord, le texte
+          ne s'affiche que si tu le demandes.
         </Text>
+      </ScrollView>
+    );
+  }
+
+  if (kind === "histoire" && histoire) {
+    const repondues = reponses.filter(r => r !== undefined).length;
+    const fini = repondues >= histoire.questions.length;
+    const sc = scoreHistoire(histoire, reponses);
+    return (
+      <ScrollView contentContainerStyle={st.body}>
+        <Text style={ui.sectionTitle}>📖 {histoire.titre}</Text>
+        <View style={ui.card}>
+          <View style={ui.chipRow}>
+            <Chip label="🔊 (Ré)écouter" onPress={() => dire(histoire.texte)} />
+            <Chip label={texteVisible ? "🙈 Masquer le texte" : "👁 Afficher le texte"} active={texteVisible} onPress={() => setTexteVisible(v => !v)} />
+          </View>
+          {texteVisible || fini ? (
+            <>
+              <Text style={[st.histoire, cfg.rtl && st.rtl]}>{histoire.texte}</Text>
+              {!!histoire.reading && <Text style={st.reading}>{histoire.reading}</Text>}
+            </>
+          ) : (
+            <Text style={st.reading}>Écoute l'histoire, puis réponds. Le texte reste caché : c'est ton oreille qui travaille.</Text>
+          )}
+          {fini && !!histoire.traduction && <Text style={st.traduction}>🇫🇷 {histoire.traduction}</Text>}
+        </View>
+        {histoire.questions.map((q, i) => {
+          const choisi = reponses[i];
+          const repondu = choisi !== undefined;
+          return (
+            <View key={i} style={ui.card}>
+              <Text style={st.question}>{i + 1}. {q.question}</Text>
+              {q.choix.map((c, k) => {
+                const marque = repondu && (k === q.bonne ? "✓ " : k === choisi ? "✗ " : "");
+                return (
+                  <Pressable
+                    key={k}
+                    disabled={repondu}
+                    onPress={() => setReponses(r => { const n = [...r]; n[i] = k; return n; })}
+                    style={[st.choix, repondu && k === q.bonne && st.choixOk, repondu && k === choisi && k !== q.bonne && st.choixKo]}
+                  >
+                    <Text style={st.choixTexte}>{marque}{c}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          );
+        })}
+        {fini && (
+          <View style={ui.card}>
+            <Text style={st.scoreLine}>
+              {sc.justes} / {sc.total} bonnes réponses {sc.pourcent === 100 ? "🎉" : sc.pourcent >= 60 ? "👍" : "💪 Réécoute et relis le texte"}
+            </Text>
+          </View>
+        )}
+        <Pressable onPress={reset} style={fini ? ui.primaryBtn : null}>
+          <Text style={fini ? ui.primaryBtnText : [ui.status, { textAlign: "center" }]}>{fini ? "↺ Autre exercice" : "✕ Arrêter l'exercice"}</Text>
+        </Pressable>
       </ScrollView>
     );
   }
@@ -213,4 +310,11 @@ const st = StyleSheet.create({
   ok: { color: C.ok, fontWeight: "600" },
   miss: { color: C.error, textDecorationLine: "underline" },
   scoreLine: { fontSize: 17, fontWeight: "700", color: C.primary },
+  histoire: { fontSize: 17, color: C.text, lineHeight: 25 },
+  traduction: { fontSize: 14, color: C.muted, lineHeight: 21 },
+  question: { fontSize: 15, fontWeight: "600", color: C.text },
+  choix: { borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12 },
+  choixOk: { borderColor: C.ok, backgroundColor: "#f0fdf4" },
+  choixKo: { borderColor: C.error, backgroundColor: "#fef2f2" },
+  choixTexte: { fontSize: 15, color: "#44403c" },
 });
