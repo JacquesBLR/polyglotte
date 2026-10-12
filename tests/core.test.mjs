@@ -119,7 +119,7 @@ test("registre : 10 langues complètes et cohérentes", () => {
     if (cfg.support === "partial") assert.ok(cfg.supportNote, `${id} : supportNote requis si partiel`);
     assert.equal((cfg.scenarios || []).length, 3, `${id} : 3 scénarios culturels`);
   }
-  assert.equal(BASE_SCENARIOS.length, 7);
+  assert.equal(BASE_SCENARIOS.length, 8); // dont le personnage mystère (#105)
 });
 
 test("langConfig : le tunisien suit l'écriture choisie", () => {

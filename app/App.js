@@ -13,6 +13,9 @@ import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { ajouteErreur, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
 import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
+import {
+  devine, entreeMystere, expurge, intitule, messageRevelation, QUESTIONS_MIN, SCENARIO_MYSTERE, tireMystere,
+} from "./core/mystere";
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
@@ -58,6 +61,8 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [missions, setMissions] = useState({ liste: [], atteintes: [] }); // missions de scénario (#91)
+  const [mystere, setMystere] = useState(null); // personnage mystère (#105) : { secret, choix, revele }
+  const [devinetteOuverte, setDevinetteOuverte] = useState(false);
   const [repeteEnCours, setRepeteEnCours] = useState(null); // index de la réplique en cours de répétition (#95)
   const [status, setStatus] = useState({ text: "", error: false });
   const [busy, setBusy] = useState(false);
@@ -184,7 +189,9 @@ export default function App() {
       // Marquées « réactivées » seulement quand le premier tour a réussi (#101, E4) : un
       // [START] en échec les aurait écartées une journée sans qu'elles aient servi.
     }
-    const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs };
+    // Personnage mystère (#105) : le secret est tiré par l'app, jamais par le modèle.
+    const mys = mode === "chat" && scenarioId === SCENARIO_MYSTERE ? tireMystere() : null;
+    const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs, mystere: mys };
     session.current = {
       cfg: c,
       lang: langId, // langue de la séance, figée à son ouverture (#97)
@@ -195,8 +202,12 @@ export default function App() {
       recognizer: null,
       id: mode === "chat" ? `${Date.now()}` : null,
       missions: { liste: [], atteintes: [] },
+      mystere: mys,
+      questions: 0, // messages de l'élève avant la devinette
     };
     setMessages([]);
+    setMystere(mys);
+    setDevinetteOuverte(false);
     setSuggestions([]);
     setMissions({ liste: [], atteintes: [] });
     setMicMuted(false);
@@ -332,7 +343,12 @@ export default function App() {
         // nature d'appel (#103).
         schema: s.mode === "eval"
           ? schemaEvaluation({ lecture: !!s.cfg.reading })
-          : schemaTour({ lecture: !!s.cfg.reading, immersion: !!s.ctx?.immersion, nbMissions: s.missions.liste.length }),
+          : schemaTour({
+              lecture: !!s.cfg.reading,
+              immersion: !!s.ctx?.immersion,
+              nbMissions: s.missions.liste.length,
+              missions: !s.mystere, // pas de missions au personnage mystère (#105)
+            }),
         maxTokens: s.mode === "eval" ? MAX_TOKENS.evaluation : MAX_TOKENS.tour,
       };
       let raw;
@@ -363,7 +379,14 @@ export default function App() {
         raw = await callModel(settings, opts);
       }
       const alerteLenteur = sonde("tour", chrono, recu);
-      const data = JSON.parse(raw);
+      let data = JSON.parse(raw);
+      // Personnage mystère (#105) : un métier échappé dans les champs en français est masqué.
+      if (s.mystere) {
+        const ex = expurge(data, s.mystere);
+        data = ex.data;
+        if (ex.fuite) console.info("[mystère] fuite masquée");
+        if (text !== "[START]" && !s.mystere.revele) s.questions++;
+      }
       s.history.push({ role: "assistant", content: data.reply });
       if (s.mode === "eval") {
         setMessages(m => [...m, {
@@ -396,7 +419,9 @@ export default function App() {
         }
         // Missions de scénario : lues au [START], et au tour suivant si le modèle n'en avait
         // annoncé aucune (#101, M3) — le schéma du tour les redemande tant que la liste est vide.
-        if (!s.missions.liste.length) {
+        if (s.mystere) {
+          // Pas de missions dans ce scénario.
+        } else if (!s.missions.liste.length) {
           s.missions = { liste: missionsValides(data.missions), atteintes: [] };
           // L'historique ne porte que les répliques : sans réinjection, le modèle oublie sa
           // liste dès le tour suivant et en réinvente une autre.
@@ -438,6 +463,31 @@ export default function App() {
       setStatus({ text: err.message, error: true });
     }
     setBusy(false);
+  };
+
+  // Devinette du personnage mystère (#105) : vérifiée localement, sans appel au modèle. Le
+  // prompt est reconstruit pour que le tuteur sache que le jeu est fini.
+  const deviner = (propose) => {
+    const s = session.current;
+    if (busy) return;
+    const next = devine(s.mystere, propose);
+    if (!next) return;
+    s.mystere = next;
+    s.ctx = { ...s.ctx, mystere: next };
+    s.system = buildTutorPrompt({ ...s.ctx, missions: s.missions.liste });
+    setMystere(next);
+    setDevinetteOuverte(false);
+    const feminin = !!s.cfg.tutor.f;
+    setMessages(m => [...m, { role: "mystere", text: messageRevelation(next, s.questions, feminin), trouve: next.revele.trouve }]);
+    setStatus({ text: "", error: false });
+    if (s.id) {
+      loadJSON(keys.history, []).then(history => {
+        const entry = history.find(h => h.id === s.id);
+        if (!entry) return;
+        entry.mystere = entreeMystere(next, s.questions);
+        saveJSON(keys.history, history);
+      }).catch(() => {});
+    }
   };
 
   const adoptLevel = (cefr) => {
@@ -685,6 +735,29 @@ export default function App() {
           })}
         </View>
       )}
+      {session.current.mode === "chat" && mystere && !mystere.revele && (
+        <View style={st.missions}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text style={[st.missionLigne, { flex: 1 }]}>
+              🕵️ Devine le métier de {session.current.cfg?.tutor.name} en lui posant des questions
+              {session.current.questions < QUESTIONS_MIN ? ` (encore ${QUESTIONS_MIN - session.current.questions} avant de deviner)` : "."}
+            </Text>
+            <Chip
+              label={devinetteOuverte ? "Fermer" : "Je devine"}
+              active={devinetteOuverte}
+              disabled={busy || session.current.questions < QUESTIONS_MIN}
+              onPress={() => setDevinetteOuverte(o => !o)}
+            />
+          </View>
+          {devinetteOuverte && (
+            <View style={[ui.chipRow, { marginTop: 4 }]}>
+              {mystere.choix.map(id => (
+                <Chip key={id} label={intitule(id, !!session.current.cfg?.tutor.f)} active={false} onPress={() => deviner(id)} />
+              ))}
+            </View>
+          )}
+        </View>
+      )}
       <ScrollView
         ref={scrollRef}
         style={st.chat}
@@ -773,6 +846,11 @@ export default function App() {
                     </Text>
                   </View>
                 )}
+              </View>
+            )}
+            {m.role === "mystere" && (
+              <View style={[st.bubble, st.bubbleSummary]}>
+                <Text style={st.summaryText}>{m.text}</Text>
               </View>
             )}
             {m.role === "summary" && (

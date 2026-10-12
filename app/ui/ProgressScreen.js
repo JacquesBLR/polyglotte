@@ -10,6 +10,7 @@ import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
 import { nbMissionsAccomplies } from "../core/mission";
+import { nbMysteresTrouves } from "../core/mystere";
 import { JOURS_COURTS, bilanHebdo, messageHebdo, semainesTenues } from "../core/objectif";
 import { moyennePrononciation } from "../core/prononciation";
 import { tendanceNiveau } from "../core/resume";
@@ -251,6 +252,8 @@ export default function ProgressScreen({ settings, keys }) {
   // Prononciation (#95) : tuile présente seulement quand il y a des mesures.
   const prononciation = moyennePrononciation(history);
   if (prononciation !== null) stats.push([`${prononciation} %`, "prononciation (5 dernières séances)"]);
+  // Personnage mystère (#105) : tuile présente dès une partie jouée jusqu'à la devinette.
+  if (history.some(h => h && h.mystere)) stats.push([nbMysteresTrouves(history), "personnages devinés"]);
   const recent = [...deck].sort((a, b) => b.addedAt - a.addedAt).slice(0, 50);
   const erreursRecentes = [...erreurs].sort((a, b) => b.addedAt - a.addedAt).slice(0, 30);
 
@@ -313,6 +316,7 @@ export default function ProgressScreen({ settings, keys }) {
             const details = [
               `${h.turns || 0} tour${(h.turns || 0) > 1 ? "s" : ""}`,
               h.missions?.total ? `missions ${h.missions.atteintes}/${h.missions.total}` : null,
+              h.mystere ? (h.mystere.trouve ? `mystère trouvé en ${h.mystere.questions} question${h.mystere.questions > 1 ? "s" : ""}` : "mystère raté") : null,
               h.niveauObserve ? `niveau ${h.niveauObserve}` : null,
               h.prononciation?.n ? `prononciation ${h.prononciation.moyenne} %` : null,
             ].filter(Boolean).join(" · ");
