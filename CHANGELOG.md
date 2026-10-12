@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.35] — 2026-10-12
+
+### Fixed
+Deux discutables de la relecture du soir (#110) dont la correction ne demandait pas de
+choix, chacun avec un test (`tests/relecture-soir-110.test.mjs`) :
+- **D2, principe du test de niveau** : la consigne demandait au modèle d'expliquer le test
+  « en UNE phrase en français » dans `reply`, qui doit pourtant être écrite dans
+  l'écriture de la langue ; en japonais et en arabe, il l'omettait toujours (9/9 via gw),
+  et le débutant n'avait jamais l'explication. L'app affiche désormais elle-même le
+  principe, en français, avant la première question (texte fixe : toujours là, sans jeton
+  de plus) ; le modèle pose directement sa question.
+- **D3, latence de la relance d'écriture** : quand le contrôle d'écriture (#107) relançait
+  le tuteur, la sonde chronométrait avant la relance et ne voyait qu'un appel sur les deux
+  que l'élève attendait. La mesure est prise après la relance, marquée `relance`, et
+  l'écran Progrès compte les tours réécrits.
+
+Restent à Jacques : D1 (portée du filet du personnage mystère) et D4 (traduction sortie en
+anglais, écart du modèle non reproduit).
+
 ## [2.0.0-beta.34] — 2026-10-12
 
 ### Fixed

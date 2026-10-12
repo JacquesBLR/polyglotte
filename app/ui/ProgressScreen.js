@@ -372,6 +372,7 @@ export default function ProgressScreen({ settings, keys }) {
                     {nature === "tour" && s.premierJeton !== null ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
                     réponse {enSecondes(s.total)} en médiane, {enSecondes(s.totalP90)} au pire 1 fois sur 10
                     {s.lents ? ` — ${s.lents} lent${s.lents > 1 ? "s" : ""}` : ""}
+                    {s.relances ? ` — ${s.relances} réécrit${s.relances > 1 ? "s" : ""} (mauvaise écriture)` : ""}
                   </> : "aucune réponse reçue"}
                   {s.echecs ? `\n⚠️ ${resumeEchecs(s)}` : ""}
                 </Text>

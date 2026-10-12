@@ -17,7 +17,7 @@ import {
   devine, entreeMystere, expurge, intitule, messageRevelation, QUESTIONS_MIN, SCENARIO_MYSTERE, tireMystere,
 } from "./core/mystere";
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
-import { buildTutorPrompt, summaryRequest } from "./core/prompts";
+import { buildTutorPrompt, introEvaluation, summaryRequest } from "./core/prompts";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
 import { ajouteMesure, creeChrono, ligneConsole, mesure, mesureEchec, messageLenteur } from "./core/latence";
 import { LIBELLES, controleEcriture, ecritureConforme } from "./core/ecriture";
@@ -206,7 +206,8 @@ export default function App() {
       mystere: mys,
       questions: 0, // messages de l'élève avant la devinette
     };
-    setMessages([]);
+    // Test de niveau : le principe est expliqué par l'app, en français (#110, D2).
+    setMessages(mode === "eval" ? [{ role: "info", text: introEvaluation(c) }] : []);
     setMystere(mys);
     setDevinetteOuverte(false);
     setSuggestions([]);
@@ -235,9 +236,10 @@ export default function App() {
 
   // Sonde de latence (#98) : journalise la mesure (console + journal local borné) et rend
   // le message d'alerte, vide si le tuteur a répondu dans les temps.
-  const sonde = (nature, chrono, stream = false) => {
+  const sonde = (nature, chrono, stream = false, relance = false) => {
     const m = mesure(nature, chrono.fin(), {
       stream,
+      relance,
       modele: settings.provider === "local" ? settings.localModel : settings.model,
     });
     console.info(ligneConsole(m));
@@ -368,6 +370,7 @@ export default function App() {
     let statutMission = ""; // message d'étape des missions, affiché après le tour
     let chrono = null; // chronomètre de l'appel, remis à null une fois mesuré
     let recu = false; // au moins un fragment de texte reçu en streaming
+    let relance = false; // réplique réécrite par le contrôle d'écriture (#107)
     try {
       const opts = {
         messages: s.history,
@@ -412,8 +415,6 @@ export default function App() {
       }
       let data;
       try { data = JSON.parse(raw); } catch (_) { throw new Error("Le modèle a produit un JSON invalide — réessaie."); }
-      const alerteLenteur = sonde(s.mode === "eval" ? "evaluation" : "tour", chrono, recu);
-      chrono = null;
       // Contrôle d'écriture (#107) : une réplique hors de l'écriture de la langue (tunisien
       // en arabizi alors que l'écriture arabe est choisie…) relance le tuteur une fois.
       if (!ecritureConforme(data.reply, s.cfg.ecriture)) {
@@ -426,7 +427,12 @@ export default function App() {
         console.info(`[écriture] relance ${ctl.conforme ? "réussie" : "sans effet"} (${s.cfg.ecriture})`);
         data = ctl.data;
         streamed = false; // voix coupée ci-dessus : la réplique retenue sera dite en entier
+        relance = true;
       }
+      // Mesuré après l'éventuelle relance d'écriture (#110, D3) : l'élève attend les deux
+      // appels, la sonde chronométrait avant la relance et n'en voyait qu'un.
+      const alerteLenteur = sonde(s.mode === "eval" ? "evaluation" : "tour", chrono, recu, relance);
+      chrono = null;
       // Personnage mystère (#105) : un métier échappé dans les champs en français est masqué.
       if (s.mystere) {
         const ex = expurge(data, s.mystere);
@@ -908,7 +914,7 @@ export default function App() {
                 )}
               </View>
             )}
-            {m.role === "mystere" && (
+            {(m.role === "mystere" || m.role === "info") && (
               <View style={[st.bubble, st.bubbleSummary]}>
                 <Text style={st.summaryText}>{m.text}</Text>
               </View>
