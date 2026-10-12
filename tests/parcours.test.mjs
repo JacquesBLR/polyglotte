@@ -1,0 +1,110 @@
+// Tests du parcours guidé (#111).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+
+import {
+  CECRL_PAR_NIVEAU, PROGRAMME, avancement, blocLecon, leconParId, leconsDuNiveau, leconsValidees, niveauApp, numero, prochaineLecon,
+} from "../app/core/parcours.js";
+import { NB_MISSIONS, blocMissionsPrompt, missionsValides } from "../app/core/mission.js";
+import { buildTutorPrompt } from "../app/core/prompts.js";
+import { LANGUAGES, langConfig } from "../app/core/languages.js";
+import { schemaTour } from "../app/core/schemas.js";
+
+test("programme : 6 leçons par niveau CECRL, identifiants uniques, champs remplis", () => {
+  const ids = new Set(PROGRAMME.map(u => u.id));
+  assert.equal(ids.size, PROGRAMME.length);
+  for (const c of ["A1", "A2", "B1", "B2", "C1"]) assert.equal(PROGRAMME.filter(u => u.cecrl === c).length, 6, c);
+  for (const u of PROGRAMME) {
+    for (const k of ["titre", "grammaire", "lexique", "situation"]) assert.ok(u[k] && u[k].trim(), `${u.id}.${k}`);
+    assert.ok(u.id.startsWith(u.cecrl.toLowerCase() + "-"), u.id);
+  }
+});
+
+test("programme : les objectifs ont la forme des missions (#91) et passent missionsValides intacts", () => {
+  for (const u of PROGRAMME) {
+    assert.equal(u.missions.length, NB_MISSIONS, u.id);
+    assert.deepEqual(missionsValides(u.missions), u.missions, `${u.id} : rien de filtré ni tronqué`);
+    for (const m of u.missions) {
+      const mots = m.split(/\s+/).length;
+      assert.ok(mots >= 3 && mots <= 8, `${u.id} « ${m} » : ${mots} mots`);
+      assert.match(m, /^[A-ZÉ]/, `${u.id} « ${m} » : infinitif en majuscule`);
+    }
+  }
+});
+
+test("niveaux : chaque leçon appartient à exactement un niveau de l'app", () => {
+  assert.equal(niveauApp("A1"), "debutant");
+  assert.equal(niveauApp("B2"), "intermediaire");
+  assert.equal(niveauApp("C1"), "avance");
+  assert.equal(niveauApp("C2"), null);
+  const total = Object.keys(CECRL_PAR_NIVEAU).reduce((n, l) => n + leconsDuNiveau(l).length, 0);
+  assert.equal(total, PROGRAMME.length);
+  assert.equal(leconsDuNiveau("debutant").length, 12);
+  assert.equal(leconsDuNiveau("avance").length, 6);
+  assert.deepEqual(leconsDuNiveau("inconnu"), []);
+});
+
+test("leconsValidees : missions toutes cochées, dans la langue demandée seulement", () => {
+  const h = [
+    { lang: "catalan", lecon: "a1-cafe", missions: { total: 3, atteintes: 3 } },
+    { lang: "catalan", lecon: "a1-famille", missions: { total: 3, atteintes: 2 } }, // incomplète
+    { lang: "japonais", lecon: "a1-presentations", missions: { total: 3, atteintes: 3 } }, // autre langue
+    { lang: "catalan", lecon: "inexistante", missions: { total: 3, atteintes: 3 } },
+    { lang: "catalan", scenario: "cafe", missions: { total: 3, atteintes: 3 } }, // séance libre
+    { lang: "catalan", lecon: "a1-ville", missions: { total: 0, atteintes: 0 } },
+    null,
+  ];
+  assert.deepEqual([...leconsValidees(h, "catalan")], ["a1-cafe"]);
+  assert.deepEqual([...leconsValidees(h, "japonais")], ["a1-presentations"]);
+  assert.equal(leconsValidees(null, "catalan").size, 0);
+});
+
+test("prochaineLecon et avancement : première non validée du niveau, dans l'ordre", () => {
+  assert.equal(prochaineLecon("debutant", new Set()).id, "a1-presentations");
+  assert.equal(prochaineLecon("debutant", new Set(["a1-presentations", "a1-cafe"])).id, "a1-famille");
+  const toutes = new Set(leconsDuNiveau("avance").map(u => u.id));
+  assert.equal(prochaineLecon("avance", toutes), null);
+  assert.deepEqual(avancement("debutant", new Set(["a1-cafe", "b1-opinion"])), { faites: 1, total: 12 });
+});
+
+test("numero : rang dans le niveau CECRL", () => {
+  assert.equal(numero(leconParId("a1-presentations")), "A1·1");
+  assert.equal(numero(leconParId("a2-projets")), "A2·6");
+  assert.equal(leconParId("nope"), null);
+});
+
+test("prompt : la leçon remplace le scénario, ancre la ville et fixe les missions", () => {
+  const cfg = langConfig("espagnol");
+  const lecon = leconParId("a1-cafe");
+  const p = buildTutorPrompt({
+    cfg, level: niveauApp(lecon.cecrl), scenarioId: "lecon", immersion: false, mode: "chat",
+    lecon, missions: lecon.missions,
+  });
+  assert.match(p, /LEÇON DU PARCOURS « Commander à boire et à manger » \(niveau A1/);
+  assert.ok(p.includes("Séville"), "situation ancrée dans la ville du tuteur");
+  assert.ok(!p.includes("{ville}"));
+  assert.ok(p.includes(blocMissionsPrompt("debutant", lecon.missions)), "missions déjà fixées, à cocher");
+  assert.match(p, /missions_accomplies/);
+  // Le schéma du tour n'a plus à demander de missions (elles sont fixées).
+  const sch = schemaTour({ lecture: false, nbMissions: lecon.missions.length });
+  assert.ok(!("missions" in sch.properties) && "missions_accomplies" in sch.properties);
+});
+
+test("blocLecon : aucune trace de {ville} pour aucune langue ni aucune leçon", () => {
+  for (const id of Object.keys(LANGUAGES)) {
+    const cfg = langConfig(id);
+    for (const u of PROGRAMME) {
+      const b = blocLecon(u, cfg);
+      assert.ok(!b.includes("{ville}"), `${id}/${u.id}`);
+      assert.ok(b.includes(cfg.langFr));
+    }
+  }
+});
+
+test("libelleSeance : leçon, bilan, scénario", async () => {
+  const { libelleSeance } = await import("../app/core/parcours.js");
+  assert.equal(libelleSeance({ lecon: "a1-cafe", scenario: "lecon" }), "📚 A1·3 Commander à boire et à manger");
+  assert.equal(libelleSeance({ lecon: "bilan-b2", scenario: "lecon" }), "🏅 Bilan B2");
+  assert.equal(libelleSeance({ scenario: "cafe" }), "cafe");
+  assert.equal(libelleSeance(null), "libre");
+});

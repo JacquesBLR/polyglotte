@@ -2,12 +2,14 @@
 // pur : { cfg (langConfig résolu), level, levelLabel, scenarioId, immersion, mode,
 // erreurs (cartes du carnet d'erreurs à réactiver, #87 — optionnel),
 // missions (missions déjà annoncées par le tuteur, réinjectées, #91 — optionnel),
-// mystere (personnage mystère tiré par l'app, #105 — seulement pour ce scénario) }.
+// mystere (personnage mystère tiré par l'app, #105 — seulement pour ce scénario),
+// lecon (leçon du parcours, #111 — remplace le scénario ; ses missions sont fixées) }.
 
 import { LIBELLES } from "./ecriture.js";
 import { blocErreursPrompt } from "./erreurs.js";
 import { blocMissionsPrompt } from "./mission.js";
 import { blocMystere, SCENARIO_MYSTERE } from "./mystere.js";
+import { blocLecon } from "./parcours.js";
 
 export const LEVEL_INSTRUCTIONS = {
   debutant: `L'élève est DÉBUTANT (A1–A2). Utilise des phrases très courtes et simples, les temps
@@ -82,7 +84,7 @@ Champs :
 
 export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
-  const { cfg, level, scenarioId, immersion, erreurs, missions, missionsEnRetard, mystere } = ctx;
+  const { cfg, level, scenarioId, immersion, erreurs, missions, missionsEnRetard, mystere, lecon } = ctx;
   // Personnage mystère (#105) : pas de missions, le jeu est l'objectif.
   const blocObjectif = scenarioId === SCENARIO_MYSTERE
     ? blocMystere(level, mystere, !!cfg.tutor.f)
@@ -111,7 +113,7 @@ par une synthèse vocale : écris uniquement du texte prononçable (pas de liste
 ${LEVEL_INSTRUCTIONS[level]}
 ${ADAPTIVE_INSTRUCTION}
 
-${scenarioInstructions(cfg, scenarioId)}
+${lecon ? blocLecon(lecon, cfg) : scenarioInstructions(cfg, scenarioId)}
 
 Spécificités de la langue : ${cfg.promptExtra}
 ${blocErreursPrompt(erreurs)}

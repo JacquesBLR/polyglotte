@@ -18,6 +18,7 @@ import {
 } from "./core/mystere";
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, introEvaluation, summaryRequest } from "./core/prompts";
+import { avancement, leconsValidees, niveauApp, numero, prochaineLecon } from "./core/parcours";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
 import { ajouteMesure, creeChrono, ligneConsole, mesure, mesureEchec, messageLenteur } from "./core/latence";
 import { LIBELLES, controleEcriture, ecritureConforme } from "./core/ecriture";
@@ -33,6 +34,7 @@ import {
 import { C, Chip, MARGE_BAS, MARGE_HAUT, ui } from "./ui/common";
 import ExercisesScreen from "./ui/ExercisesScreen";
 import GrammarScreen from "./ui/GrammarScreen";
+import ParcoursScreen from "./ui/ParcoursScreen";
 import ProgressScreen from "./ui/ProgressScreen";
 import SettingsModal from "./ui/SettingsModal";
 
@@ -45,7 +47,7 @@ const LEVELS = [
 // Niveau CECRL estimé par le test → niveau de l'app.
 const CEFR_TO_LEVEL = { A1: "debutant", A2: "debutant", B1: "intermediaire", B2: "intermediaire", C1: "avance" };
 
-const SCREEN_TITLES = { grammar: "🧠 Grammaire", exos: "✍️ Exercices", progress: "📊 Progrès" };
+const SCREEN_TITLES = { grammar: "🧠 Grammaire", exos: "✍️ Exercices", progress: "📊 Progrès", parcours: "📚 Parcours" };
 
 export default function App() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -70,6 +72,7 @@ export default function App() {
   const [listening, setListening] = useState(false);
   const [micMuted, setMicMuted] = useState(false);
   const [input, setInput] = useState("");
+  const [validees, setValidees] = useState(new Set()); // leçons du parcours validées (#111)
 
   // Références stables pour la session en cours (pas besoin de re-render).
   const session = useRef({ cfg: null, mode: "chat", system: "", history: [], recognizer: null, id: null, missions: { liste: [], atteintes: [] } });
@@ -105,6 +108,15 @@ export default function App() {
     });
     return () => { vivant = false; sub.remove(); };
   }, [settings.reminders, keys.deck, screen]);
+
+  // Parcours (#111) : leçons validées de la langue courante, relues depuis l'historique à
+  // chaque retour à l'accueil ou au programme (une séance a pu en valider une).
+  useEffect(() => {
+    if (screen !== "home" && screen !== "parcours") return undefined;
+    let vivant = true;
+    loadJSON(keys.history, []).then(h => { if (vivant) setValidees(leconsValidees(h, langId)); }).catch(() => {});
+    return () => { vivant = false; };
+  }, [screen, langId, keys.history]);
 
   useEffect(() => {
     registerServiceWorker();
@@ -173,7 +185,9 @@ export default function App() {
 
   // ---------- Session ----------
 
-  const startSession = async (mode) => {
+  // `lecon` (#111) : leçon du parcours — elle remplace le scénario, fixe les missions et
+  // règle le tuteur sur son niveau CECRL.
+  const startSession = async (mode, lecon = null) => {
     if (!hasCredentials(settings)) {
       setSettingsOpen(true);
       setStatus({ text: "Configure d'abord ton moteur IA dans les réglages.", error: true });
@@ -191,18 +205,25 @@ export default function App() {
       // [START] en échec les aurait écartées une journée sans qu'elles aient servi.
     }
     // Personnage mystère (#105) : le secret est tiré par l'app, jamais par le modèle.
-    const mys = mode === "chat" && scenarioId === SCENARIO_MYSTERE ? tireMystere() : null;
-    const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs, mystere: mys };
+    const lec = mode === "chat" ? lecon : null;
+    const mys = mode === "chat" && !lec && scenarioId === SCENARIO_MYSTERE ? tireMystere() : null;
+    const ctx = {
+      cfg: c, level: lec ? niveauApp(lec.cecrl) : level, scenarioId: lec ? "lecon" : scenarioId,
+      immersion, mode, erreurs, mystere: mys, lecon: lec,
+    };
+    // Les missions d'une leçon sont ses objectifs « je peux » : fixées avant le premier tour.
+    const missionsInitiales = { liste: lec ? [...lec.missions] : [], atteintes: [] };
     session.current = {
       cfg: c,
       lang: langId, // langue de la séance, figée à son ouverture (#97)
       mode,
       ctx, // conservé pour reconstruire le prompt une fois les missions annoncées (#91)
-      system: buildTutorPrompt(ctx),
+      system: buildTutorPrompt({ ...ctx, missions: missionsInitiales.liste }),
       history: [],
       recognizer: null,
       id: mode === "chat" ? `${Date.now()}` : null,
-      missions: { liste: [], atteintes: [] },
+      missions: missionsInitiales,
+      lecon: lec,
       mystere: mys,
       questions: 0, // messages de l'élève avant la devinette
     };
@@ -211,7 +232,7 @@ export default function App() {
     setMystere(mys);
     setDevinetteOuverte(false);
     setSuggestions([]);
-    setMissions({ liste: [], atteintes: [] });
+    setMissions(missionsInitiales);
     setMicMuted(false);
     setScreen("chat");
     setStatus({ text: "", error: false });
@@ -224,7 +245,8 @@ export default function App() {
     const history = await loadJSON(keys.history, []);
     let entry = history.find(h => h.id === s.id);
     if (!entry) {
-      entry = { id: s.id, date: Date.now(), lang: langId, level, scenario: scenarioId, turns: 0 };
+      entry = { id: s.id, date: Date.now(), lang: s.lang, level: s.ctx.level, scenario: s.ctx.scenarioId, turns: 0 };
+      if (s.lecon) entry.lecon = s.lecon.id; // parcours (#111) : la validation se lit ici
       history.push(entry);
     }
     entry.turns++;
@@ -488,6 +510,9 @@ export default function App() {
         } else {
           const atteintes = fusionneAtteints(s.missions.atteintes, data.missions_accomplies, s.missions.liste.length);
           statutMission = messageMission(s.missions.liste, atteintes, atteintes.length - s.missions.atteintes.length) || "";
+          if (s.lecon && statutMission && atteintes.length >= s.missions.liste.length) {
+            statutMission = `🎉 Leçon « ${s.lecon.titre} » validée ! Appuie sur ✅ pour ton résumé, puis passe à la suivante.`;
+          }
           s.missions = { ...s.missions, atteintes };
         }
         setMissions(s.missions);
@@ -704,7 +729,31 @@ export default function App() {
             ))}
             <Chip label="🎓 Test de niveau" active={false} onPress={() => startSession("eval")} />
           </View>
-          <Text style={ui.sectionTitle}>Scénario</Text>
+          {(() => {
+            const suivante = prochaineLecon(level, validees);
+            const av = avancement(level, validees);
+            return (
+              <View style={[ui.card, { marginTop: 12 }]}>
+                <Text style={st.parcoursTitre}>
+                  📚 Parcours {LEVELS.find(l => l[0] === level)[1].toLowerCase()} — {av.faites} / {av.total} leçon{av.total > 1 ? "s" : ""}
+                </Text>
+                {suivante ? (
+                  <>
+                    <Text style={ui.label}>Prochaine leçon : {numero(suivante)} · {suivante.titre}</Text>
+                    <Pressable onPress={() => startSession("chat", suivante)} style={ui.primaryBtn}>
+                      <Text style={ui.primaryBtnText}>▶ Commencer la leçon</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Text style={ui.label}>Toutes les leçons de ce niveau sont validées 🎉 — passe au niveau suivant.</Text>
+                )}
+                <Pressable onPress={() => setScreen("parcours")}>
+                  <Text style={[ui.status, { textAlign: "center" }]}>Voir le programme du niveau →</Text>
+                </Pressable>
+              </View>
+            );
+          })()}
+          <Text style={ui.sectionTitle}>Ou conversation libre — scénario</Text>
           <View style={ui.chipRow}>
             {scenarios.map(([id, label]) => (
               <Chip key={id} label={label} active={scenarioId === id} onPress={() => setScenarioId(id)} />
@@ -765,6 +814,9 @@ export default function App() {
           <ExercisesScreen settings={settings} cfg={cfg} langId={langId} level={level} onOpenSettings={() => setSettingsOpen(true)} />
         )}
         {screen === "progress" && <ProgressScreen settings={settings} keys={keys} />}
+        {screen === "parcours" && (
+          <ParcoursScreen cfg={cfg} level={level} validees={validees} onStart={(lecon) => startSession("chat", lecon)} />
+        )}
         <SettingsModal
           visible={settingsOpen}
           settings={settings}
@@ -787,7 +839,9 @@ export default function App() {
           <Text style={st.headerBtn}>←</Text>
         </Pressable>
         <Text style={st.headerTitle}>
-          {session.current.mode === "eval" ? "🎓 Test de niveau" : `${session.current.cfg?.tutor.name} · ${session.current.cfg?.tutor.city}`}
+          {session.current.mode === "eval" ? "🎓 Test de niveau"
+            : session.current.lecon ? `📚 ${numero(session.current.lecon)} · ${session.current.lecon.titre}`
+            : `${session.current.cfg?.tutor.name} · ${session.current.cfg?.tutor.city}`}
         </Text>
         <Pressable onPress={endSession}><Text style={st.headerBtn}>✅</Text></Pressable>
       </View>
@@ -980,6 +1034,7 @@ export default function App() {
 }
 
 const st = StyleSheet.create({
+  parcoursTitre: { fontSize: 16, fontWeight: "700", color: C.text },
   root: { flex: 1, backgroundColor: C.bg, ...(Platform.OS === "web" ? { maxWidth: 780, width: "100%", marginHorizontal: "auto" } : null) },
   header: {
     backgroundColor: C.primary,

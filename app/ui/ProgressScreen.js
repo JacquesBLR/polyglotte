@@ -6,6 +6,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { erreursDues } from "../core/erreurs";
 import { enSecondes, resumeEchecs, statsLatence } from "../core/latence";
+import { libelleSeance } from "../core/parcours";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
@@ -325,7 +326,7 @@ export default function ProgressScreen({ settings, keys }) {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Text style={st.deckLang}>{dateCourte(h.date)}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={st.deckTerm}>{LANGUAGES[h.lang]?.label || h.lang} · {h.scenario || "libre"}</Text>
+                    <Text style={st.deckTerm}>{LANGUAGES[h.lang]?.label || h.lang} · {libelleSeance(h)}</Text>
                     <Text style={st.deckTranslation}>{details}</Text>
                   </View>
                   {!!h.resume && <Text style={{ color: C.faint }}>{ouverte ? "▴" : "▾"}</Text>}
