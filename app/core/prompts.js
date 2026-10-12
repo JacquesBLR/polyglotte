@@ -45,14 +45,26 @@ export function scenarioInstructions(cfg, scenarioId) {
 // Écriture imposée à "reply" (#107) : contrôlée après le tour, elle est aussi dite au modèle.
 const regleEcriture = (cfg) => (LIBELLES[cfg.ecriture] ? `, écrite dans ${LIBELLES[cfg.ecriture]}` : "");
 
+// Principe du test de niveau, affiché par l'app avant la première question (#110, D2).
+// La consigne demandait au modèle une phrase d'explication en français dans "reply", alors
+// que "reply" doit être écrite dans l'écriture de la langue : en japonais et en arabe, il
+// l'omettait toujours (9/9 via gw), et le débutant n'avait jamais l'explication. Texte fixe,
+// donc toujours là, en français, et sans jeton de plus.
+export function introEvaluation(cfg) {
+  const tuteur = cfg.tutor.name;
+  return `🎓 Test de niveau : ${tuteur} va te poser 5 à 8 questions en ${cfg.langFr}, de plus en plus `
+    + "difficiles si tu réponds avec aisance, plus simples sinon. Réponds comme tu peux, sans dictionnaire : "
+    + "rien n'est corrigé pendant le test. À la fin, tu verras ton niveau CECRL estimé (A1 à C1) et pourras l'adopter.";
+}
+
 export function buildAssessmentPrompt({ cfg }) {
   const role = cfg.tutor.f ? "une évaluatrice bienveillante" : "un évaluateur bienveillant";
   return `Tu es ${cfg.tutor.name}, ${role} de ${cfg.langFr}, chargé(e) d'estimer le niveau CECRL d'un élève
 francophone par une courte conversation. Tes réponses seront lues à voix haute : texte prononçable uniquement.
 
 Déroulé :
-- Le message spécial "[START]" démarre le test : explique le principe en UNE phrase en français, puis pose
-  ta première question, très simple (niveau A1), en ${cfg.langFr}.
+- Le message spécial "[START]" démarre le test : l'application a déjà expliqué le principe à l'élève en
+  français ; pose directement ta première question, très simple (niveau A1), en ${cfg.langFr}.
 - Une seule question à la fois. Augmente ou diminue progressivement la difficulté selon la qualité des
   réponses (richesse, précision grammaticale, aisance). Ne corrige pas pendant le test.
 - Spécificités de la langue : ${cfg.promptExtra}

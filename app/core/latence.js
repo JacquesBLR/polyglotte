@@ -48,8 +48,12 @@ export function creeChrono(horloge = Date.now) {
 }
 
 // Construit une mesure à journaliser.
-export function mesure(nature, chrono, { stream = false, modele = "", at = Date.now() } = {}) {
-  return { nature, ...chrono, stream: !!stream, modele: String(modele || ""), at };
+// `relance` (#110, D3) : le tour a été réécrit par le contrôle d'écriture — le total
+// couvre alors les deux appels, ce que l'élève a réellement attendu. Absent sinon.
+export function mesure(nature, chrono, { stream = false, modele = "", at = Date.now(), relance = false } = {}) {
+  const m = { nature, ...chrono, stream: !!stream, modele: String(modele || ""), at };
+  if (relance) m.relance = true;
+  return m;
 }
 
 const nombre = (v) => Number.isFinite(v) && v >= 0;
@@ -161,6 +165,7 @@ export function statsLatence(journal, nature) {
     totalP90: centile(ms.map(m => m.total), 90),
     replique: mediane(ms.map(m => m.replique)), // null si aucune mesure ne la porte
     lents: ms.filter(m => lenteur(m)).length,
+    relances: ms.filter(m => m.relance).length, // tours réécrits par le contrôle d'écriture
   };
 }
 
@@ -168,7 +173,7 @@ export function statsLatence(journal, nature) {
 export function ligneConsole(m) {
   if (m.echec) return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} ÉCHEC ${m.echec} après ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
   const rep = nombre(m.replique) ? `, réplique ${m.replique} ms` : "";
-  return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} premier jeton ${m.premierJeton} ms${rep}, total ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
+  return `[latence] ${m.nature}${m.stream ? " (stream)" : ""}${m.relance ? " (relancé)" : ""} premier jeton ${m.premierJeton} ms${rep}, total ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
 }
 
 // Ligne « échecs » pour l'écran Progrès : chaîne vide sans échec. Pourcentage arrondi à
