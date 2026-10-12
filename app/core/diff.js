@@ -1,11 +1,14 @@
 // Correction mot à mot des dictées et exercices de prononciation — fonctions pures.
 
-// Normalisation : casse, ponctuation (latine, arabe ، ؛ ؟, japonaise), diacritiques arabes et
-// tatweel ـ ; le japonais est comparé caractère par caractère (pas d'espaces). Une entrée
+// Normalisation : casse, ponctuation (latine, arabe ، ؛ ؟, japonaise), diacritiques arabes,
+// tatweel ـ et emoji ; le japonais est comparé caractère par caractère (pas d'espaces). Une entrée
 // nulle (reconnaissance vocale muette) vaut une chaîne vide.
 export function normalizeTokens(text, langId) {
   let t = String(text ?? "").toLowerCase()
     .replace(/[ً-ْٰـ]/g, "")
+    // Emoji (et leurs sélecteurs / liants) : jamais prononcés, ils faisaient un jeton
+    // impossible à reconnaître (#101, P6).
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{FE0F}\u{200D}]/gu, " ")
     .replace(/[.,;:!?¿¡«»"“”'’‘…()\-—、。，！？「」『』〜・،؛؟]/g, " ")
     .replace(/\s+/g, " ")
     .trim();

@@ -221,3 +221,51 @@ export const EXPLAIN_SCHEMA = {
   },
   required: [...GRAMMAR_FICHE_SCHEMA.required, "exemple", "contre_exemple"],
 };
+
+// ---------- Schéma allégé par tour et budgets de jetons (#103) ----------
+//
+// Le résident vLLM décode ~12 à 15 jetons/s : un tour de 140 jetons, c'est 10 s. Chaque
+// clé du schéma strict coûte des jetons même quand sa valeur est vide (`"missions":[]`,
+// `"reading":null`), et le modèle remplit parfois un champ qui devrait l'être — sondé le
+// 12/10 : trois missions réinventées au deuxième tour, ~25 jetons que l'app jetait. Le
+// schéma du tour ne déclare donc que les champs qui peuvent servir à CE tour :
+// - `reading` (et celui du vocabulaire) seulement si la langue a une translittération ;
+// - `correction` et `cultural_note` jamais en immersion (toujours null par consigne) ;
+// - `missions` tant qu'aucune n'est annoncée (au [START], et au tour suivant si le modèle
+//   n'en a rendu aucune), `missions_accomplies` seulement quand il y en a à cocher.
+// L'ordre des champs est celui de RESPONSE_SCHEMA : `reply` reste en tête pour le streaming.
+
+const sansCles = (schema, cles) => {
+  const properties = Object.fromEntries(Object.entries(schema.properties).filter(([k]) => !cles.has(k)));
+  return { ...schema, properties, required: schema.required.filter(k => !cles.has(k)) };
+};
+
+export function schemaTour({ lecture = true, immersion = false, nbMissions = 0 } = {}) {
+  const retire = new Set();
+  if (!lecture) retire.add("reading");
+  if (immersion) { retire.add("correction"); retire.add("cultural_note"); }
+  if (nbMissions > 0) retire.add("missions");
+  else retire.add("missions_accomplies");
+  const schema = sansCles(RESPONSE_SCHEMA, retire);
+  if (!lecture) {
+    const voc = RESPONSE_SCHEMA.properties.vocabulary;
+    schema.properties.vocabulary = { ...voc, items: sansCles(voc.items, new Set(["reading"])) };
+  }
+  return schema;
+}
+
+export function schemaEvaluation({ lecture = true } = {}) {
+  return lecture ? ASSESS_SCHEMA : sansCles(ASSESS_SCHEMA, new Set(["reading"]));
+}
+
+// Plafonds de jetons par nature d'appel. Ils ne raccourcissent pas une réponse normale
+// (mesurées le 12/10 : tour 120 à 210 jetons, premier tour avec missions ~200, résumé
+// ~550) : ils bornent l'emballement — un décodage guidé qui boucle sur des blancs ou un
+// texte qui ne s'arrête pas tenait jusqu'à 2 048 jetons, soit plus de deux minutes. Marge
+// ×3 au moins sur le plus long mesuré, écritures non latines comprises.
+export const MAX_TOKENS = {
+  tour: 700,
+  evaluation: 500,
+  resume: 1600,
+  explique: 700,
+};

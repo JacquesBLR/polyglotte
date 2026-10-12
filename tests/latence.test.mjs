@@ -71,7 +71,7 @@ test("centile et statsLatence : médiane et 90e centile au rang le plus proche, 
   }
   j = ajouteMesure(j, mesure("resume", { premierJeton: 36000, total: 36000 }));
   const s = statsLatence(j, "tour");
-  assert.deepEqual(s, { n: 5, premierJeton: 1000, total: 13000, totalP90: 40000, lents: 1 });
+  assert.deepEqual(s, { n: 5, premierJeton: 1000, total: 13000, totalP90: 40000, lents: 1, replique: null });
   assert.equal(statsLatence(j, "resume").n, 1);
   assert.equal(statsLatence(j, "explique"), null);
   assert.equal(statsLatence(null, "tour"), null);
@@ -80,4 +80,19 @@ test("centile et statsLatence : médiane et 90e centile au rang le plus proche, 
 test("ligneConsole : une ligne lisible par appel", () => {
   const l = ligneConsole(mesure("tour", { premierJeton: 900, total: 12800 }, { stream: true, modele: "qwen3.8-nvfp4" }));
   assert.equal(l, "[latence] tour (stream) premier jeton 900 ms, total 12800 ms, qwen3.8-nvfp4");
+});
+
+test("creeChrono.replique (#103) : instant où le texte lu est complet, absent s'il n'est pas marqué", () => {
+  const c = creeChrono(horloge(0, 800, 2600, 9000));
+  c.premierJeton(); // 800
+  c.replique();     // 2600
+  c.replique();     // ignoré
+  assert.deepEqual(c.fin(), { premierJeton: 800, total: 9000, replique: 2600 });
+  const m = mesure("tour", { premierJeton: 800, total: 9000, replique: 2600 }, { stream: true, at: 0 });
+  assert.match(ligneConsole(m), /premier jeton 800 ms, réplique 2600 ms, total 9000 ms/);
+  assert.doesNotMatch(ligneConsole(mesure("tour", { premierJeton: 1, total: 2 })), /réplique/);
+  let j = [];
+  for (const r of [2000, 3000, 4000]) j = ajouteMesure(j, mesure("tour", { premierJeton: 900, total: 9000, replique: r }, { stream: true }));
+  j = ajouteMesure(j, mesure("tour", { premierJeton: 900, total: 9000 }, { stream: true })); // mesure d'avant #103
+  assert.equal(statsLatence(j, "tour").replique, 3000);
 });

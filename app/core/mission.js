@@ -28,14 +28,16 @@ export function blocMissionsPrompt(level, missions = []) {
   if (!gradation) return "";
   const liste = missionsValides(missions);
   const choix = liste.length
-    ? `- MISSIONS de cette conversation (déjà annoncées — "missions" reste un tableau VIDE) :
+    ? `- MISSIONS de cette conversation (déjà annoncées, ne les change pas) :
 ${liste.map((m, i) => `  ${i + 1}. ${m}`).join("\n")}
   Ne les récite pas dans "reply" : amène au fil de la conversation les situations qui les appellent, une à la fois.`
-    : `- MISSIONS : au message "[START]", choisis ${NB_MISSIONS} missions concrètes pour ce scénario, EN FRANÇAIS, à l'infinitif
+    : `- MISSIONS : au message "[START]" (ou à ton prochain tour si tu ne l'as pas encore fait), choisis ${NB_MISSIONS} missions concrètes pour ce scénario, EN FRANÇAIS, à l'infinitif
   (3 à 8 mots chacune), graduées au niveau de l'élève : ${gradation}. Mets-les dans "missions" — tableau vide à tous
   les autres tours. Ne les récite pas dans "reply" : amène au fil de la conversation les situations qui les appellent, une à la fois.`;
+  // "missions_accomplies" n'est au schéma du tour que s'il y a des missions à cocher (#103).
+  if (!liste.length) return choix;
   return `${choix}
-- "missions_accomplies" : numéros (1 à ${liste.length || NB_MISSIONS}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, dans la
+- "missions_accomplies" : numéros (1 à ${liste.length}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, dans la
   langue cible et de façon compréhensible même avec des fautes. N'invente aucune réussite ; tableau vide s'il n'a rien
   accompli de nouveau. Quand toutes sont accomplies, félicite-le brièvement dans "reply" et propose de conclure.`;
 }

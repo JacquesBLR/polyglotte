@@ -65,9 +65,9 @@ export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
   const { cfg, level, scenarioId, immersion, erreurs, missions } = ctx;
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
-  const readingRule = cfg.reading
-    ? `- "reading" : ${cfg.reading}.`
-    : `- "reading" : mets toujours null (langue à alphabet latin).`;
+  // Langue à alphabet latin : le schéma du tour n'a pas de champ "reading" (#103), la
+  // consigne disparaît avec lui.
+  const readingRule = cfg.reading ? `- "reading" : ${cfg.reading}.\n` : "";
   const correctionRules = immersion
     ? `- MODE IMMERSION TOTALE : "correction" est TOUJOURS null. Corrige par REFORMULATION naturelle : si l'élève
   fait une erreur, reprends simplement la forme correcte au fil de ta réplique, comme le ferait un natif
@@ -95,12 +95,11 @@ ${blocErreursPrompt(erreurs)}
 Règles :
 - "reply" : ta réplique EN ${cfg.langFr.toUpperCase().replace(/^L[E'’A]\s*/, "")} uniquement, 1 à 3 phrases, qui se termine le plus souvent par une question pour relancer l'élève.
 - "translation" : la traduction française fidèle de "reply".
-${readingRule}
-${correctionRules}
+${readingRule}${correctionRules}
 - "suggestions" : 2 ou 3 réponses possibles courtes dans la langue cible que l'élève pourrait te dire ensuite, adaptées à son niveau.
 - "vocabulary" : 0 à 2 mots ou expressions importants et NOUVEAUX de cet échange (issus de ta réplique ou du message
-  de l'élève), utiles à mémoriser : terme en langue cible, traduction française, translittération latine si l'écriture
-  n'est pas latine (sinon null). Tableau vide si rien de notable — ne remplis jamais artificiellement.
+  de l'élève), utiles à mémoriser : terme en langue cible, traduction française${cfg.reading ? ", translittération latine" : ""}.
+  Tableau vide si rien de notable — ne remplis jamais artificiellement.
 ${blocMissionsPrompt(level, missions)}
 - Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser.
 - Le message spécial "[START]" signifie que l'élève démarre la conversation : salue-le dans la langue cible et lance le scénario.
