@@ -1,10 +1,12 @@
 // Prompts pédagogiques — iso-fonctionnels avec l'app v1, paramétrés par un contexte
 // pur : { cfg (langConfig résolu), level, levelLabel, scenarioId, immersion, mode,
 // erreurs (cartes du carnet d'erreurs à réactiver, #87 — optionnel),
-// missions (missions déjà annoncées par le tuteur, réinjectées, #91 — optionnel) }.
+// missions (missions déjà annoncées par le tuteur, réinjectées, #91 — optionnel),
+// mystere (personnage mystère tiré par l'app, #105 — seulement pour ce scénario) }.
 
 import { blocErreursPrompt } from "./erreurs.js";
 import { blocMissionsPrompt } from "./mission.js";
+import { blocMystere, SCENARIO_MYSTERE } from "./mystere.js";
 
 export const LEVEL_INSTRUCTIONS = {
   debutant: `L'élève est DÉBUTANT (A1–A2). Utilise des phrases très courtes et simples, les temps
@@ -35,6 +37,7 @@ export function scenarioInstructions(cfg, scenarioId) {
     presentations: "Jeu de rôle : première rencontre. Travaille les présentations : nom, origine, métier, goûts, famille.",
     voyage: `Jeu de rôle : l'élève prépare ou vit un voyage à ${city} (hôtel, billets, visites, restaurants).`,
     travail: `Jeu de rôle : contexte professionnel à ${city} (réunions, collègues, petites conversations de bureau).`,
+    [SCENARIO_MYSTERE]: `Jeu de rôle : tu es un personnage de ${city} que l'élève rencontre, et il doit deviner ton métier en te questionnant.`,
   }[scenarioId];
 }
 
@@ -63,7 +66,11 @@ Champs :
 
 export function buildTutorPrompt(ctx) {
   if (ctx.mode === "eval") return buildAssessmentPrompt(ctx);
-  const { cfg, level, scenarioId, immersion, erreurs, missions } = ctx;
+  const { cfg, level, scenarioId, immersion, erreurs, missions, mystere } = ctx;
+  // Personnage mystère (#105) : pas de missions, le jeu est l'objectif.
+  const blocObjectif = scenarioId === SCENARIO_MYSTERE
+    ? blocMystere(level, mystere, !!cfg.tutor.f)
+    : blocMissionsPrompt(level, missions);
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   // Langue à alphabet latin : le schéma du tour n'a pas de champ "reading" (#103), la
   // consigne disparaît avec lui.
@@ -100,7 +107,7 @@ ${readingRule}${correctionRules}
 - "vocabulary" : 0 à 2 mots ou expressions importants et NOUVEAUX de cet échange (issus de ta réplique ou du message
   de l'élève), utiles à mémoriser : terme en langue cible, traduction française${cfg.reading ? ", translittération latine" : ""}.
   Tableau vide si rien de notable — ne remplis jamais artificiellement.
-${blocMissionsPrompt(level, missions)}
+${blocObjectif}
 - Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser.
 - Le message spécial "[START]" signifie que l'élève démarre la conversation : salue-le dans la langue cible et lance le scénario.
 - Note : l'historique ne contient que tes répliques dans la langue cible, sans les traductions ni corrections précédentes.`;

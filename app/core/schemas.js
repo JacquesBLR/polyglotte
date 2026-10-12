@@ -240,11 +240,13 @@ const sansCles = (schema, cles) => {
   return { ...schema, properties, required: schema.required.filter(k => !cles.has(k)) };
 };
 
-export function schemaTour({ lecture = true, immersion = false, nbMissions = 0 } = {}) {
+export function schemaTour({ lecture = true, immersion = false, nbMissions = 0, missions = true } = {}) {
   const retire = new Set();
   if (!lecture) retire.add("reading");
   if (immersion) { retire.add("correction"); retire.add("cultural_note"); }
-  if (nbMissions > 0) retire.add("missions");
+  // `missions: false` : scénario sans missions (personnage mystère, #105).
+  if (!missions) { retire.add("missions"); retire.add("missions_accomplies"); }
+  else if (nbMissions > 0) retire.add("missions");
   else retire.add("missions_accomplies");
   const schema = sansCles(RESPONSE_SCHEMA, retire);
   if (!lecture) {

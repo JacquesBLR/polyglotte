@@ -149,6 +149,7 @@ export const BASE_SCENARIOS = [
   ["presentations", "Se présenter / rencontres"],
   ["voyage", "Voyage"],
   ["travail", "Au travail"],
+  ["mystere", "🕵️ Personnage mystère"],
 ];
 
 // Résout la configuration effective (gère la double écriture du tunisien).
