@@ -5,6 +5,60 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.31] — 2026-10-12
+
+### Changed
+- ⚡ **Un tour de conversation plus court** (#103). Le banc de la beta.29 le montrait : le
+  premier mot arrive vite (~1 s), c'est la **longueur** de la sortie qui coûte — le résident
+  vLLM décode ~11 à 15 jetons/s. Sondé ce matin : le schéma strict imposait à chaque tour des
+  clés vides (`"reading":null` en langue latine, `"missions":[]` après le premier tour, que le
+  modèle remplissait parfois de missions réinventées) et le modèle indentait son JSON (le
+  premier tour : 173 à 250 jetons indentés, 132 à 171 minifiés). Désormais :
+  - le schéma du tour ne déclare que les champs qui peuvent y servir (`schemaTour`) :
+    `reading` seulement pour une écriture non latine, ni `correction` ni `cultural_note` en
+    immersion (toujours null par consigne), `missions` tant qu'aucune n'est annoncée,
+    `missions_accomplies` seulement quand il y a des missions à cocher. **Aucun champ
+    pédagogique retiré** : traduction, correction, suggestions, vocabulaire et note
+    culturelle restent à chaque tour ;
+  - le système demande un JSON **minifié** (l'option `disable_any_whitespace` de vLLM 0.27,
+    essayée, est restée sans effet) ;
+  - `max_tokens` par nature d'appel au lieu de 2 048 partout : tour 700, test de niveau 500,
+    résumé 1 600, explication 700 — trois fois au moins le plus long mesuré ; ils bornent un
+    décodage qui s'emballe, sans raccourcir une réponse normale.
+- **Mesure avant/après**, 2 × 10 tours réels alternés via gw (`X-Atelier-Backend: vllm`,
+  `X-Atelier-Projet: polyglotte`), mêmes répliques d'élève : médiane par tour **18,2 s →
+  14,6 s** (−20 %), jetons par tour 217 → 162 (−25 %), réplique complète 4,8 s → 4,2 s, 40 tours
+  sur 40 en JSON valide. Le débit du résident était bas pendant la mesure (11,5 jetons/s,
+  autres agents en charge) : le gain relatif est le chiffre à retenir.
+- 📋 **Résumé de séance en streaming** : le bilan lisible s'affiche au fil de l'eau (complet
+  en 14 à 30 s) au lieu de 45 à 55 s d'écran figé ; carnets et niveau observé sont versés une
+  fois la réponse complète.
+- ⏱️ Le journal de latence note aussi l'instant où la **réplique** (ou le texte du résumé) est
+  complète — ce que l'élève attend vraiment, la traduction et les suggestions arrivant pendant
+  qu'il l'écoute ; médiane dans les statistiques, et dans la ligne `[latence]` de la console.
+- `scripts/banc-latence.mjs` rejoue désormais les tours comme l'app (schéma allégé, plafonds,
+  missions réinjectées, résumé streamé) et compte les jetons ; `--schema complet` rejoue la
+  requête d'avant pour comparer dans les mêmes conditions de charge.
+
+### Added
+- 🌙 `.github/workflows/banc-latence.yml` : le banc chaque nuit (04:10), ligne JSON gardée en
+  artefact 90 jours, job rouge si la médiane du premier jeton dépasse le seuil d'alerte.
+  **Désarmé** : il lui faut un runner self-hosted propre au dépôt sur le DGX (label `dgx`, gw
+  n'est joignable que de là), et la variable `BANC_LATENCE_ARME=true` ; d'ici là le job est
+  « skipped ». Un contrôle de cohérence vérifie que la garde reste en place.
+
+### Fixed
+Points « discutables » de la relecture du 12/10 (#101) dont la correction ne demandait aucun
+choix pédagogique :
+- **E4** : les erreurs du carnet ne sont marquées « réactivées » qu'une fois le premier tour
+  réussi — un [START] en échec les écartait une journée sans qu'elles aient servi
+- **M3** : si le modèle n'annonce aucune mission au premier tour, elles sont redemandées au
+  tour suivant au lieu de ne jamais venir
+- **M4** : la tuile comptait des séances, pas des missions : « scénarios réussis »
+- **I2** : l'écran Progrès relisait tout le stockage à chaque re-rendu de l'app
+- **P6 (en partie)** : un emoji de la réplique n'est plus un « mot » impossible à prononcer.
+  Restent à Jacques : R5, O3, P6 (chiffres en lettres, accents), I1
+
 ## [2.0.0-beta.30] — 2026-10-12
 
 ### Fixed
