@@ -15,8 +15,9 @@ import { addVocabulary } from "./core/leitner";
 import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
 import { appreciation, integreScore, scorePrononciation } from "./core/prononciation";
 import { buildTutorPrompt, summaryRequest } from "./core/prompts";
+import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
-import { ASSESS_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
+import { ASSESS_SCHEMA, EXPLAIN_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
 import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
@@ -184,6 +185,7 @@ export default function App() {
     const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs };
     session.current = {
       cfg: c,
+      lang: langId, // langue de la séance, figée à son ouverture (#97)
       mode,
       ctx, // conservé pour reconstruire le prompt une fois les missions annoncées (#91)
       system: buildTutorPrompt(ctx),
@@ -454,6 +456,32 @@ export default function App() {
     rec.start();
   };
 
+  // « Explique-moi » (#97) : explication de la correction de la réplique `i`, au niveau de
+  // la séance, avec exemple et contre-exemple ; consignée au carnet d'erreurs. Une
+  // explication déjà consignée au même niveau est relue sans appeler le modèle.
+  const expliquer = async (i, correction) => {
+    const s = session.current;
+    const lvl = s.ctx?.level || level;
+    const lang = s.lang || langId;
+    const pose = (explique) => setMessages(m => m.map((x, j) => (j === i ? { ...x, explique } : x)));
+    const carnet = await loadJSON(keys.erreurs, []);
+    const deja = explicationConsignee(carnet, lang, correction, lvl);
+    if (deja) { pose({ etat: "ok", ...deja }); return; }
+    pose({ etat: "chargement" });
+    try {
+      const { system, messages: msgs } = expliqueRequete({ cfg: s.cfg, level: lvl, correction });
+      const raw = await callModel(settings, { system, messages: msgs, schema: EXPLAIN_SCHEMA, maxTokens: 700 });
+      const explication = expliqueValide(raw);
+      if (!explication) throw new Error("Le tuteur n'a pas su expliquer cette correction — réessaie.");
+      pose({ etat: "ok", ...explication });
+      const frais = await loadJSON(keys.erreurs, []);
+      const next = consigneExplication(frais, lang, correction, explication, lvl);
+      if (next !== frais) saveJSON(keys.erreurs, next);
+    } catch (err) {
+      pose({ etat: "erreur", message: err.message });
+    }
+  };
+
   const toggleMute = () => {
     const muted = !micMuted;
     setMicMuted(muted);
@@ -619,6 +647,25 @@ export default function App() {
                     <Text style={st.correctionLine}>✗ {m.correction.original}</Text>
                     <Text style={st.correctionLineOk}>✓ {m.correction.corrected}</Text>
                     <Text style={st.correctionExpl}>{m.correction.explanation}</Text>
+                    {m.explique?.etat !== "ok" && (
+                      <View style={st.expliqueRow}>
+                        <Chip
+                          label={m.explique?.etat === "chargement" ? "💡 J'explique…" : "💡 Explique-moi"}
+                          active={false}
+                          disabled={m.explique?.etat === "chargement"}
+                          onPress={() => expliquer(i, m.correction)}
+                        />
+                        {m.explique?.etat === "erreur" && <Text style={st.expliqueErreur}>{m.explique.message}</Text>}
+                      </View>
+                    )}
+                    {m.explique?.etat === "ok" && (
+                      <View style={st.explique}>
+                        {!!m.explique.title && <Text style={st.expliqueTitre}>💡 {m.explique.title}</Text>}
+                        <Text style={st.expliqueTexte}>{m.explique.content}</Text>
+                        {!!m.explique.exemple && <Text style={st.expliqueOk}>✓ {m.explique.exemple}</Text>}
+                        {!!m.explique.contre_exemple && <Text style={st.expliqueKo}>✗ {m.explique.contre_exemple}</Text>}
+                      </View>
+                    )}
                   </View>
                 )}
                 {!!m.culturalNote && (
@@ -754,6 +801,13 @@ const st = StyleSheet.create({
   correctionLine: { fontSize: 14, color: C.error },
   correctionLineOk: { fontSize: 14, color: C.ok, fontWeight: "600" },
   correctionExpl: { fontSize: 13, color: "#57534e" },
+  expliqueRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 4 },
+  expliqueErreur: { fontSize: 12, color: C.error, flexShrink: 1 },
+  explique: { borderTopWidth: 1, borderTopColor: "#fed7aa", marginTop: 6, paddingTop: 6, gap: 3 },
+  expliqueTitre: { fontSize: 13, fontWeight: "700", color: C.primary },
+  expliqueTexte: { fontSize: 13, color: "#44403c", lineHeight: 19 },
+  expliqueOk: { fontSize: 13, color: C.ok },
+  expliqueKo: { fontSize: 13, color: C.error },
   culture: { backgroundColor: "#eff6ff", borderRadius: 8, padding: 8, marginTop: 6 },
   cultureText: { fontSize: 13, color: "#1e40af" },
   repeterRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, flexWrap: "wrap" },

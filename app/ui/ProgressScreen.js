@@ -140,6 +140,13 @@ export default function ProgressScreen({ settings, keys }) {
                 <Text style={st.answer}>✓ {e.corrected}</Text>
               </Pressable>
               {!!e.explanation && <Text style={st.erreurExplication}>{e.explanation}</Text>}
+              {!!e.explique?.content && (
+                <View style={st.explique}>
+                  <Text style={st.bilanTexte}>💡 {e.explique.content}</Text>
+                  {!!e.explique.exemple && <Text style={st.expliqueOk}>✓ {e.explique.exemple}</Text>}
+                  {!!e.explique.contre_exemple && <Text style={st.expliqueKo}>✗ {e.explique.contre_exemple}</Text>}
+                </View>
+              )}
             </>
           )}
         </View>
@@ -351,6 +358,7 @@ export default function ProgressScreen({ settings, keys }) {
             <Text style={st.erreurLigne}>✗ {e.original}</Text>
             <Text style={st.deckTerm}>✓ {e.corrected}</Text>
             {!!e.explanation && <Text style={st.deckTranslation}>{e.explanation}</Text>}
+            {!!e.explique?.content && <Text style={st.deckTranslation}>💡 {e.explique.content}</Text>}
           </View>
           <Chip label="🔊" onPress={() => speakErreur(e)} />
           <Pressable onPress={() => removeErreur(e.id)} style={{ padding: 6 }}>
@@ -386,6 +394,9 @@ const st = StyleSheet.create({
   erreurOriginal: { fontSize: 20, fontWeight: "600", color: C.error, textAlign: "center" },
   erreurExplication: { fontSize: 14, color: "#57534e", textAlign: "center", marginTop: 4 },
   erreurLigne: { fontSize: 14, color: C.error },
+  explique: { backgroundColor: "#fff7ed", borderRadius: 8, padding: 10, gap: 4, alignSelf: "stretch" },
+  expliqueOk: { fontSize: 13, color: C.ok },
+  expliqueKo: { fontSize: 13, color: C.error },
   seance: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 10, padding: 10, gap: 6 },
   bilan: { backgroundColor: "#fffbeb", borderRadius: 8, padding: 10, gap: 6 },
   bilanTexte: { color: "#44403c", fontSize: 13, lineHeight: 19 },

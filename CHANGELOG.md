@@ -5,6 +5,24 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.28] — 2026-10-12
+
+### Added
+- 💡 **« Explique-moi »** (#97). Une correction du tuteur tenait en une ligne
+  (« accord du verbe ») : l'élève qui ne comprenait pas pourquoi n'avait d'autre recours
+  qu'interrompre la conversation. Chaque correction porte désormais un bouton 💡
+  Explique-moi : la règle en quelques mots, une explication de trois phrases au plus **au
+  niveau CECRL de la séance** (A1–A2, B1–B2, C1), un exemple correct en langue cible avec sa
+  traduction et un contre-exemple qui dit pourquoi la forme fautive ne convient pas — comme
+  l'*Explain my answer* de Duolingo Max
+- Le schéma `EXPLAIN_SCHEMA` dérive de `GRAMMAR_FICHE_SCHEMA` (même titre, même contenu,
+  plus `exemple` et `contre_exemple`) et la requête reprend le système des fiches de
+  grammaire : même professeur, même niveau. L'explication est consignée dans l'entrée du
+  carnet d'erreurs, réaffichée en révision et dans l'écran Progrès, et n'est pas redemandée
+  au modèle tant que le niveau ne change pas. Un modèle qui ne tient pas le schéma ne casse
+  rien : message d'erreur, correction intacte, on peut réessayer (`app/core/explique.js`,
+  pur, testé)
+
 ## [2.0.0-beta.27] — 2026-10-12
 
 ### Added
