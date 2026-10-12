@@ -22,7 +22,7 @@ import { consigneExplication, expliqueRequete, expliqueValide, explicationConsig
 import { ajouteMesure, creeChrono, ligneConsole, mesure, mesureEchec, messageLenteur } from "./core/latence";
 import { LIBELLES, controleEcriture, ecritureConforme } from "./core/ecriture";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
-import { EXPLAIN_SCHEMA, MAX_TOKENS, SUMMARY_SCHEMA, schemaEvaluation, schemaTour } from "./core/schemas";
+import { EXPLAIN_SCHEMA, MAX_TOKENS, schemaEvaluation, schemaResume, schemaTour } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
 import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
@@ -280,7 +280,7 @@ export default function App() {
         const opts = {
           messages: [...s.history, { role: "user", content: summaryRequest({ cfg: s.cfg }) }],
           system: s.system,
-          schema: SUMMARY_SCHEMA,
+          schema: schemaResume({ lecture: !!s.cfg.reading }), // sans `reading` en alphabet latin (#107)
           maxTokens: MAX_TOKENS.resume,
         };
         // Résumé en streaming (#103) : le bilan lisible (« texte », en tête du schéma)

@@ -263,6 +263,21 @@ export function schemaEvaluation({ lecture = true } = {}) {
   return lecture ? ASSESS_SCHEMA : sansCles(ASSESS_SCHEMA, new Set(["reading"]));
 }
 
+// Résumé de séance (#107, dernier discutable) : même allègement que le tour pour le
+// `reading` du vocabulaire — en langue à alphabet latin, ses 0 à 8 entrées portaient chacune
+// un `"reading":null` que le modèle devait quand même écrire.
+export function schemaResume({ lecture = true } = {}) {
+  if (lecture) return SUMMARY_SCHEMA;
+  const voc = SUMMARY_SCHEMA.properties.vocabulaire;
+  return {
+    ...SUMMARY_SCHEMA,
+    properties: {
+      ...SUMMARY_SCHEMA.properties,
+      vocabulaire: { ...voc, items: sansCles(voc.items, new Set(["reading"])) },
+    },
+  };
+}
+
 // Plafonds de jetons par nature d'appel. Ils ne raccourcissent pas une réponse normale
 // (mesurées le 12/10 : tour 120 à 210 jetons, premier tour avec missions ~200, résumé
 // ~550) : ils bornent l'emballement — un décodage guidé qui boucle sur des blancs ou un

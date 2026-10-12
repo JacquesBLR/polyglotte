@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.36] — 2026-10-12
+
+### Changed
+- **Résumé de séance allégé en alphabet latin** (dernier discutable de #107) : comme le
+  schéma du tour depuis #103, le schéma du résumé ne déclare plus le `reading` du
+  vocabulaire quand la langue n'a pas de translittération. Ses 0 à 8 entrées portaient
+  chacune un `"reading":null` que le modèle devait écrire pour rien (une dizaine de jetons
+  par mot, soit jusqu'à ~5 s au rythme du résident). Japonais, arabe et tunisien en écriture
+  arabe gardent le champ. Le banc de latence suit le même schéma. Mesuré via gw (espagnol,
+  2 résumés avant, 2 après) : 440/441 jetons avant, 536/349 après — l'écart est dans le bruit
+  de la longueur du bilan, le gain est structurel et ne se lit pas sur deux essais.
+
 ## [2.0.0-beta.35] — 2026-10-12
 
 ### Fixed

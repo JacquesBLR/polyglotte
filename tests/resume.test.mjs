@@ -111,3 +111,24 @@ test("SUMMARY_SCHEMA et summaryRequest : les champs attendus sont déclarés, re
   assert.match(demande, /translittération/);
   assert.doesNotMatch(summaryRequest({ cfg: langConfig("catalan") }), /translittération/);
 });
+
+test("schemaResume : `reading` du vocabulaire retiré en alphabet latin, gardé sinon (#107)", async () => {
+  const { schemaResume } = await import("../app/core/schemas.js");
+  const latin = schemaResume({ lecture: false });
+  const items = latin.properties.vocabulaire.items;
+  assert.equal(items.properties.reading, undefined);
+  assert.deepEqual(items.required, ["term", "translation"]);
+  assert.deepEqual(latin.required, SUMMARY_SCHEMA.required, "les champs du bilan restent tous requis");
+  assert.ok(SUMMARY_SCHEMA.properties.vocabulaire.items.properties.reading, "le schéma de référence n'est pas modifié");
+  assert.equal(schemaResume({ lecture: true }), SUMMARY_SCHEMA);
+  assert.equal(schemaResume(), SUMMARY_SCHEMA);
+});
+
+test("resumeValide : un vocabulaire sans `reading` (alphabet latin) entre au carnet", async () => {
+  const { resumeValide } = await import("../app/core/resume.js");
+  const r = resumeValide({
+    texte: "Bilan", points_forts: [], erreurs: [], phrases_a_reviser: [], conseil: "", niveau_observe: null,
+    vocabulaire: [{ term: "la cuenta", translation: "l'addition" }],
+  });
+  assert.deepEqual(r.vocabulaire, [{ term: "la cuenta", translation: "l'addition", reading: null }]);
+});

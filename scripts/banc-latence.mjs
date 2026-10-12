@@ -24,7 +24,7 @@
  */
 import { buildTutorPrompt, summaryRequest } from "../app/core/prompts.js";
 import { langConfig } from "../app/core/languages.js";
-import { MAX_TOKENS, RESPONSE_SCHEMA, SUMMARY_SCHEMA, schemaTour } from "../app/core/schemas.js";
+import { MAX_TOKENS, RESPONSE_SCHEMA, SUMMARY_SCHEMA, schemaResume, schemaTour } from "../app/core/schemas.js";
 import { missionsValides } from "../app/core/mission.js";
 import { SEUILS, centile, creeChrono } from "../app/core/latence.js";
 import { partialStringField, takeSseData } from "../app/core/stream.js";
@@ -113,7 +113,8 @@ try {
     historique.push({ role: "assistant", content: data?.reply || "" });
     tours.push({ premierJeton: r.premierJeton, replique: r.replique ?? null, total: r.total, jetons: r.jetons, json: !!data?.reply });
   }
-  const resume = await appel([...historique, { role: "user", content: summaryRequest({ cfg }) }], system, SUMMARY_SCHEMA,
+  const resume = await appel([...historique, { role: "user", content: summaryRequest({ cfg }) }], system,
+    COMPLET ? SUMMARY_SCHEMA : schemaResume({ lecture: !!cfg.reading }),
     COMPLET ? 2048 : MAX_TOKENS.resume, "texte");
   const med = (cle) => centile(tours.map(t => t[cle]), 50);
   const ligne = {
