@@ -92,3 +92,12 @@ l'appelle, ou emploie-la toi-même dans ta réplique). Ne les annonce pas, ne le
 d'anciennes erreurs. Si l'élève refait la faute, corrige-la comme d'habitude ; s'il emploie la bonne forme, continue
 sans commentaire.`;
 }
+
+// Erreurs injectées à marquer « réactivées » après un tour réussi (#107, E4) : celles du
+// contexte de la séance, une seule fois par séance (`session.erreursMarquees`), quel que soit
+// le tour — le [START] peut avoir échoué et l'élève repris par un message normal.
+export function erreursAMarquer(session) {
+  if (!session || session.erreursMarquees || session.mode === "eval") return [];
+  const e = session.ctx?.erreurs;
+  return Array.isArray(e) ? e : [];
+}

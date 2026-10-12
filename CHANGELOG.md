@@ -5,6 +5,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.34] — 2026-10-12
+
+### Fixed
+Discutables de la relecture du 12/10 (#107) qui étaient des défauts, chacun avec un test
+(`tests/relecture-2026-10-12-c.test.mjs`, rouge sur 2.0.0-beta.33) :
+- **Appels en échec invisibles** : la sonde de latence ne chronométrait que les succès ; un
+  serveur qui coupe ne laissait aucune trace. Chaque échec (coupé par le plafond, connexion
+  coupée, serveur injoignable, erreur du serveur, réponse illisible ou vide) est journalisé
+  avec son type et sa durée jusqu'à l'échec ; Progrès affiche le **taux d'échec** par nature
+  d'appel. Les temps médians ne portent que sur les succès. Un flux coupé en cours de
+  réponse lève désormais un message en français au lieu de l'erreur brute du moteur JS.
+- **Tunisien en arabizi malgré l'écriture arabe** : reproduit via gw (1 [START] sur 12
+  entièrement en arabizi, 1 tour mêlé de latin). Le guide derja montrait les graphies
+  arabizi aussi en écriture arabe ; elles ne sont plus données qu'en mode arabizi, et la
+  consigne d'écriture est durcie (« jamais en arabizi, même si l'élève écrit en arabizi »),
+  y compris dans la règle de `reply`. Après : 0 sur 12. Et un **contrôle d'écriture** par
+  langue (latin, arabe, japonais) vérifie chaque réplique ; hors écriture, le tuteur est
+  relancé **une fois** (4 relances réelles sur 4 rendues en écriture arabe).
+- **Médiane basse** : sur un nombre pair de mesures, la médiane prenait la valeur basse et
+  minimisait la lenteur affichée ; c'est maintenant la moyenne des deux valeurs centrales.
+- **E4** : un [START] en échec suivi d'un message de l'élève laissait les erreurs injectées
+  non marquées « réactivées » ; elles le sont au premier tour réussi de la séance.
+- **Alerte du résumé** : 59,95 s s'affichait « 60 s » sans alerte au seuil de 60 s ; le
+  seuil se compare au dixième de seconde affiché.
+
+Reste à Jacques (#107) : `SUMMARY_SCHEMA` non allégé (quelques jetons, pas un défaut).
+
 ## [2.0.0-beta.33] — 2026-10-12
 
 ### Fixed

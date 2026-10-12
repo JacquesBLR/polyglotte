@@ -1,14 +1,14 @@
 // Registre des langues — extrait à l'identique de l'app v1 (js/app.js).
 // Donnée pure ; seule dépendance, le guide de style du tunisien, lui aussi pur.
 
-import { GUIDE_DERJA } from "./derja.js";
+import { GUIDE_DERJA, GUIDE_DERJA_ARABIZI } from "./derja.js";
 
 export const LANGUAGES = {
   catalan: {
     label: "Catalan", langFr: "le catalan",
     tutor: { name: "Núria", city: "Barcelone", f: true },
     stt: "ca-ES", ttsPrefixes: ["ca", "es"],
-    rtl: false, reading: null, support: "full",
+    ecriture: "latin", rtl: false, reading: null, support: "full",
     // La reconnaissance vocale du navigateur suffit (d'où support "full"), mais sa voix de
     // synthèse, elle, est médiocre : iOS installe par défaut une voix catalane « compacte »
     // au grain très audible. La voix du serveur (Piper ca_ES-upc_ona) est bien meilleure,
@@ -26,7 +26,7 @@ export const LANGUAGES = {
     label: "Espagnol", langFr: "l'espagnol",
     tutor: { name: "Carmen", city: "Séville", f: true },
     stt: "es-ES", ttsPrefixes: ["es"],
-    rtl: false, reading: null, support: "full", voiceHint: "",
+    ecriture: "latin", rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Sois attentive aux faux amis français-espagnol et aux confusions ser/estar.",
     scenarios: [
       { id: "tapas", label: "🌍 De tapas à Séville", prompt: "Jeu de rôle : tournée de tapas dans le centre de Séville, de bar en bar. Commander des raciones, partager, payer à la fin, ambiance andalouse." },
@@ -38,7 +38,7 @@ export const LANGUAGES = {
     label: "Anglais (GB)", langFr: "l'anglais britannique",
     tutor: { name: "Oliver", city: "Londres", f: false },
     stt: "en-GB", ttsPrefixes: ["en-gb", "en"],
-    rtl: false, reading: null, support: "full", voiceHint: "",
+    ecriture: "latin", rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise l'anglais britannique (vocabulaire, orthographe, expressions). Corrige les calques du français.",
     scenarios: [
       { id: "pub", label: "🌍 Au pub", prompt: "Jeu de rôle : un pub londonien classique. Commander au comptoir, payer sa tournée (a round), small talk sur la météo et le football, le rituel du last orders." },
@@ -50,7 +50,7 @@ export const LANGUAGES = {
     label: "Allemand", langFr: "l'allemand",
     tutor: { name: "Lena", city: "Berlin", f: true },
     stt: "de-DE", ttsPrefixes: ["de"],
-    rtl: false, reading: null, support: "full", voiceHint: "",
+    ecriture: "latin", rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Sois attentive aux déclinaisons, aux genres et à l'ordre des mots, difficultés classiques des francophones.",
     scenarios: [
       { id: "biergarten", label: "🌍 Au Biergarten", prompt: "Jeu de rôle : un Biergarten : commander une Maß et des Brezeln, partager une grande table avec des inconnus, trinquer (Prost!), bavarder." },
@@ -62,7 +62,7 @@ export const LANGUAGES = {
     label: "Suisse allemand", langFr: "le suisse allemand",
     tutor: { name: "Reto", city: "Zurich", f: false },
     stt: "de-CH", ttsPrefixes: ["de"],
-    rtl: false, reading: null, support: "partial",
+    ecriture: "latin", rtl: false, reading: null, support: "partial",
     supportNote: "Le suisse allemand n'a pas de moteur vocal dédié : la reconnaissance comprend mieux l'allemand standard que le dialecte, et la voix de synthèse est allemande (prononciation approximative). La conversation écrite, elle, est pleinement en schwiizerdütsch.",
     voiceHint: "Voix allemande utilisée (pas de voix suisse-allemande existante).",
     promptExtra: "Écris en suisse allemand (dialecte zurichois), avec une orthographe dialectale courante. L'élève peut répondre en allemand standard : accepte-le, mais réponds toujours en dialecte. Les transcriptions vocales arrivent souvent déformées vers l'allemand standard : interprète avec bienveillance.",
@@ -76,7 +76,7 @@ export const LANGUAGES = {
     label: "Portugais (Portugal)", langFr: "le portugais européen",
     tutor: { name: "Inês", city: "Lisbonne", f: true },
     stt: "pt-PT", ttsPrefixes: ["pt-pt", "pt"],
-    rtl: false, reading: null, support: "full", voiceHint: "",
+    ecriture: "latin", rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise le portugais européen (prononciation, usage de « tu »/« você », vocabulaire du Portugal), pas le brésilien.",
     scenarios: [
       { id: "pasteis", label: "🌍 Pastéis de Belém", prompt: "Jeu de rôle : la file des Pastéis de Belém : commander des pastéis de nata et une bica, canelle ou pas, discuter de la recette secrète." },
@@ -88,7 +88,7 @@ export const LANGUAGES = {
     label: "Portugais (Brésil)", langFr: "le portugais brésilien",
     tutor: { name: "João", city: "Rio de Janeiro", f: false },
     stt: "pt-BR", ttsPrefixes: ["pt-br", "pt"],
-    rtl: false, reading: null, support: "full", voiceHint: "",
+    ecriture: "latin", rtl: false, reading: null, support: "full", voiceHint: "",
     promptExtra: "Utilise le portugais brésilien (« você », vocabulaire et tournures du Brésil).",
     scenarios: [
       { id: "botequim", label: "🌍 Au botequim", prompt: "Jeu de rôle : un bar de quartier carioca : chope bien glacée, petiscos, conversation détendue, football et musique." },
@@ -100,7 +100,7 @@ export const LANGUAGES = {
     label: "Japonais", langFr: "le japonais",
     tutor: { name: "Yuki", city: "Tokyo", f: true },
     stt: "ja-JP", ttsPrefixes: ["ja"],
-    rtl: false, reading: "le rōmaji (transcription latine) de ta réplique", support: "full", voiceHint: "",
+    ecriture: "japonais", rtl: false, reading: "le rōmaji (transcription latine) de ta réplique", support: "full", voiceHint: "",
     promptExtra: "Écris en japonais normal (kanji et kana), avec des kanji adaptés au niveau (débutant : kana et kanji très courants uniquement). Utilise la forme polie (-masu/-desu) avec les débutants.",
     scenarios: [
       { id: "konbini", label: "🌍 Au konbini", prompt: "Jeu de rôle : un konbini japonais : choisir un bentō et une boisson, le faire réchauffer, comprendre les formules ritualisées du personnel, payer." },
@@ -112,7 +112,7 @@ export const LANGUAGES = {
     label: "Arabe standard", langFr: "l'arabe standard moderne",
     tutor: { name: "Amina", city: "Le Caire", f: true },
     stt: "ar-SA", ttsPrefixes: ["ar"],
-    rtl: true, reading: "une translittération latine de ta réplique", support: "full", voiceHint: "",
+    ecriture: "arabe", rtl: true, reading: "une translittération latine de ta réplique", support: "full", voiceHint: "",
     promptExtra: "Utilise l'arabe standard moderne (fusha) en écriture arabe. Pour les débutants, ajoute la voyellation (tachkil) sur les mots difficiles.",
     scenarios: [
       { id: "ahwa", label: "🌍 Au café (ahwa) du Caire", prompt: "Jeu de rôle : un café populaire du Caire : thé à la menthe, café turc, chicha, backgammon, conversation de quartier." },
@@ -125,7 +125,7 @@ export const LANGUAGES = {
     tutor: { name: "Selma", city: "Tunis", f: true },
     stt: "ar-TN", ttsPrefixes: ["ar"],
     // rtl, reading et promptExtra sont résolus selon l'écriture choisie (langConfig).
-    rtl: true, reading: null, support: "partial",
+    ecriture: "arabe", rtl: true, reading: null, support: "partial",
     supportNote: "La reconnaissance vocale passe par l'arabe : elle reste approximative pour le dialecte. La synthèse, en revanche, est bien tunisienne — une voix féminine produite par le serveur vocal du projet. Sans ce serveur, la lecture retombe sur une voix arabe jordanienne. La conversation écrite est pleinement en tunisien.",
     voiceHint: "Voix tunisienne (féminine) par le serveur vocal ; voix arabe jordanienne en repli.",
     // La voix derja est clonée (F5-TTS) : elle dégénère sur un fragment et rend parfois du
@@ -167,8 +167,12 @@ export function langConfig(langId, tnScript = "arabe") {
     reading: arabicScript
       ? "la version arabizi (alphabet latin, chiffres 3/7/9 pour les sons arabes) de ta réplique"
       : null,
+    // Écriture attendue de "reply", contrôlée après chaque tour (core/ecriture.js, #107).
+    ecriture: arabicScript ? "arabe" : "latin",
     promptExtra: base.promptExtraBase + (arabicScript
-      ? " Écris tes répliques en écriture arabe."
-      : " Écris tes répliques en arabizi : alphabet latin avec les chiffres usuels (3 pour ع, 7 pour ح, 9 pour ق…)."),
+      ? " Écris tes répliques (reply, suggestions, vocabulaire) en écriture arabe uniquement, jamais en arabizi"
+        + " ni en alphabet latin, même si l'élève t'écrit en arabizi ou en français : l'arabizi n'a sa place que"
+        + " dans « reading »."
+      : GUIDE_DERJA_ARABIZI + " Écris tes répliques en arabizi : alphabet latin avec les chiffres usuels (3 pour ع, 7 pour ح, 9 pour ق…)."),
   };
 }

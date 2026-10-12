@@ -90,6 +90,22 @@ export async function callClaude(settings, { messages, system, schema, maxTokens
 export const MSG_INJOIGNABLE = "Serveur injoignable — es-tu bien connecté au réseau du serveur "
   + "(Tailscale / VPN) ? Sinon, vérifie l'URL dans les réglages ⚙️, et le blocage "
   + "HTTPS→HTTP si le serveur est en clair.";
+// Serveur injoignable : marqué pour la sonde de latence, qui journalise aussi les échecs
+// (#107 : un serveur qui coupe restait invisible dans les statistiques).
+export function erreurReseau() {
+  const err = new Error(MSG_INJOIGNABLE);
+  err.reseau = true;
+  return err;
+}
+
+// Flux interrompu en cours de réponse (connexion perdue, serveur redémarré) : sans ce
+// message, l'élève lisait l'erreur brute du moteur JS (« network error », « terminated »).
+export const MSG_COUPURE = "La connexion au tuteur a été coupée pendant sa réponse — réessaie.";
+export function erreurCoupure() {
+  const err = new Error(MSG_COUPURE);
+  err.coupure = true;
+  return err;
+}
 
 export async function callLocal(settings, { messages, system, schema, maxTokens = 2048, preferAlt = false }) {
   const base = (settings.localUrl || "").trim().replace(/\/+$/, "");
@@ -121,7 +137,7 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
         body: JSON.stringify(body),
       });
     } catch (_) {
-      throw new Error(MSG_INJOIGNABLE);
+      throw erreurReseau();
     }
     if (!resp.ok) {
       let detail = "";
@@ -174,7 +190,7 @@ export async function testLocalConnection(settings) {
         }
       }
     } catch (_) {
-      throw new Error(MSG_INJOIGNABLE);
+      throw erreurReseau();
     }
     const resp = await fetch(base + "/chat/completions", {
       method: "POST",
