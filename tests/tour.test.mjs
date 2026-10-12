@@ -67,3 +67,12 @@ test("buildTutorPrompt : la consigne « reading » suit le schéma (absente pour
   assert.match(jp, /"reading"/);
   assert.match(jp, /translittération latine/);
 });
+
+test("systemeJson : consigne de JSON minifié + schéma compact, système d'origine en tête", async () => {
+  const { systemeJson, CONSIGNE_JSON } = await import("../app/core/api.js");
+  const sys = systemeJson("Tu es Núria.", { type: "object", properties: { reply: { type: "string" } } });
+  assert.ok(sys.startsWith("Tu es Núria.\n\nIMPORTANT : "));
+  assert.ok(sys.includes(CONSIGNE_JSON));
+  assert.match(sys, /MINIFIÉ/);
+  assert.ok(sys.endsWith('{"type":"object","properties":{"reply":{"type":"string"}}}'));
+});
