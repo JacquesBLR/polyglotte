@@ -5,6 +5,36 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.42] — 2026-10-12
+
+### Added
+- **Texte à trous ciblé** (#115) : un exercice qui fait **produire une forme grammaticale**
+  précise. C'est le pont entre la fiche de grammaire et la conversation, qu'aucun exercice
+  ne couvrait jusqu'ici. Il s'inspire des phrases à compléter de chaque leçon Babbel, du
+  « Complète la phrase » de Duolingo (accents tolérés, avec avertissement) et du *Fill the
+  gap* de Busuu. L'élève peut indiquer un point à travailler (facultatif) ; il reçoit 5
+  phrases ancrées dans la ville du tuteur, avec un seul trou chacune et un indice en
+  français. La correction est **locale**, sans appel au modèle : elle ignore casse, espaces
+  et ponctuation, et accepte les variantes « / » que le modèle doit lister quand deux
+  formes sont correctes. Une réponse juste aux accents ou à la voyellation arabe près
+  compte comme juste, avec avertissement. Les dakuten japonais (か/が), eux, comptent. Le
+  japonais est comparé sans espaces. Le filtre `trousValides` écarte trois défauts réels
+  repérés via gw : la réponse déjà collée au trou (« 猫___が » → が, « これは___ » → は),
+  l'indice où le modèle a déversé sa délibération, et l'indice qui donne la réponse
+  (retiré). Essais via gw : japonais débutant (particules), 5/5 phrases exploitables ;
+  espagnol intermédiaire (ser/estar), 5/5 sur trois essais et un essai entièrement
+  écarté, d'où le message « réessaie » ; allemand débutant, 5/5. Le premier essai de bout
+  en bout dans Chromium a troué un adjectif au lieu de ser/estar. La consigne exige
+  désormais que chaque trou relève du point visé : 9 trous sur 10 le respectent
+  (2 essais via gw).
+  Relecture adverse du soir : quatre défauts corrigés et testés (la règle « réponse collée
+  au trou » ne vaut plus qu'en japonais, ailleurs au mot entier ; une phrase en rōmaji est
+  écartée en japonais ; un `$'` dans la réponse n'est plus interprété par `replace` ;
+  `は。` n'est plus compté faux à cause de la ponctuation pleine chasse). Reste à Jacques :
+  « esta » est compté juste, à l'accent près, pour « está », alors que ce sont deux mots.
+  Intégration après les histoires à écouter (#113) : un seul `dire` dans l'écran
+  Exercices, les deux exercices y coexistent et « Arrêter » vide l'un comme l'autre.
+
 ## [2.0.0-beta.41] — 2026-10-12
 
 ### Added

@@ -1,5 +1,6 @@
 // Exercices : dictée (écoute → écrit) et prononciation (lit → répète) — portage v1 #21/#22 —,
-// et histoire à écouter avec questions de compréhension (#113).
+// histoire à écouter avec questions de compréhension (#113) et texte à trous ciblé sur un
+// point de grammaire (#115).
 
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -8,6 +9,7 @@ import { callModel, hasCredentials } from "../core/api";
 import { gradeAttempt } from "../core/diff";
 import { demandeHistoire, histoireValide, schemaHistoire, scoreHistoire } from "../core/histoire";
 import { exoSystemPrompt } from "../core/prompts";
+import { TROU, corrigeTrou, demandeTrous, phraseComplete, schemaTrous, scoreTrous, trousValides } from "../core/trous";
 import { EXO_SCHEMA } from "../core/schemas";
 import * as speech from "../speech/speech";
 import { C, Chip, ui } from "./common";
@@ -27,6 +29,10 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
   const [histoire, setHistoire] = useState(null);
   const [reponses, setReponses] = useState([]);
   const [texteVisible, setTexteVisible] = useState(false);
+  // Texte à trous (#115) : point de grammaire facultatif, résultats par phrase.
+  const [point, setPoint] = useState("");
+  const [trous, setTrous] = useState(null);
+  const [resultats, setResultats] = useState([]);
   const dire = (texte) => speech.speak(texte, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, voixServeur: cfg.voixServeur, langue: cfg.label, rate: settings.rate });
 
   const startHistoire = async () => {
@@ -55,6 +61,40 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     setBusy(false);
   };
 
+  const startTrous = async () => {
+    speech.primeSpeech();
+    setBusy(true);
+    setStatus({ text: "Préparation du texte à trous…", error: false });
+    try {
+      const raw = await callModel(settings, {
+        messages: [{ role: "user", content: demandeTrous({ cfg, point }) }],
+        system: exoSystemPrompt({ cfg, level }),
+        schema: schemaTrous({ lecture: !!cfg.reading }),
+        maxTokens: 1500,
+      });
+      let t = null;
+      try { t = trousValides(JSON.parse(raw), { charBased: langId === "japonais", ecriture: cfg.ecriture }); } catch (_) { t = null; }
+      if (!t) throw new Error("Le tuteur n'a pas su préparer de phrases à trous — réessaie.");
+      setTrous(t);
+      setResultats([]);
+      setIndex(0);
+      setInput("");
+      setKind("trous");
+      setStatus({ text: "", error: false });
+    } catch (err) {
+      setStatus({ text: err.message, error: true });
+    }
+    setBusy(false);
+  };
+
+  const verifieTrou = () => {
+    const p = trous?.[index];
+    if (!p || !input.trim() || resultats[index]) return;
+    const r = corrigeTrou(p.reponse, input, { charBased: langId === "japonais" });
+    setResultats(rs => { const n = [...rs]; n[index] = r; return n; });
+    dire(phraseComplete(p));
+  };
+
   const sentence = sentences[index];
   const finished = sentences.length > 0 && index >= sentences.length;
 
@@ -65,6 +105,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
       return;
     }
     if (k === "histoire") return startHistoire();
+    if (k === "trous") return startTrous();
     if (k === "prononciation" && !speech.recognitionAvailable()) {
       setStatus({ text: "Reconnaissance vocale indisponible ici — utilise la dictée à la place.", error: true });
       return;
@@ -137,6 +178,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     setKind(null);
     setSentences([]);
     setHistoire(null);
+    setTrous(null);
     setFeedback(null);
     setStatus({ text: "", error: false });
   };
@@ -153,6 +195,17 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         </Pressable>
         <Pressable onPress={() => start("histoire")} disabled={busy} style={ui.secondaryBtn}>
           <Text style={ui.secondaryBtnText}>📖 Histoire à écouter — puis 3 questions</Text>
+        </Pressable>
+        <Text style={ui.sectionTitle}>Texte à trous</Text>
+        <TextInput
+          style={ui.field}
+          value={point}
+          onChangeText={setPoint}
+          placeholder="Point à travailler (facultatif) : ex. le passé, les pronoms…"
+          placeholderTextColor={C.faint}
+        />
+        <Pressable onPress={() => start("trous")} disabled={busy} style={ui.secondaryBtn}>
+          <Text style={ui.secondaryBtnText}>🧩 Texte à trous — complète la forme</Text>
         </Pressable>
         {!!status.text && <Text style={[ui.status, status.error && ui.statusError]}>{status.text}</Text>}
         <Text style={{ color: C.faint, fontSize: 12, marginTop: 8 }}>
@@ -218,6 +271,69 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         <Pressable onPress={reset} style={fini ? ui.primaryBtn : null}>
           <Text style={fini ? ui.primaryBtnText : [ui.status, { textAlign: "center" }]}>{fini ? "↺ Autre exercice" : "✕ Arrêter l'exercice"}</Text>
         </Pressable>
+      </ScrollView>
+    );
+  }
+
+  if (kind === "trous" && trous) {
+    const p = trous[index];
+    if (!p) {
+      const sc = scoreTrous(resultats);
+      return (
+        <ScrollView contentContainerStyle={st.body}>
+          <View style={ui.card}>
+            <Text style={st.sentence}>Texte à trous terminé ! 🎉</Text>
+            <Text style={st.scoreLine}>{sc.justes} / {sc.total} formes justes</Text>
+            {trous.map((t, i) => (
+              <Text key={i} style={[st.reading, cfg.rtl && st.rtl]}>
+                {resultats[i] === "faux" ? "✗" : "✓"} {phraseComplete(t)}
+              </Text>
+            ))}
+          </View>
+          <Pressable onPress={reset} style={ui.primaryBtn}><Text style={ui.primaryBtnText}>↺ Autre exercice</Text></Pressable>
+        </ScrollView>
+      );
+    }
+    const r = resultats[index];
+    const [avant, apres] = p.phrase.split(TROU);
+    return (
+      <ScrollView contentContainerStyle={st.body}>
+        <Text style={ui.sectionTitle}>Texte à trous — phrase {index + 1} / {trous.length}</Text>
+        <View style={ui.card}>
+          <Text style={[st.sentence, cfg.rtl && st.rtl]}>
+            {avant}<Text style={r ? (r === "faux" ? st.miss : st.ok) : st.trou}>{r ? p.reponse : " ____ "}</Text>{apres}
+          </Text>
+          {!!p.indice && <Text style={st.reading}>💡 {p.indice}</Text>}
+          {r && !!p.reading && <Text style={st.reading}>{p.reading}</Text>}
+          {r && !!p.traduction && <Text style={st.reading}>🇫🇷 {p.traduction}</Text>}
+        </View>
+        {!r ? (
+          <View style={{ gap: 8 }}>
+            <TextInput
+              style={ui.field}
+              value={input}
+              onChangeText={setInput}
+              placeholder="La forme qui manque…"
+              placeholderTextColor={C.faint}
+              autoCapitalize="none"
+              autoCorrect={false}
+              onSubmitEditing={verifieTrou}
+            />
+            <Pressable onPress={verifieTrou} style={ui.primaryBtn}><Text style={ui.primaryBtnText}>Vérifier</Text></Pressable>
+          </View>
+        ) : (
+          <View style={ui.card}>
+            <Text style={st.scoreLine}>
+              {r === "juste" ? "✓ Juste !" : r === "accent" ? "✓ Juste — attention aux accents et signes diacritiques" : `✗ La forme attendue : ${p.reponse}`}
+            </Text>
+            {r !== "juste" && <Text style={ui.label}>Ta réponse : {input}</Text>}
+            <View style={ui.chipRow}>
+              <Chip label="🔊 Réécouter" onPress={() => dire(phraseComplete(p))} />
+              <Chip label="Phrase suivante →" active onPress={() => { setIndex(i => i + 1); setInput(""); }} />
+            </View>
+          </View>
+        )}
+        <Pressable onPress={reset}><Text style={[ui.status, { textAlign: "center" }]}>✕ Arrêter l'exercice</Text></Pressable>
       </ScrollView>
     );
   }
@@ -317,4 +433,5 @@ const st = StyleSheet.create({
   choixOk: { borderColor: C.ok, backgroundColor: "#f0fdf4" },
   choixKo: { borderColor: C.error, backgroundColor: "#fef2f2" },
   choixTexte: { fontSize: 15, color: "#44403c" },
+  trou: { color: C.primary, fontWeight: "700", textDecorationLine: "underline" },
 });
