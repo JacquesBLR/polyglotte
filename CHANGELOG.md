@@ -5,6 +5,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.38] — 2026-10-12
+
+### Added
+- **Bilan de fin de niveau** (#114, sur le parcours #111). Jusqu'ici, rien ne clôturait un
+  niveau CECRL : une leçon validée n'était plus jamais réemployée, et rien ne vérifiait que
+  l'élève savait mobiliser ensemble ce qu'il avait appris séparément. Le modèle est le
+  *Checkpoint* de Busuu, les checkpoints de Duolingo qui mélangent les unités et le
+  *Review* de Babbel. Le bilan d'un niveau compte trois missions, tirées dans **trois
+  leçons différentes** de ce niveau, avec un nouveau tirage à chaque séance (aléa
+  injectable et borné). Le tuteur enchaîne les situations sans annoncer de test et sans
+  simplifier. Quand le bilan est réussi, le **niveau est validé** 🏅 ; c'est calculé depuis
+  l'historique, par langue. L'accueil le propose dès que les six leçons du niveau sont
+  validées, et l'écran Parcours le place en fin de chaque niveau, sans le verrouiller.
+  Essai via gw sur le bilan A1 en catalan (prénom, frères et sœurs, demander la carte) :
+  aucune mission n'est cochée à tort, 3/3 quand l'élève demande la carte. Le tuteur
+  n'amène pas toujours de lui-même la situation suivante (1 fois sur 2), malgré une
+  consigne explicite.
+  Relecture adverse du soir : « Prendre congé poliment » pouvait sortir en première
+  mission et clore la conversation avant les autres ; une mission de clôture passe
+  désormais en dernier.
+
 ## [2.0.0-beta.37] — 2026-10-12
 
 ### Added

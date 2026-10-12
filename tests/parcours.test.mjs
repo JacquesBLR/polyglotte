@@ -101,10 +101,96 @@ test("blocLecon : aucune trace de {ville} pour aucune langue ni aucune leçon", 
   }
 });
 
+// ---------- Bilan de fin de niveau (#114) ----------
+import { NIVEAUX_CECRL, bilanNiveau, niveauxValides, prochainBilan } from "../app/core/parcours.js";
+
+const aleaFixe = (...v) => { let i = 0; return () => v[i++ % v.length]; };
+
+test("bilanNiveau : trois missions de trois leçons distinctes du niveau, dans l'ordre du programme (clôture à part)", () => {
+  for (const c of NIVEAUX_CECRL) {
+    for (let k = 0; k < 50; k++) {
+      const b = bilanNiveau(c);
+      assert.equal(b.id, `bilan-${c.toLowerCase()}`);
+      assert.equal(b.bilan, true);
+      assert.equal(b.missions.length, 3);
+      assert.equal(new Set(b.sources).size, 3, "trois leçons distinctes");
+      b.sources.forEach((id, i) => {
+        const u = leconParId(id);
+        assert.equal(u.cecrl, c);
+        assert.ok(u.missions.includes(b.missions[i]), "mission issue de sa leçon source");
+      });
+      // Ordre du programme, mission de clôture mise à part (placée en dernier).
+      const rangs = b.sources.filter((_, i) => !/congé|conclure/i.test(b.missions[i])).map(id => PROGRAMME.findIndex(u => u.id === id));
+      assert.deepEqual(rangs, [...rangs].sort((x, y) => x - y));
+      assert.deepEqual(missionsValides(b.missions), b.missions);
+    }
+  }
+  assert.equal(bilanNiveau("C2"), null);
+});
+
+test("bilanNiveau : aléa injectable, déterministe et borné (NaN, 1, négatif)", () => {
+  assert.deepEqual(bilanNiveau("A1", aleaFixe(0.1, 0.5)), bilanNiveau("A1", aleaFixe(0.1, 0.5)));
+  for (const r of [NaN, 1, -5, 7]) {
+    const b = bilanNiveau("B2", () => r);
+    assert.equal(new Set(b.sources).size, 3);
+    assert.ok(b.missions.every(Boolean));
+  }
+  const vus = new Set();
+  for (let k = 0; k < 300; k++) vus.add(bilanNiveau("A2").sources.join());
+  assert.ok(vus.size > 5, "le tirage varie d'une séance à l'autre");
+});
+
+test("bilan : prompt ancré, numéro, niveau de l'app, schéma sans missions à inventer", () => {
+  const b = bilanNiveau("B1", aleaFixe(0));
+  const cfg = langConfig("allemand");
+  assert.equal(numero(b), "B1");
+  assert.equal(niveauApp(b.cecrl), "intermediaire");
+  const p = buildTutorPrompt({ cfg, level: "intermediaire", scenarioId: "lecon", immersion: false, mode: "chat", lecon: b, missions: b.missions });
+  assert.match(p, /LEÇON DU PARCOURS « Bilan B1 »/);
+  assert.match(p, /BILAN du niveau B1 à Berlin/);
+  assert.ok(!p.includes("{ville}"));
+  for (const id of b.sources) assert.ok(p.includes(leconParId(id).titre));
+});
+
+test("niveauxValides : bilan aux missions toutes cochées, par langue", () => {
+  const h = [
+    { lang: "catalan", lecon: "bilan-a1", missions: { total: 3, atteintes: 3 } },
+    { lang: "catalan", lecon: "bilan-a2", missions: { total: 3, atteintes: 1 } },
+    { lang: "espagnol", lecon: "bilan-b1", missions: { total: 3, atteintes: 3 } },
+    { lang: "catalan", lecon: "bilan-c2", missions: { total: 3, atteintes: 3 } },
+    { lang: "catalan", lecon: "a1-cafe", missions: { total: 3, atteintes: 3 } },
+  ];
+  assert.deepEqual([...niveauxValides(h, "catalan")], ["A1"]);
+  assert.deepEqual([...niveauxValides(h, "espagnol")], ["B1"]);
+  assert.equal(niveauxValides(undefined, "catalan").size, 0);
+  // Un bilan n'est pas une leçon : il ne compte pas dans l'avancement des leçons.
+  assert.equal(leconsValidees(h, "catalan").has("bilan-a1"), false);
+});
+
+test("prochainBilan : proposé quand les six leçons d'un niveau CECRL sont validées et le niveau pas encore", () => {
+  const a1 = new Set(PROGRAMME.filter(u => u.cecrl === "A1").map(u => u.id));
+  assert.equal(prochainBilan("debutant", new Set(), new Set()), null);
+  assert.equal(prochainBilan("debutant", a1, new Set()), "A1");
+  assert.equal(prochainBilan("debutant", a1, new Set(["A1"])), null);
+  assert.equal(prochainBilan("intermediaire", a1, new Set()), null);
+  const tout = new Set(PROGRAMME.map(u => u.id));
+  assert.equal(prochainBilan("debutant", tout, new Set(["A1"])), "A2");
+  assert.equal(prochainBilan("inconnu", tout, new Set()), null);
+});
+
 test("libelleSeance : leçon, bilan, scénario", async () => {
   const { libelleSeance } = await import("../app/core/parcours.js");
   assert.equal(libelleSeance({ lecon: "a1-cafe", scenario: "lecon" }), "📚 A1·3 Commander à boire et à manger");
   assert.equal(libelleSeance({ lecon: "bilan-b2", scenario: "lecon" }), "🏅 Bilan B2");
   assert.equal(libelleSeance({ scenario: "cafe" }), "cafe");
   assert.equal(libelleSeance(null), "libre");
+});
+
+test("bilanNiveau : une mission de clôture (prendre congé) passe en dernier (relecture du soir)", () => {
+  for (let k = 0; k < 300; k++) {
+    const b = bilanNiveau("A1");
+    const i = b.missions.findIndex(m => /congé|conclure/i.test(m));
+    if (i >= 0) assert.equal(i, b.missions.length - 1, b.missions.join(" | "));
+  }
+  assert.equal(bilanNiveau("A1", () => 0.9999999).missions[2], "Prendre congé poliment");
 });
