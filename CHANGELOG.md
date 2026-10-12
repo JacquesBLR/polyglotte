@@ -5,6 +5,35 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.30] — 2026-10-12
+
+### Fixed
+Défauts confirmés par la relecture adverse des cinq PR de la nuit (#101), chacun reproduit
+par un test (`tests/relecture-2026-10-12.test.mjs`, rouge avant, vert après).
+- 🗣️ **Répète après moi** : la ponctuation arabe (، ؛ ؟), le tatweel et les crochets
+  japonais (『』〜) faisaient rater des mots bien prononcés — une phrase tunisienne parfaite
+  plafonnait à 60 %. En tunisien arabizi, la reconnaissance rend de l'écriture arabe qu'on ne
+  peut pas aligner sur une réplique en alphabet latin : chaque essai valait 0 et faussait la
+  moyenne ; le bouton est retiré dans ce cas. La moyenne de séance dérivait par arrondis
+  cumulés (100 puis neuf fois 99 donnait 100) : la somme exacte est conservée. Une
+  reconnaissance muette ne lève plus d'exception, et le micro de conversation ne peut plus
+  s'ouvrir pendant une répétition — la phrase répétée serait partie au tuteur
+- 🩹 **Carnet d'erreurs** : une erreur due échappait au délai d'un jour, si bien que les
+  trois mêmes revenaient à chaque séance et que les suivantes ne passaient jamais ; le
+  délai vaut désormais pour toutes. Le dédoublonnage ignore la ponctuation (« Bon dia! »
+  relevé en conversation et « Bon dia » repris par le résumé ne font plus deux cartes, comme
+  la beta.26 le promettait) ; une correction mal typée ne lève plus dans le vide
+- 🎯 **Objectif hebdomadaire** : une séance ouverte puis quittée sans que l'élève ait parlé
+  comptait comme un jour pratiqué ; dans les fuseaux où minuit saute au changement d'heure
+  (Santiago, Beyrouth), le lundi perdait ses séances entre 0 h et 1 h
+- 📋 **Résumé** : la tendance du niveau observé mêlait les langues (catalan B2 puis japonais
+  A1 annonçait « une séance plus difficile ») — elle suit la langue de la dernière séance ;
+  un JSON sans texte n'est plus montré brut ; la troncature du bilan ne coupe plus un emoji
+- 🎭 **Missions** : les missions identiques sont dédoublonnées, et le prompt borne les
+  numéros au nombre réellement annoncé
+- « Explique-moi » (#97) partage la clé de dédoublonnage du carnet, pour retrouver son
+  entrée quand la ponctuation diffère
+
 ## [2.0.0-beta.29] — 2026-10-12
 
 ### Added

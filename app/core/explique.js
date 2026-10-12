@@ -7,7 +7,7 @@
 // d'erreurs (#87), où la révision et l'écran Progrès la réaffichent, et n'est pas
 // redemandée tant que le niveau ne change pas.
 
-import { ajouteErreur } from "./erreurs.js";
+import { ajouteErreur, cleErreur } from "./erreurs.js";
 import { grammarSystemPrompt } from "./prompts.js";
 
 // Niveaux de l'app → bandes CECRL, telles que LEVEL_INSTRUCTIONS les annonce.
@@ -16,7 +16,9 @@ export const CECRL_PAR_NIVEAU = { debutant: "A1–A2", intermediaire: "B1–B2",
 // Bornes de longueur : un modèle bavard ne doit pas transformer la bulle en fiche.
 const MAX = { title: 80, content: 600, exemple: 240, contre_exemple: 240 };
 
-const cle = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+// Même clé que le dédoublonnage du carnet, sans quoi une explication ne retrouverait pas
+// son entrée quand la ponctuation diffère.
+const cle = cleErreur;
 
 const tronque = (s, n) => {
   const t = String(s).trim().replace(/\s+\n/g, "\n");

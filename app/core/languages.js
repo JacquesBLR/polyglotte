@@ -159,6 +159,10 @@ export function langConfig(langId, tnScript = "arabe") {
   return {
     ...base,
     rtl: arabicScript,
+    // « Répète après moi » (#95) : la reconnaissance ar-TN rend de l'écriture arabe, qu'on
+    // ne peut pas aligner sur une réplique en arabizi — chaque essai vaudrait 0 et fausserait
+    // la moyenne de la séance. Le bouton est retiré dans ce cas.
+    repetition: arabicScript,
     reading: arabicScript
       ? "la version arabizi (alphabet latin, chiffres 3/7/9 pour les sons arabes) de ta réplique"
       : null,

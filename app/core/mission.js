@@ -35,17 +35,20 @@ ${liste.map((m, i) => `  ${i + 1}. ${m}`).join("\n")}
   (3 à 8 mots chacune), graduées au niveau de l'élève : ${gradation}. Mets-les dans "missions" — tableau vide à tous
   les autres tours. Ne les récite pas dans "reply" : amène au fil de la conversation les situations qui les appellent, une à la fois.`;
   return `${choix}
-- "missions_accomplies" : numéros (1 à ${NB_MISSIONS}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, dans la
+- "missions_accomplies" : numéros (1 à ${liste.length || NB_MISSIONS}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, dans la
   langue cible et de façon compréhensible même avec des fautes. N'invente aucune réussite ; tableau vide s'il n'a rien
   accompli de nouveau. Quand toutes sont accomplies, félicite-le brièvement dans "reply" et propose de conclure.`;
 }
 
-// Missions annoncées par le modèle : chaînes non vides, nettoyées, NB_MISSIONS au plus.
+// Missions annoncées par le modèle : chaînes non vides, nettoyées, dédoublonnées (casse
+// ignorée), NB_MISSIONS au plus.
 export function missionsValides(liste) {
   if (!Array.isArray(liste)) return [];
+  const vues = new Set();
   return liste
     .filter(m => typeof m === "string" && m.trim())
     .map(m => m.trim().replace(/\s+/g, " "))
+    .filter(m => !vues.has(m.toLowerCase()) && vues.add(m.toLowerCase()))
     .slice(0, NB_MISSIONS);
 }
 

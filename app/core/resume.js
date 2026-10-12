@@ -43,6 +43,7 @@ export function resumeValide(data) {
 // s'appliquent ; les tableaux rendus sont les mêmes objets si rien n'a changé.
 export function integreResume(deck, carnet, resume, lang, now = Date.now()) {
   if (!resume) return { deck, carnet };
+  if (!Array.isArray(deck)) deck = [];
   let carnetSuivant = carnet;
   for (const e of resume.erreurs) carnetSuivant = ajouteErreur(carnetSuivant, lang, e, now);
   let deckSuivant = addVocabulary(deck, lang, resume.vocabulaire, now);
@@ -53,7 +54,9 @@ export function integreResume(deck, carnet, resume, lang, now = Date.now()) {
 // Ce qui est conservé dans l'entrée d'historique : compact, texte borné.
 export function entreeResume(resume) {
   if (!resume) return null;
-  const texte = resume.texte.length > TEXTE_MAX ? resume.texte.slice(0, TEXTE_MAX - 1).trimEnd() + "…" : resume.texte;
+  // Découpe par points de code : `slice` sur les unités UTF-16 peut couper un emoji en deux.
+  const car = Array.from(resume.texte);
+  const texte = car.length > TEXTE_MAX ? car.slice(0, TEXTE_MAX - 1).join("").trimEnd() + "…" : resume.texte;
   return {
     texte,
     pointsForts: resume.points_forts,
@@ -75,6 +78,11 @@ export function niveauxObserves(history) {
 // Tendance sur les `n` dernières séances observées d'une langue (toutes langues si omise) :
 // { de, a, n, sens: -1|0|1 } ou null s'il y a moins de deux observations.
 export function tendanceNiveau(history, lang = null, n = 5) {
+  if (lang === "derniere") {
+    // Langue de la dernière séance observée : une tendance qui mêlerait catalan B2 et
+    // japonais A1 annoncerait une baisse qui n'en est pas une.
+    lang = niveauxObserves(history).at(-1)?.lang ?? null;
+  }
   const obs = niveauxObserves(history).filter(o => !lang || o.lang === lang).slice(-n);
   if (obs.length < 2) return null;
   const de = obs[0].niveau;

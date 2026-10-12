@@ -35,11 +35,19 @@ function ajouteJours(ms, n) {
 }
 
 // Lundi 0 h 00 (heure locale) de la semaine contenant `ms`.
+// Le lundi est construit directement depuis sa date civile : partir du minuit du jour de
+// `ms` puis reculer échouait dans les fuseaux où ce minuit n'existe pas (changement d'heure
+// à 0 h, America/Santiago, Asia/Beirut) — 01:00 était reporté au lundi, qui perdait ses
+// séances entre 0 h et 1 h.
 export function debutSemaine(ms) {
   const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
-  return ajouteJours(d.getTime(), -indexJour(d.getTime()));
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - indexJour(ms), 0, 0, 0, 0).getTime();
 }
+
+// Une séance ouverte puis quittée sans que l'élève ait parlé n'a qu'un tour — l'accueil du
+// tuteur — et ne compte pas comme un jour de pratique. Les entrées sans compteur de tours
+// (antérieures) comptent.
+const pratiquee = (s) => !Number.isFinite(s.turns) || s.turns >= 2;
 
 function dureeSession(s) {
   const fin = Number.isFinite(s.lastAt) ? s.lastAt : s.date;
@@ -60,7 +68,7 @@ export function bilanHebdo(history, cible, now = Date.now()) {
   const jours = Array(7).fill(false);
   let dureeMs = 0;
   for (const s of history || []) {
-    if (!s || !Number.isFinite(s.date) || s.date < debut || s.date >= fin) continue;
+    if (!s || !Number.isFinite(s.date) || s.date < debut || s.date >= fin || !pratiquee(s)) continue;
     jours[indexJour(s.date)] = true;
     dureeMs += dureeSession(s);
   }
