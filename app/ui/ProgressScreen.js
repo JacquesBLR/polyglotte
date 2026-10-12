@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { erreursDues } from "../core/erreurs";
+import { enSecondes, statsLatence } from "../core/latence";
 import { LANGUAGES } from "../core/languages";
 import { RATINGS, reviewCard } from "../core/fsrs";
 import { computeStreak, dueCards } from "../core/leitner";
@@ -35,11 +36,13 @@ export default function ProgressScreen({ settings, keys }) {
   const [revueErreurs, setRevueErreurs] = useState(null); // { queue, index, revealed }
   const [seanceOuverte, setSeanceOuverte] = useState(null); // id de la séance dont le bilan est déplié (#93)
   const [status, setStatus] = useState("");
+  const [latence, setLatence] = useState([]); // journal des temps de réponse (#98)
 
   useEffect(() => {
     loadJSON(keys.deck, []).then(setDeck);
     loadJSON(keys.history, []).then(setHistory);
     loadJSON(keys.erreurs, []).then(setErreurs);
+    loadJSON(keys.latence, []).then(setLatence);
   }, [keys]);
 
   const exportDeck = async () => {
@@ -349,6 +352,24 @@ export default function ProgressScreen({ settings, keys }) {
           </Pressable>
         </View>
       ))}
+      {latence.length > 0 && (
+        <>
+          <Text style={ui.sectionTitle}>Temps de réponse du tuteur</Text>
+          <View style={st.seance}>
+            {[["tour", "Tours de conversation"], ["resume", "Résumés de séance"], ["explique", "Explications"]].map(([nature, libelle]) => {
+              const s = statsLatence(latence, nature);
+              if (!s) return null;
+              return (
+                <Text key={nature} style={st.bilanTexte}>
+                  {libelle} ({s.n}) : {nature === "tour" ? `premier mot ${enSecondes(s.premierJeton)}, ` : ""}
+                  réponse {enSecondes(s.total)} en médiane, {enSecondes(s.totalP90)} au pire 1 fois sur 10
+                  {s.lents ? ` — ${s.lents} lent${s.lents > 1 ? "s" : ""}` : ""}
+                </Text>
+              );
+            })}
+          </View>
+        </>
+      )}
       <Text style={ui.sectionTitle}>Carnet d'erreurs</Text>
       {!erreurs.length && <Text style={ui.status}>Aucune erreur retenue — elles s'ajoutent à chaque correction du tuteur.</Text>}
       {erreursRecentes.map(e => (

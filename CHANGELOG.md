@@ -5,6 +5,30 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.29] — 2026-10-12
+
+### Added
+- ⏱️ **Sonde de latence du tuteur** (#98). La nuit du 11 au 12 octobre a vu ~13 s par
+  tour et 36 s pour le résumé, sans que l'app le mesure ni le dise : l'élève attendait sans
+  savoir si le tuteur réfléchissait ou si c'était cassé. Chaque appel au modèle (tour de
+  conversation, résumé, explication) est désormais chronométré : **temps au premier jeton**
+  (premier fragment de texte reçu en streaming ; égal au total sinon) et **temps total**,
+  écrits en une ligne `[latence]` dans la console et dans un journal local des 50 dernières
+  mesures, par profil
+- Au-delà d'un seuil, la barre d'état prévient : « 🐢 Le tuteur est lent (premier mot après
+  7,3 s)… ». Seuils calés au-dessus de l'ordinaire mesuré, pour signaler un serveur
+  anormalement lent et pas le quotidien : en conversation 6 s au premier jeton ou 35 s au
+  total, 60 s pour le résumé, 35 s pour une explication. L'écran Progrès donne, par nature
+  d'appel, la médiane, le 90ᵉ centile et le nombre d'appels lents (`app/core/latence.js`,
+  pur, testé)
+- `scripts/banc-latence.mjs` : banc **proposé, non activé**, qui rejoue quatre tours et un
+  résumé tels que l'app les envoie, contre `gw` (`X-Atelier-Backend: vllm`,
+  `X-Atelier-Projet: polyglotte`), et imprime une ligne JSON. Premier passage, ce matin
+  après le redémarrage du DGX : premier jeton ~1,1 s, tours de 16 à 26 s (médiane 21 s),
+  résumé 42 s — le premier mot arrive vite, mais un tour complet est plus lent que cette
+  nuit. Le timer nocturne qui l'exécuterait est décrit en tête du script, rien n'est
+  installé
+
 ## [2.0.0-beta.28] — 2026-10-12
 
 ### Added
