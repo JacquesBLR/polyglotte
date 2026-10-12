@@ -10,8 +10,22 @@ export function extractJson(text) {
   const end = t.lastIndexOf("}");
   if (start === -1 || end <= start) throw new Error("Le modèle n'a pas produit de JSON.");
   const candidate = t.slice(start, end + 1);
-  JSON.parse(candidate); // valide, sinon lève
+  // Valide, sinon lève — en français : le message du moteur JS (« Expected ',' or ']'
+  // after array element… ») finissait sous les yeux de l'élève (relecture du 12/10, T1).
+  try { JSON.parse(candidate); } catch (_) { throw new Error("Le modèle a produit un JSON invalide — réessaie."); }
   return candidate;
+}
+
+// Réponse coupée par le plafond de jetons (#103 : plafonds par nature d'appel). Sans
+// détection, une réplique tronquée finissait en « pas de JSON » ou en JSON brut affiché
+// comme bilan (relecture du 12/10, T1 et T2). `partiel` : le texte reçu, pour qui veut en
+// sauver quelque chose (le bilan lisible d'un résumé streamé).
+export const MSG_TRONQUE = "La réponse du tuteur a été coupée avant la fin (trop longue) — réessaie.";
+export function erreurTronquee(partiel = "") {
+  const err = new Error(MSG_TRONQUE);
+  err.tronque = true;
+  err.partiel = partiel;
+  return err;
 }
 
 // Consigne de JSON minifié (#103). Le décodage guidé laisse le modèle libre de ses blancs, et
@@ -64,6 +78,7 @@ export async function callClaude(settings, { messages, system, schema, maxTokens
     throw new Error("La requête a été refusée par les filtres de sécurité du modèle. Reformule et réessaie.");
   }
   const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  if (schema && data.stop_reason === "max_tokens") throw erreurTronquee(text);
   if (!text) throw new Error("Réponse vide du modèle.");
   return text;
 }
@@ -120,6 +135,7 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
     }
     const data = await resp.json();
     const text = data.choices?.[0]?.message?.content || "";
+    if (schema && text.trim() && data.choices?.[0]?.finish_reason === "length") throw erreurTronquee(text);
     if (!text.trim()) throw new Error("Réponse vide du modèle.");
     return schema ? extractJson(text) : text;
   };

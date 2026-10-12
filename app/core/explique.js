@@ -70,10 +70,18 @@ export function expliqueValide(raw) {
 const memeErreur = (e, lang, correction) =>
   e && e.lang === lang && cle(e.corrected) === cle(correction?.corrected);
 
+// Phrase fautive dont l'explication a été donnée. Le carnet dédoublonne par forme corrigée
+// (#88) : « Jo vol un cafè » (conjugaison) et « Jo vull una cafè » (genre) partagent une
+// entrée, mais pas une explication (relecture du 12/10, X1). Une explication consignée
+// avant ce champ vaut pour l'original de l'entrée.
+const originalExplique = (e) => e.explique.original ?? cle(e.original);
+
 // Explication déjà consignée pour cette correction et ce niveau, ou null.
 export function explicationConsignee(carnet, lang, correction, level) {
   const e = (carnet || []).find(x => memeErreur(x, lang, correction));
-  return e?.explique && e.explique.level === level ? e.explique : null;
+  return e?.explique && e.explique.level === level && originalExplique(e) === cle(correction?.original)
+    ? e.explique
+    : null;
 }
 
 // Consigne l'explication dans l'entrée du carnet de cette correction ; l'ajoute d'abord si
@@ -86,6 +94,6 @@ export function consigneExplication(carnet, lang, correction, explication, level
     : ajouteErreur(carnet || [], lang, correction, now);
   if (!base.some(e => memeErreur(e, lang, correction))) return carnet; // correction inexploitable
   return base.map(e => (memeErreur(e, lang, correction)
-    ? { ...e, explique: { ...explication, level, at: now } }
+    ? { ...e, explique: { ...explication, level, at: now, original: cle(correction.original) } }
     : e));
 }

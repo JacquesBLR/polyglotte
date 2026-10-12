@@ -15,6 +15,9 @@
 // 21 s. L'alerte doit signaler un serveur anormalement lent, pas l'ordinaire.
 export const SEUILS = {
   tour: { premierJeton: 6000, total: 35000 },
+  // Test de niveau : jamais streamé, seul le total compte ; journalisé à part pour ne plus
+  // fausser la médiane du premier mot des tours (relecture du 12/10, L1).
+  evaluation: { premierJeton: null, total: 35000 },
   resume: { premierJeton: null, total: 60000 },
   explique: { premierJeton: null, total: 35000 },
 };
@@ -96,7 +99,8 @@ export function statsLatence(journal, nature) {
   if (!ms.length) return null;
   return {
     n: ms.length,
-    premierJeton: centile(ms.map(m => m.premierJeton), 50),
+    // Premier mot : seulement les appels streamés — sans streaming il vaut le total (L1).
+    premierJeton: centile(ms.filter(m => m.stream).map(m => m.premierJeton), 50),
     total: centile(ms.map(m => m.total), 50),
     totalP90: centile(ms.map(m => m.total), 90),
     replique: centile(ms.map(m => m.replique), 50), // null si aucune mesure ne la porte

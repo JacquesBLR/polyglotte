@@ -23,10 +23,20 @@ export const MISSION_PAR_NIVEAU = {
 // contient que ses répliques, pas le JSON, et sans cela le modèle oublie sa propre liste
 // dès le deuxième tour — sondé sur le résident : il en réinventait une autre et cochait
 // contre celle-là.
-export function blocMissionsPrompt(level, missions = []) {
+//
+// `enRetard` (relecture du 12/10, M5) : le [START] n'a rendu aucune mission. Le modèle ne
+// peut pas le savoir — l'historique ne porte que ses répliques —, et « ou à ton prochain
+// tour si tu ne l'as pas encore fait » ne le décidait qu'une fois sur deux (sondé : 2/4).
+// L'app le lui dit donc explicitement.
+export function blocMissionsPrompt(level, missions = [], enRetard = false) {
   const gradation = MISSION_PAR_NIVEAU[level];
   if (!gradation) return "";
   const liste = missionsValides(missions);
+  if (!liste.length && enRetard) {
+    return `- MISSIONS : tu n'as pas encore annoncé les missions de cette conversation. À CE TOUR-CI, choisis-en ${NB_MISSIONS},
+  concrètes, EN FRANÇAIS, à l'infinitif (3 à 8 mots chacune), graduées au niveau de l'élève : ${gradation}. Mets-les
+  dans "missions" (jamais vide à ce tour). Ne les récite pas dans "reply".`;
+  }
   const choix = liste.length
     ? `- MISSIONS de cette conversation (déjà annoncées, ne les change pas) :
 ${liste.map((m, i) => `  ${i + 1}. ${m}`).join("\n")}

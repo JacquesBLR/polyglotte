@@ -5,6 +5,36 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.33] — 2026-10-12
+
+### Fixed
+Défauts confirmés par la relecture adverse de #99, #100, #102 et #104 (#107), chacun avec un
+test de reproduction (`tests/relecture-2026-10-12-b.test.mjs`, rouge sur l'ancien code) :
+- **T1** : une réponse **coupée par le plafond de jetons** n'était repérée que vide : en
+  streaming, la réplique déjà dite disparaissait, la voix continuait, et l'élève lisait « pas
+  de JSON » ou un message du moteur JS en anglais. Le streaming, `callLocal` et `callClaude`
+  lèvent désormais une erreur « coupée avant la fin — réessaie » ; la voix est arrêtée ; un
+  JSON invalide est signalé en français.
+- **T2** : sous Claude, un résumé coupé (`stop_reason: max_tokens`) s'affichait en **JSON
+  brut** comme bilan.
+- **T3** : un résumé en échec vidait quand même l'historique — ✅ ramenait à l'accueil et le
+  bilan était perdu. L'historique n'est vidé qu'en cas de succès (✅ relance le résumé) ;
+  coupé après un bilan lisible complet, ce bilan reste affiché, sans verser carnets ni niveau.
+- **X1** : deux fautes de même forme corrigée (« Jo vol un cafè », « Jo vull una cafè »)
+  partageaient une explication ; elle est liée aussi à la phrase fautive.
+- **L1** : les tours du test de niveau, non streamés, faussaient la médiane du « premier
+  mot » ; ils ont leur nature (`evaluation`), et le premier mot ne compte que les appels
+  streamés.
+- **M5** : la description du champ `missions` disait « [START] uniquement » alors que le
+  champ sert au rattrapage (#101, M3) ; et le modèle ne peut pas savoir qu'il n'a rien
+  annoncé. L'app le lui dit : rattrapage au tour 2 mesuré via gw **2/4 → 4/4**.
+- **P6b** : drapeaux et touches numérotées n'étaient pas retirés de la phrase à répéter
+  (« Visca Catalunya 🇪🇸! » parfaitement dit → 67 au lieu de 100).
+
+Restent à Jacques (discutables, #107) : réplique tunisienne en arabizi malgré l'écriture
+arabe, appels en échec absents de la sonde, médiane basse sur un nombre pair, E4 après un
+[START] en échec, arrondi de l'alerte du résumé, `SUMMARY_SCHEMA` non allégé.
+
 ## [2.0.0-beta.32] — 2026-10-12
 
 ### Added

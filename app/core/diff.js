@@ -8,7 +8,10 @@ export function normalizeTokens(text, langId) {
     .replace(/[ً-ْٰـ]/g, "")
     // Emoji (et leurs sélecteurs / liants) : jamais prononcés, ils faisaient un jeton
     // impossible à reconnaître (#101, P6).
-    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{FE0F}\u{200D}]/gu, " ")
+    // Drapeaux (indicateurs régionaux) et touches numérotées (1️⃣ : chiffre + U+20E3) :
+    // relecture du 12/10, P6b — le chiffre d'une touche est retiré avec elle.
+    .replace(/[0-9#*]\u{FE0F}?\u{20E3}/gu, " ")
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}\u{FE0F}\u{200D}\u{20E3}]/gu, " ")
     .replace(/[.,;:!?¿¡«»"“”'’‘…()\-—、。，！？「」『』〜・،؛؟]/g, " ")
     .replace(/\s+/g, " ")
     .trim();

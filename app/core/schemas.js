@@ -57,7 +57,10 @@ export const RESPONSE_SCHEMA = {
     missions: {
       type: "array",
       items: { type: "string" },
-      description: "Au message [START] uniquement : 3 missions EN FRANÇAIS, à l'infinitif (3 à 8 mots), que l'élève devra accomplir dans ce scénario. Tableau vide à tous les autres tours.",
+      // Le champ n'est au schéma du tour que tant qu'aucune mission n'est annoncée (#103) :
+      // la description ne doit pas dire « [START] uniquement », sinon le rattrapage du tour
+      // suivant (#101, M3) échouait une fois sur trois (relecture du 12/10, M5).
+      description: "Tant qu'aucune mission n'a été annoncée (au message [START], sinon dès ce tour) : 3 missions EN FRANÇAIS, à l'infinitif (3 à 8 mots), que l'élève devra accomplir dans ce scénario.",
     },
     missions_accomplies: {
       type: "array",
