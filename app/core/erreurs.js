@@ -18,19 +18,27 @@ export const MAX_REACTIVEES = 3;
 // délai avant de la reproposer, sauf si elle est due en révision.
 const DELAI_REACTIVATION_MS = DAY_MS;
 
-const cle = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+// Clé de dédoublonnage : casse, espaces et ponctuation ignorés — « Bon dia! » relevé en
+// conversation et « Bon dia » repris par le résumé sont la même erreur.
+export const cleErreur = (s) => String(s ?? "").toLowerCase()
+  .replace(/[.,;:!?¿¡«»"“”…。！？、،؛؟]/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
+const cle = cleErreur;
 
 // Ajoute une correction au carnet (dédoublonnage par langue + forme corrigée). Retourne
 // un nouveau tableau, ou `carnet` lui-même si rien n'a été ajouté : les appelants testent
 // l'identité pour savoir s'il faut enregistrer.
 export function ajouteErreur(carnet, lang, correction, now = Date.now()) {
   if (!correction || !correction.original || !correction.corrected) return carnet;
-  const original = correction.original.trim();
-  const corrected = correction.corrected.trim();
+  // Le modèle peut rendre autre chose qu'une chaîne malgré le schéma : on convertit.
+  const original = String(correction.original).trim();
+  const corrected = String(correction.corrected).trim();
   if (!original || !corrected || cle(original) === cle(corrected)) return carnet;
   const k = cle(corrected);
-  if (carnet.some(e => e.lang === lang && cle(e.corrected) === k)) return carnet;
-  return [...carnet, {
+  const base = Array.isArray(carnet) ? carnet : [];
+  if (base.some(e => e && e.lang === lang && cle(e.corrected) === k)) return carnet;
+  return [...base, {
     id: now + Math.random(),
     lang,
     original,
@@ -48,12 +56,14 @@ export function erreursDues(carnet, now = Date.now()) {
 
 // Erreurs à réactiver dans la prochaine séance d'une langue : les dues d'abord, puis les
 // plus souvent ratées, puis les plus récentes. Une erreur réactivée il y a moins d'un jour
-// et non due est écartée, pour que deux séances d'affilée ne tournent pas sur les mêmes.
+// est écartée, même due : une erreur ajoutée est due tout de suite et le reste tant qu'elle
+// n'est pas révisée, si bien qu'en dispenser les dues ramenait les trois mêmes à chaque
+// séance et n'en laissait jamais passer d'autres (relecture adverse du 2026-10-12).
 export function erreursAReactiver(carnet, lang, now = Date.now(), max = MAX_REACTIVEES) {
   const due = (e) => e.nextReview <= now;
-  return (carnet || [])
+  return (Array.isArray(carnet) ? carnet : [])
     .filter(e => e && e.lang === lang && e.corrected)
-    .filter(e => due(e) || !(e.reactivee && now - e.reactivee < DELAI_REACTIVATION_MS))
+    .filter(e => !(e.reactivee && now - e.reactivee < DELAI_REACTIVATION_MS))
     .sort((a, b) =>
       (due(b) - due(a))
       || ((b.lapses || 0) - (a.lapses || 0))
@@ -64,7 +74,7 @@ export function erreursAReactiver(carnet, lang, now = Date.now(), max = MAX_REAC
 // Marque des erreurs comme réactivées (horodatage), sans toucher à leur planification FSRS.
 export function marqueReactivees(carnet, erreurs, now = Date.now()) {
   const ids = new Set((erreurs || []).map(e => e.id));
-  if (!ids.size) return carnet;
+  if (!ids.size || !Array.isArray(carnet)) return carnet;
   return carnet.map(e => (ids.has(e.id) ? { ...e, reactivee: now } : e));
 }
 

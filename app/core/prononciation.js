@@ -30,20 +30,23 @@ export function appreciation(score) {
   return "💪 Encore un essai";
 }
 
-// Agrège un score dans l'entrée d'historique d'une séance : { n, moyenne, meilleur }.
+// Somme des scores d'une agrégation ; les entrées antérieures à `somme` (beta.27) la
+// reconstituent depuis leur moyenne arrondie — au plus une demi-unité d'écart, une fois.
+const sommeDe = (p) => (Number.isFinite(p.somme) ? p.somme : p.moyenne * p.n);
+
+// Agrège un score dans l'entrée d'historique d'une séance : { n, somme, moyenne, meilleur }.
+// La somme est exacte ; seule la moyenne affichée est arrondie, et elle est recalculée depuis
+// la somme — recombiner une moyenne arrondie cumulait l'erreur à chaque essai.
 // Retourne une nouvelle entrée ; l'original n'est pas muté.
 export function integreScore(entry, score) {
   const s = Number(score);
   if (!entry || !Number.isFinite(s)) return entry;
-  const p = entry.prononciation || { n: 0, moyenne: 0, meilleur: 0 };
+  const p = entry.prononciation || { n: 0, somme: 0, moyenne: 0, meilleur: 0 };
   const n = p.n + 1;
+  const somme = sommeDe(p) + s;
   return {
     ...entry,
-    prononciation: {
-      n,
-      moyenne: Math.round((p.moyenne * p.n + s) / n),
-      meilleur: Math.max(p.meilleur, s),
-    },
+    prononciation: { n, somme, moyenne: Math.round(somme / n), meilleur: Math.max(p.meilleur, s) },
   };
 }
 
@@ -55,5 +58,5 @@ export function moyennePrononciation(history, max = 5) {
     .slice(0, max);
   const essais = mesurees.reduce((t, h) => t + h.prononciation.n, 0);
   if (!essais) return null;
-  return Math.round(mesurees.reduce((t, h) => t + h.prononciation.moyenne * h.prononciation.n, 0) / essais);
+  return Math.round(mesurees.reduce((t, h) => t + sommeDe(h.prononciation), 0) / essais);
 }

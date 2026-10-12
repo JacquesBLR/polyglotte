@@ -1,11 +1,12 @@
 // Correction mot à mot des dictées et exercices de prononciation — fonctions pures.
 
-// Normalisation : casse, ponctuation, diacritiques arabes ; le japonais est comparé
-// caractère par caractère (pas d'espaces).
+// Normalisation : casse, ponctuation (latine, arabe ، ؛ ؟, japonaise), diacritiques arabes et
+// tatweel ـ ; le japonais est comparé caractère par caractère (pas d'espaces). Une entrée
+// nulle (reconnaissance vocale muette) vaut une chaîne vide.
 export function normalizeTokens(text, langId) {
-  let t = text.toLowerCase()
-    .replace(/[ً-ْٰ]/g, "")
-    .replace(/[.,;:!?¿¡«»"“”'’‘…()\-—、。，！？「」・]/g, " ")
+  let t = String(text ?? "").toLowerCase()
+    .replace(/[ً-ْٰـ]/g, "")
+    .replace(/[.,;:!?¿¡«»"“”'’‘…()\-—、。，！？「」『』〜・،؛؟]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   if (langId === "japonais") return [...t.replace(/ /g, "")];

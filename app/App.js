@@ -255,7 +255,10 @@ export default function App() {
         // texte : on l'affiche tel quel, rien d'autre ne casse.
         let resume = null;
         try { resume = resumeValide(JSON.parse(raw)); } catch (_) { resume = null; }
-        setMessages(m => [...m, { role: "summary", text: resume ? resume.texte : raw, resume }]);
+        // Un JSON valide mais inexploitable (sans « texte ») n'est pas montré brut à l'élève.
+        let lisible = raw;
+        if (!resume) { try { JSON.parse(raw); lisible = "Le tuteur n'a pas su rédiger le résumé de cette séance."; } catch (_) { /* texte libre : affiché tel quel */ } }
+        setMessages(m => [...m, { role: "summary", text: resume ? resume.texte : lisible, resume }]);
         if (resume) {
           // Les erreurs et le vocabulaire du bilan rejoignent les carnets ; le bilan et le
           // niveau observé, l'entrée d'historique de la séance.
@@ -375,7 +378,7 @@ export default function App() {
           loadJSON(keys.erreurs, []).then(carnet => {
             const next = ajouteErreur(carnet, langId, correction);
             if (next !== carnet) saveJSON(keys.erreurs, next);
-          });
+          }).catch(err => console.warn("[carnet d'erreurs]", err));
         }
         if (Array.isArray(data.vocabulary) && data.vocabulary.length) {
           loadJSON(keys.deck, []).then(deck => {
@@ -415,7 +418,8 @@ export default function App() {
   // ---------- Micro ----------
 
   const startMic = () => {
-    if (busy || micMuted || listening) return;
+    // Pas pendant une répétition (#95) : la phrase répétée partirait au tuteur.
+    if (busy || micMuted || listening || repeteEnCours !== null) return;
     const s = session.current;
     if (!s.recognizer) {
       s.recognizer = speech.createRecognizer({
@@ -708,7 +712,7 @@ export default function App() {
                     </Pressable>
                   </View>
                 )}
-                {!m.streaming && (
+                {!m.streaming && session.current.cfg?.repetition !== false && (
                   <View style={st.repeterRow}>
                     <Chip
                       label={repeteEnCours === i ? "🎤 J'écoute…" : m.repetition ? "🎤 Réessayer" : "🎤 Répéter"}
@@ -788,7 +792,7 @@ export default function App() {
         <Pressable
           onPress={listening ? stopMic : startMic}
           style={[st.roundBtn, st.micBtn, listening && st.micBtnActive]}
-          disabled={busy || micMuted}
+          disabled={busy || micMuted || repeteEnCours !== null}
         >
           <Text style={st.roundBtnText}>🎤</Text>
         </Pressable>

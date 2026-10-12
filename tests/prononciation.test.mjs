@@ -33,12 +33,12 @@ test("appreciation : paliers", () => {
 test("integreScore : moyenne et meilleur cumulés, sans mutation ; entrée ou score invalides ignorés", () => {
   const e0 = { id: "s", date: 1, turns: 3 };
   const e1 = integreScore(e0, 60);
-  assert.deepEqual(e1.prononciation, { n: 1, moyenne: 60, meilleur: 60 });
+  assert.deepEqual(e1.prononciation, { n: 1, somme: 60, moyenne: 60, meilleur: 60 });
   assert.equal(e0.prononciation, undefined, "l'original n'est pas muté");
   const e2 = integreScore(e1, 100);
-  assert.deepEqual(e2.prononciation, { n: 2, moyenne: 80, meilleur: 100 });
+  assert.deepEqual(e2.prononciation, { n: 2, somme: 160, moyenne: 80, meilleur: 100 });
   const e3 = integreScore(e2, 71);
-  assert.deepEqual(e3.prononciation, { n: 3, moyenne: 77, meilleur: 100 });
+  assert.deepEqual(e3.prononciation, { n: 3, somme: 231, moyenne: 77, meilleur: 100 });
   assert.equal(integreScore(e3, "abc"), e3);
   assert.equal(integreScore(null, 50), null);
 });

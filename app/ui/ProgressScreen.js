@@ -257,7 +257,7 @@ export default function ProgressScreen({ settings, keys }) {
 
   // Dernières séances et niveau observé (#93).
   const seances = [...history].filter(h => h && Number.isFinite(h.date)).sort((a, b) => b.date - a.date).slice(0, 8);
-  const tendance = tendanceNiveau(history);
+  const tendance = tendanceNiveau(history, "derniere"); // une langue à la fois (relecture adverse)
   const dateCourte = (ms) => new Date(ms).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
 
   return (
