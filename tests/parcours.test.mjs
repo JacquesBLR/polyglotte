@@ -100,3 +100,11 @@ test("blocLecon : aucune trace de {ville} pour aucune langue ni aucune leçon", 
     }
   }
 });
+
+test("libelleSeance : leçon, bilan, scénario", async () => {
+  const { libelleSeance } = await import("../app/core/parcours.js");
+  assert.equal(libelleSeance({ lecon: "a1-cafe", scenario: "lecon" }), "📚 A1·3 Commander à boire et à manger");
+  assert.equal(libelleSeance({ lecon: "bilan-b2", scenario: "lecon" }), "🏅 Bilan B2");
+  assert.equal(libelleSeance({ scenario: "cafe" }), "cafe");
+  assert.equal(libelleSeance(null), "libre");
+});

@@ -25,6 +25,8 @@ Releases GitHub (commit de chaque version indiqué ci-dessous).
   3 répliques qui les accomplissent, et 0/3 sur 3 répliques hors sujet ; *Donner son avis*
   en japonais (B1) valide 3/3. Rendu de l'accueil et du programme contrôlé au navigateur
   (Chromium, 420 px).
+  Dans l'historique de l'écran Progrès, une séance du parcours affiche sa leçon
+  (« 📚 A1·3 Commander à boire et à manger ») au lieu du scénario technique `lecon`.
 
 ## [2.0.0-beta.36] — 2026-10-12
 

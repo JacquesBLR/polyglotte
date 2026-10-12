@@ -242,3 +242,12 @@ travaille son équivalent naturel. Amène des questions qui obligent l'élève �
 Lexique visé : ${ville(lecon.lexique)}. Réemploie-le dans tes répliques et dans tes suggestions.
 Reste au niveau ${lecon.cecrl} : ni plus facile, ni plus difficile.`;
 }
+
+// Libellé d'une séance de l'historique pour l'écran Progrès : la leçon plutôt que le
+// scénario technique « lecon » (relecture du soir).
+export function libelleSeance(h) {
+  const u = h && PAR_ID.get(h.lecon);
+  if (u) return `📚 ${numero(u)} ${u.titre}`;
+  if (h && typeof h.lecon === "string" && h.lecon.startsWith("bilan-")) return `🏅 Bilan ${h.lecon.slice(6).toUpperCase()}`;
+  return (h && h.scenario) || "libre";
+}
