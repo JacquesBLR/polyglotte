@@ -14,6 +14,21 @@ export function extractJson(text) {
   return candidate;
 }
 
+// Consigne de JSON minifié (#103). Le décodage guidé laisse le modèle libre de ses blancs, et
+// le résident les dépense : indentation et retours à la ligne faisaient ~30 % des jetons d'un
+// tour (sondé le 12/10 sur le premier tour : 173 à 250 jetons indentés, 132 à 171 minifiés,
+// à ~13 jetons/s). L'option `disable_any_whitespace` de vLLM 0.27 est restée sans effet ;
+// la consigne suffit. Les sauts de ligne DANS les textes (bilan du résumé) restent permis.
+export const CONSIGNE_JSON = "réponds UNIQUEMENT par un objet JSON valide, MINIFIÉ sur une seule ligne "
+  + "(aucune indentation ni retour à la ligne entre les champs ; les sauts de ligne à l'intérieur "
+  + "d'un texte restent écrits \\n), sans texte autour";
+
+// Système envoyé au moteur compatible OpenAI pour une sortie structurée : la consigne de
+// JSON minifié, suivie du schéma (qui guide aussi les serveurs sans décodage guidé).
+export function systemeJson(system, schema) {
+  return `${system}\n\nIMPORTANT : ${CONSIGNE_JSON}, conforme à ce schéma :\n${JSON.stringify(schema)}`;
+}
+
 export async function callClaude(settings, { messages, system, schema, maxTokens = 2048 }) {
   const model = settings.model || "claude-opus-5";
   const headers = {
@@ -66,9 +81,7 @@ export async function callLocal(settings, { messages, system, schema, maxTokens 
   const model = (preferAlt && settings.localModelAlt) || settings.localModel;
 
   const attempt = async (useStructured) => {
-    const sys = schema && !useStructured
-      ? system + "\n\nIMPORTANT : réponds UNIQUEMENT par un objet JSON valide conforme à ce schéma, sans texte autour :\n" + JSON.stringify(schema)
-      : system;
+    const sys = schema ? systemeJson(system, schema) : system;
     const body = {
       model,
       max_tokens: maxTokens,

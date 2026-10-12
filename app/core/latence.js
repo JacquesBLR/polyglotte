@@ -24,15 +24,22 @@ export const MAX_MESURES = 50;
 
 // Chronomètre à horloge injectable. `premierJeton()` ne retient que le premier appel ;
 // `fin()` rend { premierJeton, total } en ms — premierJeton vaut le total si aucun
-// fragment n'a été signalé (appel non streamé).
+// fragment n'a été signalé (appel non streamé). `replique()` (#103) marque l'instant où le
+// texte lu à l'élève est complet (la réplique du tour, le texte du résumé) : c'est ce que
+// l'élève attend vraiment, le reste du JSON (traduction, suggestions…) arrivant pendant
+// que le tuteur parle. Absent de `fin()` s'il n'a pas été marqué.
 export function creeChrono(horloge = Date.now) {
   const t0 = horloge();
   let tPremier = null;
+  let tReplique = null;
   return {
     premierJeton() { if (tPremier === null) tPremier = horloge(); },
+    replique() { if (tReplique === null) tReplique = horloge(); },
     fin() {
       const total = Math.max(0, horloge() - t0);
-      return { premierJeton: tPremier === null ? total : Math.max(0, tPremier - t0), total };
+      const m = { premierJeton: tPremier === null ? total : Math.max(0, tPremier - t0), total };
+      if (tReplique !== null) m.replique = Math.max(0, tReplique - t0);
+      return m;
     },
   };
 }
@@ -92,11 +99,13 @@ export function statsLatence(journal, nature) {
     premierJeton: centile(ms.map(m => m.premierJeton), 50),
     total: centile(ms.map(m => m.total), 50),
     totalP90: centile(ms.map(m => m.total), 90),
+    replique: centile(ms.map(m => m.replique), 50), // null si aucune mesure ne la porte
     lents: ms.filter(m => lenteur(m)).length,
   };
 }
 
 // Ligne de journal console, une par appel.
 export function ligneConsole(m) {
-  return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} premier jeton ${m.premierJeton} ms, total ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
+  const rep = nombre(m.replique) ? `, réplique ${m.replique} ms` : "";
+  return `[latence] ${m.nature}${m.stream ? " (stream)" : ""} premier jeton ${m.premierJeton} ms${rep}, total ${m.total} ms${m.modele ? `, ${m.modele}` : ""}`;
 }

@@ -1,0 +1,54 @@
+name: Banc de latence (nuit)
+
+# Rejoue chaque nuit 10 tours de conversation et un résumé contre la passerelle gw du parc
+# (scripts/banc-latence.mjs, #103) et garde la ligne JSON en artefact, pour suivre la latence
+# du tuteur d'une nuit à l'autre. Code de sortie 2 (job rouge) si la médiane du premier jeton
+# dépasse le seuil d'alerte de l'app.
+#
+# ⚠️ DÉSARMÉ : gw (127.0.0.1:8646) n'est joignable que du DGX, il faut donc un runner
+# self-hosted PROPRE à ce dépôt sur le DGX (label `dgx`), qui n'existe pas encore. Le job est
+# gardé par la variable de dépôt `BANC_LATENCE_ARME` ; une fois le runner enregistré :
+#   gh variable set BANC_LATENCE_ARME --body true --repo JacquesBLR/polyglotte
+# Jusque-là le job est « skipped » : aucun run en attente, aucun appel au modèle.
+
+on:
+  schedule:
+    - cron: "10 2 * * *" # 04:10 à Paris (heure d'été), hors des fenêtres de travail du parc
+  workflow_dispatch:
+    inputs:
+      tours:
+        description: Nombre de tours rejoués
+        default: "10"
+
+concurrency:
+  group: banc-latence
+  cancel-in-progress: false
+
+jobs:
+  banc:
+    name: Banc de latence (gw → vLLM)
+    runs-on: [self-hosted, dgx]
+    if: vars.BANC_LATENCE_ARME == 'true'
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Rejouer les tours contre gw
+        env:
+          GW_URL: http://127.0.0.1:8646/v1
+          TOURS: ${{ inputs.tours || '10' }}
+        run: |
+          set -o pipefail
+          node scripts/banc-latence.mjs --tours "$TOURS" | tee banc-latence.jsonl
+
+      - name: Garder la mesure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: banc-latence-${{ github.run_id }}
+          path: banc-latence.jsonl
+          retention-days: 90

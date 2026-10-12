@@ -104,6 +104,15 @@ for (const { cle, valeur } of marqueurs) {
   );
 }
 
+// 6. Le banc de latence de nuit (#103) appelle le modèle : il reste désarmé tant que la
+// variable de dépôt n'est pas posée, et ne tourne que sur un runner du réseau privé.
+const banc = readFileSync(".github/workflows/banc-latence.yml", "utf8");
+verifie(
+  ".github/workflows/banc-latence.yml : désarmé par BANC_LATENCE_ARME, runner self-hosted",
+  banc.includes("if: vars.BANC_LATENCE_ARME == 'true'") && /runs-on:\s*\[self-hosted/.test(banc),
+  "la garde `if: vars.BANC_LATENCE_ARME == 'true'` ou le runner self-hosted manque",
+);
+
 if (erreurs.length) {
   console.error("\n❌ Incohérences détectées :");
   for (const e of erreurs) console.error(`  - ${e}`);

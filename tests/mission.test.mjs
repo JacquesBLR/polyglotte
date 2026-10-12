@@ -15,15 +15,15 @@ test("blocMissionsPrompt : une gradation par niveau de l'app, vide pour un nivea
   assert.match(blocMissionsPrompt("debutant"), /saluer/);
   assert.match(blocMissionsPrompt("intermediaire"), /négocier/);
   assert.match(blocMissionsPrompt("avance"), /convaincre/);
-  assert.match(blocMissionsPrompt("avance"), /N'invente aucune réussite/);
+  assert.match(blocMissionsPrompt("avance", ["Convaincre le client"]), /N'invente aucune réussite/);
   assert.equal(blocMissionsPrompt("inconnu"), "");
 });
 
-test("blocMissionsPrompt : une fois les missions annoncées, elles sont réinjectées numérotées et 'missions' doit rester vide", () => {
+test("blocMissionsPrompt : une fois les missions annoncées, elles sont réinjectées numérotées et ne changent plus", () => {
   const bloc = blocMissionsPrompt("debutant", ["Saluer la serveuse", "Commander un café", "Demander le prix"]);
   assert.match(bloc, /1\. Saluer la serveuse/);
   assert.match(bloc, /3\. Demander le prix/);
-  assert.match(bloc, /tableau VIDE/);
+  assert.match(bloc, /déjà annoncées, ne les change pas/);
   assert.doesNotMatch(bloc, /choisis 3 missions/);
   assert.match(bloc, /"missions_accomplies"/);
   // Liste vide ou invalide : on retombe sur la consigne de choix.
@@ -40,7 +40,8 @@ test("buildTutorPrompt : la consigne de missions est dans le prompt du tuteur, p
   for (const level of ["debutant", "intermediaire", "avance"]) {
     const p = buildTutorPrompt({ cfg, level, scenarioId: "cafe", immersion: false });
     assert.match(p, /MISSIONS/);
-    assert.match(p, /"missions_accomplies"/);
+    assert.doesNotMatch(p, /"missions_accomplies"/, "pas de missions à cocher : champ absent du schéma du tour (#103)");
+    assert.match(buildTutorPrompt({ cfg, level, scenarioId: "cafe", immersion: false, missions: ["Saluer"] }), /"missions_accomplies"/);
   }
   assert.match(buildTutorPrompt({ cfg, level: "debutant", scenarioId: "libre", immersion: true }), /MISSIONS/, "en immersion aussi");
   assert.doesNotMatch(buildTutorPrompt({ cfg, mode: "eval", level: "debutant" }), /missions_accomplies/);

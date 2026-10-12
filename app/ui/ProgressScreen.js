@@ -43,7 +43,9 @@ export default function ProgressScreen({ settings, keys }) {
     loadJSON(keys.history, []).then(setHistory);
     loadJSON(keys.erreurs, []).then(setErreurs);
     loadJSON(keys.latence, []).then(setLatence);
-  }, [keys]);
+    // Dépendances sur les clés (chaînes), pas sur l'objet `keys` recréé à chaque rendu
+    // d'App : le stockage était relu à chaque re-rendu (#101, I2).
+  }, [keys.deck, keys.history, keys.erreurs, keys.latence]);
 
   const exportDeck = async () => {
     if (!deck.length) return;
@@ -239,7 +241,8 @@ export default function ProgressScreen({ settings, keys }) {
   const stats = [
     [history.length, "sessions"],
     [computeStreak(history), "jours d'affilée"],
-    [nbMissionsAccomplies(history), "missions accomplies"],
+    // Compte les séances dont toutes les missions sont cochées, pas les missions (#101, M4).
+    [nbMissionsAccomplies(history), "scénarios réussis"],
     [deck.length, "mots au carnet"],
     [due.length, "à réviser"],
     [erreurs.length, "erreurs au carnet"],

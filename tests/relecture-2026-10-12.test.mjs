@@ -130,7 +130,7 @@ test("R4 : carnet de vocabulaire nul en stockage → pas d'exception", () => {
 test("M1/M2 : missions dédoublonnées ; le prompt borne les numéros au nombre annoncé", () => {
   assert.deepEqual(missionsValides(["Saluer", "saluer", " Saluer ", "Commander"]), ["Saluer", "Commander"]);
   assert.match(blocMissionsPrompt("debutant", ["Saluer", "Commander"]), /numéros \(1 à 2\)/);
-  assert.match(blocMissionsPrompt("debutant", []), /numéros \(1 à 3\)/);
+  assert.doesNotMatch(blocMissionsPrompt("debutant", []), /numéros/, "rien à cocher avant l'annonce (#103)");
 });
 
 test("E3 bis : l'explication (#97) retrouve son entrée du carnet malgré une ponctuation différente", async () => {
@@ -139,4 +139,12 @@ test("E3 bis : l'explication (#97) retrouve son entrée du carnet malgré une po
   const next = consigneExplication(carnet, "catalan", { original: "bon dies", corrected: "bon dia" }, { content: "c" }, "debutant", NOW);
   assert.equal(next.length, 1);
   assert.equal(next[0].explique.content, "c");
+});
+
+test("P6 (partiel, #103) : un emoji de la réplique n'est plus un mot à prononcer", async () => {
+  const { gradeAttempt, normalizeTokens } = await import("../app/core/diff.js");
+  assert.deepEqual(normalizeTokens("Bon dia! 😊 Com estàs? 👋🏽", "catalan"), ["bon", "dia", "com", "estàs"]);
+  assert.deepEqual(normalizeTokens("Molt bé ❤️", "catalan"), ["molt", "bé"]);
+  assert.equal(gradeAttempt("Bon dia! 😊", "bon dia", "catalan").score, 100);
+  assert.deepEqual(normalizeTokens("こんにちは😊", "japonais"), [..."こんにちは"]);
 });

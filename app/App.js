@@ -18,7 +18,7 @@ import { buildTutorPrompt, summaryRequest } from "./core/prompts";
 import { consigneExplication, expliqueRequete, expliqueValide, explicationConsignee } from "./core/explique";
 import { ajouteMesure, creeChrono, ligneConsole, mesure, messageLenteur } from "./core/latence";
 import { entreeResume, integreResume, resumeValide } from "./core/resume";
-import { ASSESS_SCHEMA, EXPLAIN_SCHEMA, RESPONSE_SCHEMA, SUMMARY_SCHEMA } from "./core/schemas";
+import { EXPLAIN_SCHEMA, MAX_TOKENS, SUMMARY_SCHEMA, schemaEvaluation, schemaTour } from "./core/schemas";
 import { DEFAULT_SETTINGS, fusionneReglages } from "./core/settings";
 import { cancelReminders, REMINDERS_SUPPORTED, scheduleReminder } from "./notify/notify";
 import { registerServiceWorker } from "./pwa/pwa";
@@ -181,7 +181,8 @@ export default function App() {
     if (mode === "chat") {
       const carnet = await loadJSON(keys.erreurs, []);
       erreurs = erreursAReactiver(carnet, langId);
-      if (erreurs.length) saveJSON(keys.erreurs, marqueReactivees(carnet, erreurs));
+      // Marquées « réactivées » seulement quand le premier tour a réussi (#101, E4) : un
+      // [START] en échec les aurait écartées une journée sans qu'elles aient servi.
     }
     const ctx = { cfg: c, level, scenarioId, immersion, mode, erreurs };
     session.current = {
@@ -244,13 +245,31 @@ export default function App() {
       setStatus({ text: "Je prépare ton résumé de session…", error: false });
       try {
         const chrono = creeChrono();
-        const raw = await callModel(settings, {
+        const opts = {
           messages: [...s.history, { role: "user", content: summaryRequest({ cfg: s.cfg }) }],
           system: s.system,
           schema: SUMMARY_SCHEMA,
-          maxTokens: 2048,
-        });
-        const alerte = sonde("resume", chrono);
+          maxTokens: MAX_TOKENS.resume,
+        };
+        // Résumé en streaming (#103) : le bilan lisible (« texte », en tête du schéma)
+        // s'affiche au fil de l'eau au lieu de 40 s d'écran figé ; les champs structurés
+        // (carnets, niveau observé) sont exploités une fois la réponse complète.
+        let recu = false;
+        let raw;
+        if (settings.provider === "local") {
+          opts.onDelta = (accumulated) => {
+            chrono.premierJeton();
+            recu = true;
+            const partial = partialStringField(accumulated, "texte");
+            if (!partial || !partial.text) return;
+            if (partial.complete) chrono.replique();
+            setMessages(m => [...retireProvisoire(m), { role: "summary", text: partial.text, streaming: true }]);
+          };
+          raw = await streamOrCallLocal(settings, opts);
+        } else {
+          raw = await callModel(settings, opts);
+        }
+        const alerte = sonde("resume", chrono, recu);
         // Résumé structuré (#93). Un modèle qui ne tiendrait pas le schéma rend au pire un
         // texte : on l'affiche tel quel, rien d'autre ne casse.
         let resume = null;
@@ -258,7 +277,7 @@ export default function App() {
         // Un JSON valide mais inexploitable (sans « texte ») n'est pas montré brut à l'élève.
         let lisible = raw;
         if (!resume) { try { JSON.parse(raw); lisible = "Le tuteur n'a pas su rédiger le résumé de cette séance."; } catch (_) { /* texte libre : affiché tel quel */ } }
-        setMessages(m => [...m, { role: "summary", text: resume ? resume.texte : lisible, resume }]);
+        setMessages(m => [...retireProvisoire(m), { role: "summary", text: resume ? resume.texte : lisible, resume }]);
         if (resume) {
           // Les erreurs et le vocabulaire du bilan rejoignent les carnets ; le bilan et le
           // niveau observé, l'entrée d'historique de la séance.
@@ -277,6 +296,7 @@ export default function App() {
         }
         setStatus({ text: alerte || "Résumé de session — reviens à l'accueil quand tu veux.", error: false });
       } catch (err) {
+        setMessages(retireProvisoire);
         setStatus({ text: err.message, error: true });
       }
       setBusy(false);
@@ -308,8 +328,12 @@ export default function App() {
       const opts = {
         messages: s.history,
         system: s.system,
-        schema: s.mode === "eval" ? ASSESS_SCHEMA : RESPONSE_SCHEMA,
-        maxTokens: 2048,
+        // Schéma du tour réduit aux champs qui peuvent y servir, plafond de jetons par
+        // nature d'appel (#103).
+        schema: s.mode === "eval"
+          ? schemaEvaluation({ lecture: !!s.cfg.reading })
+          : schemaTour({ lecture: !!s.cfg.reading, immersion: !!s.ctx?.immersion, nbMissions: s.missions.liste.length }),
+        maxTokens: s.mode === "eval" ? MAX_TOKENS.evaluation : MAX_TOKENS.tour,
       };
       let raw;
       const chrono = creeChrono();
@@ -325,6 +349,7 @@ export default function App() {
           recu = true;
           const partial = partialStringField(accumulated, "reply");
           if (!partial || !partial.text) return;
+          if (partial.complete) chrono.replique();
           if (speaker) {
             speaker.push(partial.text);
             if (partial.complete) speaker.flush(partial.text);
@@ -362,7 +387,16 @@ export default function App() {
         setSuggestions(data.suggestions || []);
         // Missions de scénario (#91) : annoncées au premier tour, cochées ensuite. L'état de
         // référence vit dans la session (synchrone) ; le state ne sert qu'au rendu.
-        if (text === "[START]") {
+        if (text === "[START]" && s.ctx?.erreurs?.length) {
+          const aMarquer = s.ctx.erreurs;
+          loadJSON(keys.erreurs, []).then(carnet => {
+            const next = marqueReactivees(carnet, aMarquer);
+            if (next !== carnet) saveJSON(keys.erreurs, next);
+          }).catch(err => console.warn("[carnet d'erreurs]", err));
+        }
+        // Missions de scénario : lues au [START], et au tour suivant si le modèle n'en avait
+        // annoncé aucune (#101, M3) — le schéma du tour les redemande tant que la liste est vide.
+        if (!s.missions.liste.length) {
           s.missions = { liste: missionsValides(data.missions), atteintes: [] };
           // L'historique ne porte que les répliques : sans réinjection, le modèle oublie sa
           // liste dès le tour suivant et en réinvente une autre.
@@ -498,7 +532,7 @@ export default function App() {
     try {
       const { system, messages: msgs } = expliqueRequete({ cfg: s.cfg, level: lvl, correction });
       const chrono = creeChrono();
-      const raw = await callModel(settings, { system, messages: msgs, schema: EXPLAIN_SCHEMA, maxTokens: 700 });
+      const raw = await callModel(settings, { system, messages: msgs, schema: EXPLAIN_SCHEMA, maxTokens: MAX_TOKENS.explique });
       const alerte = sonde("explique", chrono);
       if (alerte) setStatus({ text: alerte, error: false });
       const explication = expliqueValide(raw);
