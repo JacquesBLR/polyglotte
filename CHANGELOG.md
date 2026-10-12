@@ -5,6 +5,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.37] — 2026-10-12
+
+### Added
+- **Parcours guidé** (#111) : un programme de 30 leçons, de A1 à C1 (6 par niveau CECRL),
+  commun aux 10 langues et ancré dans la ville du tuteur. L'élève n'avait jusqu'ici qu'un
+  choix de scénarios, sans rien qui dise quoi travailler ensuite ni ce qui était couvert.
+  C'est ce qu'organisent les produits de référence : Babbel en cours par niveau (objectif
+  communicatif, grammaire, lexique), Duolingo en chemin d'unités alignées sur le CECRL,
+  Speak en curriculum dont chaque leçon finit par une conversation guidée avec le tuteur IA.
+  Chaque leçon déclare trois **objectifs « je peux »**, tirés des descripteurs du CECRL :
+  ce sont les **missions** de la séance (#91), fixées par l'app avant le premier tour et
+  cochées par le tuteur. Elle déclare aussi un point de grammaire, que le tuteur transpose
+  à la langue, un lexique et une situation. Une leçon est **validée** quand ses trois missions
+  sont cochées. C'est calculé depuis l'historique, par langue (entrée `lecon`), sans rien
+  stocker de plus. L'accueil affiche l'avancement du niveau et la prochaine leçon ; l'écran
+  « 📚 Parcours » liste le programme avec ce qui est validé. Rien n'est verrouillé.
+  Vérifié via gw : *Commander à boire et à manger* en espagnol valide 3/3 missions en
+  3 répliques qui les accomplissent, et 0/3 sur 3 répliques hors sujet ; *Donner son avis*
+  en japonais (B1) valide 3/3. Rendu de l'accueil et du programme contrôlé au navigateur
+  (Chromium, 420 px).
+
 ## [2.0.0-beta.36] — 2026-10-12
 
 ### Changed
