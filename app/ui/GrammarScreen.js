@@ -1,21 +1,15 @@
 // Grammaire & conjugaison : fiches pédagogiques et cartes mentales (portage v1 #19/#20).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import Svg, { G, Path, Rect, Text as SvgText } from "react-native-svg";
 
 import { callModel, hasCredentials } from "../core/api";
 import { grammarSystemPrompt } from "../core/prompts";
 import { GRAMMAR_FICHE_SCHEMA, GRAMMAR_MAP_SCHEMA } from "../core/schemas";
+import { avancementGrammaire, marqueEtudie, programmeGrammaire, sujetsEtudies } from "../core/grammaire";
+import { loadJSON, saveJSON } from "../storage";
 import { C, Chip, ui } from "./common";
-
-const SUGGESTED_TOPICS = [
-  "Le présent de l'indicatif",
-  "Le passé : raconter hier",
-  "Les articles",
-  "Poser une question",
-  "La négation",
-];
 
 // Disposition d'un arbre horizontal (racine à gauche) — même algorithme que la v1 :
 // liste plate id/parent, profondeur bornée à 3, protection contre les cycles.
@@ -128,8 +122,18 @@ function Mindmap({ title, nodes, onSelectNote }) {
   );
 }
 
-export default function GrammarScreen({ settings, cfg, level, onOpenSettings }) {
+export default function GrammarScreen({ settings, cfg, langId, level, cleEtudies, onOpenSettings }) {
   const [topic, setTopic] = useState("");
+  // Programme de la langue et du niveau (#112), points déjà étudiés (✓).
+  const [etudies, setEtudies] = useState({});
+  useEffect(() => {
+    let vivant = true;
+    if (cleEtudies) loadJSON(cleEtudies, {}).then(e => { if (vivant) setEtudies(e || {}); });
+    return () => { vivant = false; };
+  }, [cleEtudies]);
+  const programme = programmeGrammaire(langId, level);
+  const vus = sujetsEtudies(etudies, langId);
+  const av = avancementGrammaire(langId, level, etudies);
   const [status, setStatus] = useState({ text: "", error: false });
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // { kind, title, content?, nodes? }
@@ -162,6 +166,13 @@ export default function GrammarScreen({ settings, cfg, level, onOpenSettings }) 
       });
       const parsed = JSON.parse(raw);
       setResult({ kind, ...parsed });
+      // Point étudié : seulement quand la fiche ou la carte a abouti, relu frais avant écriture.
+      if (cleEtudies) {
+        const frais = await loadJSON(cleEtudies, {});
+        const next = marqueEtudie(frais, langId, t);
+        if (next !== frais) saveJSON(cleEtudies, next);
+        setEtudies(next || {});
+      }
       setStatus({ text: "", error: false });
     } catch (err) {
       setStatus({ text: err.message, error: true });
@@ -176,12 +187,13 @@ export default function GrammarScreen({ settings, cfg, level, onOpenSettings }) 
         style={ui.field}
         value={topic}
         onChangeText={setTopic}
-        placeholder="Ex. : le passé, les articles, conjugaison de « être »…"
+        placeholder="Un point du programme ci-dessous, ou ta propre question…"
         placeholderTextColor={C.faint}
         onSubmitEditing={() => request("fiche")}
       />
+      <Text style={ui.status}>Programme {cfg.label} de ce niveau — {av.faits} / {av.total} étudié{av.faits > 1 ? "s" : ""}</Text>
       <View style={ui.chipRow}>
-        {SUGGESTED_TOPICS.map(s => <Chip key={s} label={s} active={topic === s} onPress={() => setTopic(s)} />)}
+        {programme.map(s => <Chip key={s} label={`${vus.has(s) ? "✓ " : ""}${s}`} active={topic === s} onPress={() => setTopic(s)} />)}
       </View>
       <View style={[ui.chipRow, { marginTop: 10 }]}>
         <Pressable onPress={() => request("fiche")} disabled={busy} style={[ui.primaryBtn, st.grow]}>

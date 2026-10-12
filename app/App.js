@@ -826,7 +826,7 @@ export default function App() {
           <Pressable onPress={() => setSettingsOpen(true)}><Text style={st.headerBtn}>⚙️</Text></Pressable>
         </View>
         {screen === "grammar" && (
-          <GrammarScreen settings={settings} cfg={cfg} level={level} onOpenSettings={() => setSettingsOpen(true)} />
+          <GrammarScreen settings={settings} cfg={cfg} langId={langId} level={level} cleEtudies={keys.grammaire} onOpenSettings={() => setSettingsOpen(true)} />
         )}
         {screen === "exos" && (
           <ExercisesScreen settings={settings} cfg={cfg} langId={langId} level={level} onOpenSettings={() => setSettingsOpen(true)} />
