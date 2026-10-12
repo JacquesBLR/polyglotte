@@ -11,6 +11,7 @@ const BASE = {
   history: "polyglotte.v2::history",
   erreurs: "polyglotte.v2::erreurs", // carnet d'erreurs (#87)
   latence: "polyglotte.v2::latence", // journal des temps de réponse du tuteur (#98)
+  grammaire: "polyglotte.v2::grammaire", // points de grammaire étudiés, par langue (#112)
 };
 
 export const PROFILES_KEY = "polyglotte.v2::profiles";
@@ -25,6 +26,7 @@ export function keysFor(profile) {
     history: BASE.history + suffix,
     erreurs: BASE.erreurs + suffix,
     latence: BASE.latence + suffix,
+    grammaire: BASE.grammaire + suffix,
   };
 }
 
@@ -57,5 +59,5 @@ export function saveProfiles(profiles) {
 // Supprime toutes les données d'un profil (réglages, carnets, historique).
 export async function removeProfileData(profile) {
   const k = keysFor(profile);
-  await AsyncStorage.multiRemove([k.settings, k.deck, k.history, k.erreurs, k.latence]).catch(() => {});
+  await AsyncStorage.multiRemove([k.settings, k.deck, k.history, k.erreurs, k.latence, k.grammaire]).catch(() => {});
 }

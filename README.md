@@ -44,6 +44,10 @@ complète mais l'oral est approximatif.
   niveau CECRL : trois missions tirées dans trois leçons différentes, et le niveau validé 🏅.
   Chaque leçon peut se **préparer** : 5 phrases clés à écouter avant de parler, que le
   tuteur fait ensuite réemployer.
+- 🧠 **Programme de grammaire par langue** : 6 points par niveau pour chacune des 10 langues
+  (ser/estar en espagnol, cas en allemand, particules et forme en て en japonais, racine
+  trilitère en arabe, ma… ch en tunisien…), avec fiche ou carte mentale à la demande et ✓
+  sur les points étudiés.
 - 🎤 **Conversation orale** : reconnaissance vocale dans la langue cible (Web Speech API),
   synthèse vocale avec la meilleure voix disponible, mode mains libres, bouton « réécouter ».
 - 🗣️ **« Répète après moi »** : chaque réplique du tuteur se répète au micro ; les mots

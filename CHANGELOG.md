@@ -5,6 +5,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.40] — 2026-10-12
+
+### Added
+- **Programme de grammaire par langue et par niveau** (#112). Jusqu'ici, l'écran Grammaire
+  proposait les mêmes cinq sujets aux dix langues, y compris « les articles » à un élève de
+  japonais. Les produits de référence suivent un programme **propre à chaque langue** :
+  Babbel avec ses leçons de grammaire par langue, ordonnées par niveau, Busuu avec sa
+  *Grammar review* par niveau CECRL, Duolingo avec le *Guidebook* de chaque unité.
+  Polyglotte en a désormais un aussi. Il compte 6 points par niveau de l'app pour
+  chacune des 10 langues, soit 180 points. Ils vont du plus fondamental au plus fin :
+  ser/estar et por/para pour l'espagnol, verbe en deuxième position et cas pour
+  l'allemand, particules et forme en て pour le japonais, racine trilitère et idāfa pour
+  l'arabe, ma… ch et bech pour le tunisien, Perfekt seul pour le suisse allemand, *a gente*
+  pour le Brésil, mésoclise pour le Portugal. Un point est coché ✓ quand sa fiche ou sa
+  carte mentale a abouti, et l'avancement s'affiche, par exemple « 2 / 6 étudiés ». Ces
+  points étudiés sont rangés dans une nouvelle clé `grammaire` par profil, supprimée avec
+  le profil. La saisie libre reste possible. Vérifié via gw sur la fiche « La négation
+  ma… ch » en tunisien : 300 jetons, 19 s. Rendu contrôlé dans Chromium.
+
 ## [2.0.0-beta.39] — 2026-10-12
 
 ### Added
