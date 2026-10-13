@@ -93,8 +93,10 @@ test("trousValides : réponse déjà collée au trou, délibération et indice q
 test("relecture du soir (#115) : réponses courtes gardées en écriture à espaces, rōmaji écarté, $ et ponctuation pleine chasse", () => {
   const t = trousValides({ phrases: [p("This ___ my house.", "is"), p("Ella va ___ casa.", "a"), p("Eu moro ___ emprego.", "em"), p("Él ___ es médico.", "es")] });
   assert.deepEqual(t.map(x => x.reponse), ["is", "a", "em"], "« es es » seul écarté");
-  const jp = trousValides({ phrases: [p("Nihon e ___ iku yo.", "wa"), p("私___学生です。", "は")] }, { charBased: true, ecriture: "japonais" });
-  assert.deepEqual(jp.map(x => x.reponse), ["は"]);
+  // Série japonaise : au moins trois phrases exploitables (#125), d'où les deux dernières.
+  const jp = trousValides({ phrases: [p("Nihon e ___ iku yo.", "wa"), p("私___学生です。", "は"), p("私は毎日コーヒーを___。", "飲みます"), p("明日、東京へ___。", "行きます")] },
+    { charBased: true, ecriture: "japonais" });
+  assert.deepEqual(jp.map(x => x.reponse), ["は", "飲みます", "行きます"]);
   assert.equal(phraseComplete(p("a ___ b", "$'")), "a $' b");
   assert.equal(corrigeTrou("は", "は。", { charBased: true }), "juste");
   assert.equal(corrigeTrou("لا", "لا؟"), "juste");
