@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { TROU, bilanTrous, defautJaponais, demandeTrous, formeTeFausse, formesTe, trousValides } from "../app/core/trous.js";
+import { TROU, bilanTrous, defautJaponais, demandeTrous, formeTeFausse, formesTe, repareJaponais, trousValides } from "../app/core/trous.js";
 import { langConfig } from "../app/core/languages.js";
 
 const JA = { charBased: true, ecriture: "japonais" };
@@ -52,6 +52,7 @@ test("defautJaponais : phrases justes gardées (sorties réelles)", () => {
     ["先生、この漢字の読み方を___。", "教えてください"],
     ["あなたは日本語が___か。", "話します"],
     ["今日は雨です。だから傘___。", "を使います"],
+    ["本___読んでからテレビを見ます。", "を"],          // deux verbes, deux を
   ];
   for (const [phrase, reponse] of justes) assert.equal(defautJaponais(phrase, reponse), null, `${phrase} / ${reponse}`);
 });
@@ -72,6 +73,43 @@ test("formesTe : conjugaison de la forme en て", () => {
   assert.ok(formesTe("起きる").includes("起きて"));
   assert.ok(formesTe("帰る").includes("帰って"), "kanji + る : les deux groupes admis");
   assert.deepEqual(formesTe("本"), []);
+});
+
+test("formesTe : depuis la forme polie que donnent souvent les indices (待ちます)", () => {
+  assert.ok(formesTe("待ちます").includes("待って"));
+  assert.ok(formesTe("買います").includes("買って"));
+  assert.ok(formesTe("読みます").includes("読んで"));
+  assert.ok(formesTe("書きます").includes("書いて"));
+  assert.ok(formesTe("食べます").includes("食べて"));
+  assert.ok(formesTe("見ます").includes("見て"));
+  assert.deepEqual(formesTe("行きます"), ["行って"]);
+  assert.deepEqual(formesTe("勉強します"), ["勉強して"]);
+});
+
+test("repareJaponais : le て laissé hors du trou y entre ; le complément passe avant le trou", () => {
+  // Série réelle (forme en て, 13/10) : 3 phrases sur 5 dans ce cas.
+  assert.deepEqual(repareJaponais("少しだけ___てください。", "待っ"), { phrase: "少しだけ___ください。", reponse: "待って" });
+  assert.deepEqual(repareJaponais("公園で___て、写真を撮った。", "お花を見"), { phrase: "公園でお花を___、写真を撮った。", reponse: "見て" });
+  assert.deepEqual(repareJaponais("駅で___を待った。", "電車を待って"), { phrase: "駅で電車を___を待った。", reponse: "待って" });
+  assert.deepEqual(repareJaponais("今日は雨です。だから傘___。", "を使います"), { phrase: "今日は雨です。だから傘を___。", reponse: "使います" });
+  // Euphonie fausse : pas de réparation (読ん + て reste coupé, 読んで s'écrit avec で).
+  assert.deepEqual(repareJaponais("今、新宿で___ている。", "本を読ん"), { phrase: "今、新宿で本を___ている。", reponse: "読ん" });
+  // Rien à réparer.
+  assert.deepEqual(repareJaponais("昼ご飯を___、それから映画を見ました。", "食べて"), { phrase: "昼ご飯を___、それから映画を見ました。", reponse: "食べて" });
+  assert.deepEqual(repareJaponais("これは___です。", "ペン / ぺん"), { phrase: "これは___です。", reponse: "ペン / ぺん" }, "variantes : intactes");
+});
+
+test("bilanTrous : série réelle « forme en て » réparée (le て hors du trou, compléments dans la réponse)", () => {
+  const serie = { phrases: [
+    p("駅に着いてから、___てから、友達に電話をかけた。", "コーヒーを買", "Verbe 'acheter (買います)' à la forme て"),
+    p("今、新宿で ___ている。", "本を読ん", "Verbe 'lire (読みます)' à la forme て + iru"),
+    p("少しだけ ___てください。", "待っ", "Verbe 'attendre (待ちます)' à la forme te-polie"),
+    p("朝は早く起きて、___た。", "朝ごはんを食べ", "Verbe 'manger (食べます)' à la forme て"),
+    p("公園で ___て、写真を撮った。", "お花を見", "Verbe 'regarder (見ます)' à la forme て"),
+  ] };
+  const b = bilanTrous(serie, { ...JA, point: TE });
+  assert.deepEqual(b.ecartees.map(e => `${e.reponse}:${e.motif}`), ["買て:hors-point", "読ん:coupee", "食べ:hors-point"]);
+  assert.equal(b.phrases, null, "deux phrases justes seulement : série écartée");
 });
 
 test("formeTeFausse : contrôlée sur le verbe que donne l'indice", () => {
@@ -129,6 +167,9 @@ test("bilanTrous : trou oublié → la réponse, présente une fois, devient le 
   assert.deepEqual(b.ecartees.map(e => e.motif), ["trou"], "deux occurrences : on ne devine pas");
   const es = trousValides({ phrases: [p("¿Dónde está la estación?", "está")] });
   assert.equal(es[0].phrase, `¿Dónde ${TROU} la estación?`, "mot entier hors japonais (pas « estación »)");
+  // Sortie réelle (allemand, Konjunktiv II, essai de bout en bout) : majuscule en tête.
+  const de = trousValides({ phrases: [p("Hätte der Verkehr sich nicht so verstopft, wäre ich pünktlich gekommen.", "hätte")] });
+  assert.equal(de[0].phrase, `${TROU} der Verkehr sich nicht so verstopft, wäre ich pünktlich gekommen.`);
 });
 
 test("bilanTrous : moins de trois phrases japonaises → série écartée ; autres langues inchangées", () => {
@@ -143,4 +184,22 @@ test("demandeTrous : consignes japonaises (mot entier, forme en て)", () => {
   assert.doesNotMatch(demandeTrous({ cfg: ja, point: "" }), /Forme en て :/);
   assert.match(demandeTrous({ cfg: ja, point: TE }), /Forme en て : CHAQUE réponse est un verbe à la forme en て/);
   assert.doesNotMatch(demandeTrous({ cfg: langConfig("espagnol"), point: "ser y estar" }), /japonais/);
+});
+
+test("repareJaponais et defautJaponais : « 使わ » + « て » n'est ni réparé ni gardé (sortie réelle)", () => {
+  assert.deepEqual(repareJaponais("ここでスマホを___てもいいですか。", "使わ"), { phrase: "ここでスマホを___てもいいですか。", reponse: "使わ" });
+  assert.equal(defautJaponais("ここでスマホを___てもいいですか。", "使わ"), "coupee");
+  assert.equal(defautJaponais("そこ___勉強します。", "で"), null, "そこで : particule, pas une forme en て");
+});
+
+test("bilanTrous : l'exemple de la consigne recopié tel quel est écarté", () => {
+  const serie = { phrases: [
+    p("駅まで___、電車に乗りました。", "歩いて"),
+    p("朝ご飯を___、会社に行きます。", "食べて"),
+    p("今、レポートを___。", "書いています"),
+    p("すみません、この本を___。", "読んでください"),
+  ] };
+  const b = bilanTrous(serie, { ...JA, point: TE });
+  assert.deepEqual(b.ecartees.map(e => e.motif), ["exemple"]);
+  assert.equal(b.phrases.length, 3);
 });

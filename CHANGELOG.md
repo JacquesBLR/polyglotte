@@ -37,17 +37,21 @@ Releases GitHub (commit de chaque version indiqué ci-dessous).
   « 食べて___ています », « 聞きました___しました », « 私は___東京に » / に), soit il trouait
   du vocabulaire (本, 公園), soit la série n'avait pas de trou. Sur « la forme en て », 5
   réponses sur 20 seulement étaient des formes en て, et aucune des 4 séries n'était
-  utilisable. Trois changements :
-  - la consigne japonaise exige un mot entier, et sur « la forme en て » une forme en て
-    dont l'indice donne le verbe au dictionnaire ;
-  - `bilanTrous` écarte les phrases coupées, espacées, doublées ou lexicales, et les formes
-    en て fausses au regard du verbe de l'indice (« 起いて » pour 起きる) ;
-  - une série qui a au moins deux défauts, ou moins de trois phrases exploitables, est
-    écartée en entier, puis redemandée une fois avant le message « réessaie ».
+  utilisable. Quatre changements :
+  - la consigne japonaise exige un mot entier. Sur « la forme en て », elle demande une
+    forme en て, le て dans la réponse et l'indice au dictionnaire, avec un exemple ;
+  - `bilanTrous` répare ce qui se répare : un て laissé hors du trou y entre (待っ + て), et
+    un complément pris dans la réponse passe avant le trou (お花を見て → 見て) ;
+  - il écarte les phrases coupées, espacées, doublées ou lexicales, ainsi que les formes en
+    て fausses au regard du verbe de l'indice (« 起いて » pour 起きる) ;
+  - une série de moins de trois phrases exploitables est écartée en entier, puis
+    redemandée une fois avant le message « réessaie ».
   Un trou oublié par le modèle est reconstitué quand la réponse figure une fois dans la
-  phrase. Avec la nouvelle consigne, sur 2 × 12 séries réelles, 7 sont écartées par le tri
-  et 17 sont gardées. Sur « la forme en て », 33 réponses sur 40 sont des formes en て, et
-  4 séries sur 8 sont utilisables.
+  phrase, ce qui est arrivé aussi en allemand. Avec la consigne finale, sur 20 séries
+  réelles « forme en て », 15 sont utilisables et 74 réponses sur 100 sont des formes en て.
+  Sur 28 séries japonaises de tous points, 6 sont écartées, soit environ 5 % d'échecs
+  après la nouvelle demande. Reste un défaut du modèle, non filtré : un indice sorti en
+  chinois (1 série sur 28).
 
 ## [2.0.0-beta.43] — 2026-10-13
 
