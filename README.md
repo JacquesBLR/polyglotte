@@ -53,8 +53,12 @@ complète mais l'oral est approximatif.
   lue à voix haute avec le texte masqué, puis 3 questions de compréhension en français.
   En conversation, le **mode écoute** masque le texte du tuteur jusqu'à ce que tu le demandes.
 - 🧩 **Texte à trous** : 5 phrases à compléter sur le point de grammaire de ton choix, avec
-  un indice en français. La correction est locale, tolère les accents (« attention à
-  l'accent ») et la phrase complète est lue à voix haute.
+  un indice en français. La correction est locale et la phrase complète est lue à voix
+  haute. Elle tolère les accents (« attention à l'accent »), sauf quand le signe change le
+  mot ou le temps : hätte/hatte, está/esta, habló/hablo, año/ano, têm/tem, é/e, és/es (la
+  liste par langue est dans `app/core/trous.js`). ae, oe, ue et ss restent admis pour ä, ö,
+  ü et ß. En japonais, une série illisible (forme coupée par le trou, kana espacés) est
+  écartée et redemandée une fois, et « la forme en て » troue bien des formes en て.
 - 🎤 **Conversation orale** : reconnaissance vocale dans la langue cible (Web Speech API),
   synthèse vocale avec la meilleure voix disponible, mode mains libres, bouton « réécouter ».
 - 🗣️ **« Répète après moi »** : chaque réplique du tuteur se répète au micro ; les mots

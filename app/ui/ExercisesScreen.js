@@ -9,7 +9,7 @@ import { callModel, hasCredentials } from "../core/api";
 import { gradeAttempt } from "../core/diff";
 import { demandeHistoire, histoireValide, schemaHistoire, scoreHistoire } from "../core/histoire";
 import { exoSystemPrompt } from "../core/prompts";
-import { TROU, corrigeTrou, demandeTrous, phraseComplete, schemaTrous, scoreTrous, trousValides } from "../core/trous";
+import { TROU, bilanTrous, corrigeTrou, demandeTrous, estJuste, phraseComplete, schemaTrous, scoreTrous } from "../core/trous";
 import { EXO_SCHEMA } from "../core/schemas";
 import * as speech from "../speech/speech";
 import { C, Chip, ui } from "./common";
@@ -61,19 +61,27 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
     setBusy(false);
   };
 
+  // Une série écartée (japonais illisible, aucune phrase exploitable) est redemandée UNE fois
+  // avant le message « réessaie » (#125).
   const startTrous = async () => {
     speech.primeSpeech();
     setBusy(true);
     setStatus({ text: "Préparation du texte à trous…", error: false });
     try {
-      const raw = await callModel(settings, {
-        messages: [{ role: "user", content: demandeTrous({ cfg, point }) }],
-        system: exoSystemPrompt({ cfg, level }),
-        schema: schemaTrous({ lecture: !!cfg.reading }),
-        maxTokens: 1500,
-      });
       let t = null;
-      try { t = trousValides(JSON.parse(raw), { charBased: langId === "japonais", ecriture: cfg.ecriture }); } catch (_) { t = null; }
+      for (let essai = 1; essai <= 2 && !t; essai++) {
+        if (essai > 1) setStatus({ text: `Série inutilisable écartée — ${cfg.tutor.name} en prépare une autre…`, error: false });
+        const raw = await callModel(settings, {
+          messages: [{ role: "user", content: demandeTrous({ cfg, point }) }],
+          system: exoSystemPrompt({ cfg, level }),
+          schema: schemaTrous({ lecture: !!cfg.reading }),
+          maxTokens: 1500,
+        });
+        let b = null;
+        try { b = bilanTrous(JSON.parse(raw), { charBased: langId === "japonais", ecriture: cfg.ecriture, point }); } catch (_) { b = null; }
+        t = b?.phrases || null;
+        if (!t) console.info(`[trous] série écartée (essai ${essai})${b?.ecartees?.length ? " : " + b.ecartees.map(e => e.motif).join(", ") : ""}`);
+      }
       if (!t) throw new Error("Le tuteur n'a pas su préparer de phrases à trous — réessaie.");
       setTrous(t);
       setResultats([]);
@@ -90,7 +98,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
   const verifieTrou = () => {
     const p = trous?.[index];
     if (!p || !input.trim() || resultats[index]) return;
-    const r = corrigeTrou(p.reponse, input, { charBased: langId === "japonais" });
+    const r = corrigeTrou(p.reponse, input, { charBased: langId === "japonais", langId });
     setResultats(rs => { const n = [...rs]; n[index] = r; return n; });
     dire(phraseComplete(p));
   };
@@ -286,7 +294,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
             <Text style={st.scoreLine}>{sc.justes} / {sc.total} formes justes</Text>
             {trous.map((t, i) => (
               <Text key={i} style={[st.reading, cfg.rtl && st.rtl]}>
-                {resultats[i] === "faux" ? "✗" : "✓"} {phraseComplete(t)}
+                {estJuste(resultats[i]) ? "✓" : "✗"} {phraseComplete(t)}
               </Text>
             ))}
           </View>
@@ -301,7 +309,7 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         <Text style={ui.sectionTitle}>Texte à trous — phrase {index + 1} / {trous.length}</Text>
         <View style={ui.card}>
           <Text style={[st.sentence, cfg.rtl && st.rtl]}>
-            {avant}<Text style={r ? (r === "faux" ? st.miss : st.ok) : st.trou}>{r ? p.reponse : " ____ "}</Text>{apres}
+            {avant}<Text style={r ? (estJuste(r) ? st.ok : st.miss) : st.trou}>{r ? p.reponse : " ____ "}</Text>{apres}
           </Text>
           {!!p.indice && <Text style={st.reading}>💡 {p.indice}</Text>}
           {r && !!p.reading && <Text style={st.reading}>{p.reading}</Text>}
@@ -324,7 +332,10 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         ) : (
           <View style={ui.card}>
             <Text style={st.scoreLine}>
-              {r === "juste" ? "✓ Juste !" : r === "accent" ? "✓ Juste — attention aux accents et signes diacritiques" : `✗ La forme attendue : ${p.reponse}`}
+              {r === "juste" ? "✓ Juste !"
+                : r === "accent" ? "✓ Juste — attention aux accents et signes diacritiques"
+                : r === "diacritique" ? `✗ La forme attendue : ${p.reponse} — ici le signe change le mot ou le temps, il compte`
+                : `✗ La forme attendue : ${p.reponse}`}
             </Text>
             {r !== "juste" && <Text style={ui.label}>Ta réponse : {input}</Text>}
             <View style={ui.chipRow}>

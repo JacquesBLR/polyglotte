@@ -5,6 +5,54 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.44] — 2026-10-13
+
+### Changed
+- **Diacritiques porteurs de sens** (#125, décision par défaut du 13/10, réversible). Le
+  texte à trous comptait juste une réponse exacte « aux accents près ». Or « hatte » pour
+  « hätte » touchait tout le Konjunktiv II allemand, dont l'umlaut est précisément la forme
+  visée, et « esta » pour « está », « tem » pour « têm » ou « ano » pour « año » sont
+  d'autres mots. Ces réponses sont désormais fausses, avec un message qui le dit : « ici le
+  signe change le mot ou le temps, il compte ». La liste, documentée par langue dans
+  `DIACRITIQUES` (`app/core/trous.js`) :
+  - allemand et suisse allemand : ä, ö, ü ;
+  - espagnol : ñ, l'accent diacritique (tú, él, qué, sé, más…), les formes d'estar (está,
+    esté), et l'accent final qui change le temps (habló/hablo, hablé/hable,
+    hablará/hablara) ;
+  - portugais : ã, õ, ç, des paires comme é/e, têm/tem, pôde/pode, pôr/por, à/a, et
+    falámos/falamos ;
+  - catalan : les accents diacritiques de 2016 (és, més, són, té…), ç, et le passé simple
+    (cantà/canta).
+  Le même principe a été étendu, au-delà des exemples de la décision, au ç, aux paires
+  portugaises et au catalan. Les autres accents (difícil, también, aquí, você, sóc) restent
+  tolérés avec avertissement, tout comme ae, oe, ue et ss pour ä, ö, ü et ß, faute de touche
+  sur un clavier français. Essai réel via gw, 8 séries (allemand, espagnol, portugais,
+  catalan) : sur 15 réponses saisies sans leurs signes, 12 passent de « juste » à
+  « faux » (és, són, está ×3, é, são, visité, würde, hätte, wäre, « bermüllt » sic) et 3 restent
+  tolérées (estàs, enfrentarían, desí). Les 4 saisies « ae/oe/ue » restent justes.
+
+### Fixed
+- **Texte à trous japonais illisible** (#125). Sur 12 séries réelles du résident via gw, 9
+  n'étaient pas utilisables. Soit le trou coupait une forme (« 読ん___て » donnait 読んて,
+  « 食べて___ています », « 聞きました___しました », « 私は___東京に » / に), soit il trouait
+  du vocabulaire (本, 公園), soit la série n'avait pas de trou. Sur « la forme en て », 5
+  réponses sur 20 seulement étaient des formes en て, et aucune des 4 séries n'était
+  utilisable. Quatre changements :
+  - la consigne japonaise exige un mot entier. Sur « la forme en て », elle demande une
+    forme en て, le て dans la réponse et l'indice au dictionnaire, avec un exemple ;
+  - `bilanTrous` répare ce qui se répare : un て laissé hors du trou y entre (待っ + て), et
+    un complément pris dans la réponse passe avant le trou (お花を見て → 見て) ;
+  - il écarte les phrases coupées, espacées, doublées ou lexicales, ainsi que les formes en
+    て fausses au regard du verbe de l'indice (« 起いて » pour 起きる) ;
+  - une série de moins de trois phrases exploitables est écartée en entier, puis
+    redemandée une fois avant le message « réessaie ».
+  Un trou oublié par le modèle est reconstitué quand la réponse figure une fois dans la
+  phrase, ce qui est arrivé aussi en allemand. Avec la consigne finale, sur 20 séries
+  réelles « forme en て », 15 sont utilisables et 74 réponses sur 100 sont des formes en て.
+  Sur 28 séries japonaises de tous points, 6 sont écartées, soit environ 5 % d'échecs
+  après la nouvelle demande. Reste un défaut du modèle, non filtré : un indice sorti en
+  chinois (1 série sur 28).
+
 ## [2.0.0-beta.43] — 2026-10-13
 
 ### Fixed

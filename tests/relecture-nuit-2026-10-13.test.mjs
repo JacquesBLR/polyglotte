@@ -27,7 +27,10 @@ test("trous : un trou noté « __ » (deux soulignés) n'écarte plus tout l'exe
     `En el barrio de Triana, la gente ${TROU} amable y simpática.`,
     `No sé dónde ${TROU} el Museo de Bellas Artes.`,
   ]);
-  const jp = trousValides({ phrases: [p("私＿＿＿学生です。", "は")] }, { charBased: true, ecriture: "japonais" });
+  // Une série japonaise compte au moins trois phrases exploitables (#125) : deux phrases justes
+  // complètent la série, le test porte sur la première.
+  const jp = trousValides({ phrases: [p("私＿＿＿学生です。", "は"), p("私は毎日コーヒーを___。", "飲みます"), p("明日、東京へ___。", "行きます")] },
+    { charBased: true, ecriture: "japonais" });
   assert.equal(jp?.[0].phrase, `私${TROU}学生です。`, "soulignés pleine chasse ramenés à ___");
 });
 
