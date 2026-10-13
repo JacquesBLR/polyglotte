@@ -5,6 +5,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.43] — 2026-10-13
+
+### Fixed
+Défauts confirmés par la relecture adverse de la nuit du 12 au 13/10 (#125), chacun avec un
+test rouge sur 2.0.0-beta.42 (`tests/relecture-nuit-2026-10-13.test.mjs`) :
+- **Leçon et niveau validés sans un mot de la langue** (#119, #120). Le tuteur cochait les
+  missions d'un message écrit en français ou en anglais, malgré la consigne. Via gw, 12
+  messages hors langue sur 12 cochaient au moins une mission, et 7 les trois. Dans l'app,
+  « Commander à boire et à manger » en catalan se validait sur un seul message en français,
+  et le bilan, donc le niveau, de même. Le schéma du tour déclare désormais `langue_cible`
+  juste avant `missions_accomplies`, et la consigne dit qu'un message dans une autre langue
+  n'accomplit aucune mission. L'app ne crédite rien quand le modèle répond false
+  (`accompliesDuTour`). Après : 0 message hors langue sur 12, 10 sur 10 en langue cible ;
+  rōmaji et arabizi comptent toujours. La consigne seule en laissait passer 4 sur 12.
+- **Texte à trous écarté en entier** (#124) quand le modèle note le trou `__` (deux
+  soulignés, sortie réelle en espagnol) : il est désormais ramené au trou, comme les
+  soulignés pleine chasse.
+- **Règle « réponse collée au trou »** (#124) : elle ne joue plus à travers une ponctuation
+  (« wohnen ___, würde ich » / würde était écartée), et elle ignore la voyellation arabe
+  (« هو ___ طالب » / طالِب passait).
+- **Indice retiré à tort** (#124) : « 2e personne » ne passe plus pour la réponse « é ».
+
+Restent à Jacques (#125) : la tolérance des accents (« esta », et aussi « hatte » pour
+« hätte » dans tout le Konjunktiv II), la qualité du texte à trous en japonais, et
+l'attente des histoires avancées (55 à 111 s).
+
 ## [2.0.0-beta.42] — 2026-10-12
 
 ### Added

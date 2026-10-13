@@ -28,7 +28,9 @@ export const MISSION_PAR_NIVEAU = {
 // peut pas le savoir — l'historique ne porte que ses répliques —, et « ou à ton prochain
 // tour si tu ne l'as pas encore fait » ne le décidait qu'une fois sur deux (sondé : 2/4).
 // L'app le lui dit donc explicitement.
-export function blocMissionsPrompt(level, missions = [], enRetard = false) {
+// `langue` : nom de la langue cible (« espagnol »), pour la règle de langue des missions
+// accomplies (relecture de la nuit du 13/10).
+export function blocMissionsPrompt(level, missions = [], enRetard = false, langue = "la langue cible") {
   const gradation = MISSION_PAR_NIVEAU[level];
   if (!gradation) return "";
   const liste = missionsValides(missions);
@@ -47,9 +49,21 @@ ${liste.map((m, i) => `  ${i + 1}. ${m}`).join("\n")}
   // "missions_accomplies" n'est au schéma du tour que s'il y a des missions à cocher (#103).
   if (!liste.length) return choix;
   return `${choix}
-- "missions_accomplies" : numéros (1 à ${liste.length}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, dans la
-  langue cible et de façon compréhensible même avec des fautes. N'invente aucune réussite ; tableau vide s'il n'a rien
-  accompli de nouveau. Quand toutes sont accomplies, félicite-le brièvement dans "reply" et propose de conclure.`;
+- "langue_cible" : true si le dernier message de l'élève est écrit en ${langue}, même avec des fautes ; false s'il est en
+  français, en anglais ou dans une autre langue, et au message "[START]".
+- "missions_accomplies" : numéros (1 à ${liste.length}) des missions que l'élève vient d'ACCOMPLIR dans son dernier message, en
+  ${langue}, de façon compréhensible même avec des fautes. Un message écrit dans une autre langue n'accomplit AUCUNE mission,
+  même s'il dit ce qu'il faut : tableau vide, et invite-le à le redire en ${langue}. N'invente aucune réussite ; tableau
+  vide s'il n'a rien accompli de nouveau. Quand toutes sont accomplies, félicite-le brièvement dans "reply" et propose de conclure.`;
+}
+
+// Missions à créditer pour ce tour (relecture de la nuit du 13/10) : aucune quand le modèle
+// déclare que le dernier message de l'élève n'est pas dans la langue cible — sans quoi une
+// leçon du parcours, puis un niveau, se validaient sur des messages en français. Champ absent
+// (serveur sans sortie structurée) : les numéros déclarés comptent, comme avant.
+export function accompliesDuTour(data) {
+  if (!data || typeof data !== "object" || data.langue_cible === false) return [];
+  return Array.isArray(data.missions_accomplies) ? data.missions_accomplies : [];
 }
 
 // Missions annoncées par le modèle : chaînes non vides, nettoyées, dédoublonnées (casse

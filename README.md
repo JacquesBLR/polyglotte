@@ -39,7 +39,8 @@ complète mais l'oral est approximatif.
 
 - 📚 **Parcours guidé** : 30 leçons de A1 à C1 (6 par niveau CECRL), communes aux 10 langues
   et ancrées dans la ville du tuteur. Chaque leçon a trois objectifs « je peux », cochés en
-  conversation, ainsi qu'un point de grammaire et un lexique que le tuteur fait réemployer.
+  conversation quand tu les accomplis dans la langue (un message en français n'en coche
+  aucun), ainsi qu'un point de grammaire et un lexique que le tuteur fait réemployer.
   L'accueil propose la prochaine leçon ; rien n'est verrouillé. Un **bilan** clôt chaque
   niveau CECRL : trois missions tirées dans trois leçons différentes, et le niveau validé 🏅.
   Chaque leçon peut se **préparer** : 5 phrases clés à écouter avant de parler, que le

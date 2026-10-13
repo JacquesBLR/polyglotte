@@ -65,7 +65,7 @@ export const RESPONSE_SCHEMA = {
     missions_accomplies: {
       type: "array",
       items: { type: "integer" },
-      description: "Numéros (1 à 3) des missions que l'élève vient d'accomplir dans son dernier message. Vide sinon.",
+      description: "Numéros (1 à 3) des missions que l'élève vient d'accomplir DANS LA LANGUE CIBLE dans son dernier message. Vide sinon.",
     },
   },
   required: ["reply", "translation", "reading", "correction", "suggestions", "cultural_note", "vocabulary", "missions", "missions_accomplies"],
@@ -243,6 +243,19 @@ const sansCles = (schema, cles) => {
   return { ...schema, properties, required: schema.required.filter(k => !cles.has(k)) };
 };
 
+// Langue du dernier message de l'élève (relecture de la nuit du 13/10). Une mission ne doit
+// être cochée que si l'élève l'a accomplie DANS la langue cible ; la consigne seule ne tenait
+// pas : via gw, 12 messages en français ou en anglais sur 12 cochaient au moins une mission
+// (7 les trois), si bien qu'une leçon du parcours — et par elle un niveau — se validait sans un
+// mot de la langue. Le modèle déclare donc la langue juste avant les numéros, et l'app ne
+// crédite rien quand il répond false (`accompliesDuTour`, mission.js). Hors de RESPONSE_SCHEMA,
+// schéma complet de référence inchangé : schemaTour l'ajoute devant `missions_accomplies`, et
+// seulement avec lui.
+export const LANGUE_CIBLE_FIELD = {
+  type: "boolean",
+  description: "true si le DERNIER message de l'élève est écrit dans la langue cible (même avec des fautes) ; false s'il est en français, en anglais ou dans une autre langue, ou s'il n'y a pas de message de l'élève ([START]).",
+};
+
 export function schemaTour({ lecture = true, immersion = false, nbMissions = 0, missions = true } = {}) {
   const retire = new Set();
   if (!lecture) retire.add("reading");
@@ -255,6 +268,15 @@ export function schemaTour({ lecture = true, immersion = false, nbMissions = 0, 
   if (!lecture) {
     const voc = RESPONSE_SCHEMA.properties.vocabulary;
     schema.properties.vocabulary = { ...voc, items: sansCles(voc.items, new Set(["reading"])) };
+  }
+  if ("missions_accomplies" in schema.properties) {
+    const properties = {};
+    for (const [cle, valeur] of Object.entries(schema.properties)) {
+      if (cle === "missions_accomplies") properties.langue_cible = LANGUE_CIBLE_FIELD;
+      properties[cle] = valeur;
+    }
+    schema.properties = properties;
+    schema.required = [...schema.required.filter(k => k !== "missions_accomplies"), "langue_cible", "missions_accomplies"];
   }
   return schema;
 }

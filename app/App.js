@@ -12,7 +12,7 @@ import { retireProvisoire } from "./core/messages";
 import { BASE_SCENARIOS, LANGUAGES, langConfig } from "./core/languages";
 import { ajouteErreur, erreursAMarquer, erreursAReactiver, marqueReactivees } from "./core/erreurs";
 import { addVocabulary } from "./core/leitner";
-import { fusionneAtteints, messageMission, missionsValides } from "./core/mission";
+import { accompliesDuTour, fusionneAtteints, messageMission, missionsValides } from "./core/mission";
 import {
   devine, entreeMystere, expurge, intitule, messageRevelation, QUESTIONS_MIN, SCENARIO_MYSTERE, tireMystere,
 } from "./core/mystere";
@@ -517,7 +517,8 @@ export default function App() {
           // Aucune mission au [START] : le tour suivant les exige explicitement (M5).
           else s.system = buildTutorPrompt({ ...s.ctx, missionsEnRetard: true });
         } else {
-          const atteintes = fusionneAtteints(s.missions.atteintes, data.missions_accomplies, s.missions.liste.length);
+          // Seulement si l'élève a écrit dans la langue cible (relecture de la nuit du 13/10).
+          const atteintes = fusionneAtteints(s.missions.atteintes, accompliesDuTour(data), s.missions.liste.length);
           statutMission = messageMission(s.missions.liste, atteintes, atteintes.length - s.missions.atteintes.length) || "";
           if (s.lecon && statutMission && atteintes.length >= s.missions.liste.length) {
             statutMission = s.lecon.bilan
