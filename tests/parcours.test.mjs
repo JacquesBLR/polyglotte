@@ -83,7 +83,7 @@ test("prompt : la leçon remplace le scénario, ancre la ville et fixe les missi
   assert.match(p, /LEÇON DU PARCOURS « Commander à boire et à manger » \(niveau A1/);
   assert.ok(p.includes("Séville"), "situation ancrée dans la ville du tuteur");
   assert.ok(!p.includes("{ville}"));
-  assert.ok(p.includes(blocMissionsPrompt("debutant", lecon.missions)), "missions déjà fixées, à cocher");
+  assert.ok(p.includes(blocMissionsPrompt("debutant", lecon.missions, false, "espagnol")), "missions déjà fixées, à cocher");
   assert.match(p, /missions_accomplies/);
   // Le schéma du tour n'a plus à demander de missions (elles sont fixées).
   const sch = schemaTour({ lecture: false, nbMissions: lecon.missions.length });

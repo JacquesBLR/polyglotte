@@ -44,6 +44,9 @@ export function scenarioInstructions(cfg, scenarioId) {
   }[scenarioId];
 }
 
+// Nom nu de la langue (« l'espagnol » → « espagnol ») : « écrit en espagnol ».
+const nomLangue = (cfg) => cfg.langFr.replace(/^l[ea'’]\s*/i, "");
+
 // Écriture imposée à "reply" (#107) : contrôlée après le tour, elle est aussi dite au modèle.
 const regleEcriture = (cfg) => (LIBELLES[cfg.ecriture] ? `, écrite dans ${LIBELLES[cfg.ecriture]}` : "");
 
@@ -88,7 +91,7 @@ export function buildTutorPrompt(ctx) {
   // Personnage mystère (#105) : pas de missions, le jeu est l'objectif.
   const blocObjectif = scenarioId === SCENARIO_MYSTERE
     ? blocMystere(level, mystere, !!cfg.tutor.f)
-    : blocMissionsPrompt(level, missions, !!missionsEnRetard);
+    : blocMissionsPrompt(level, missions, !!missionsEnRetard, nomLangue(cfg));
   const role = cfg.tutor.f ? "une tutrice chaleureuse et encourageante" : "un tuteur chaleureux et encourageant";
   // Langue à alphabet latin : le schéma du tour n'a pas de champ "reading" (#103), la
   // consigne disparaît avec lui.
@@ -126,7 +129,7 @@ ${readingRule}${correctionRules}
   de l'élève), utiles à mémoriser : terme en langue cible, traduction française${cfg.reading ? ", translittération latine" : ""}.
   Tableau vide si rien de notable — ne remplis jamais artificiellement.
 ${blocObjectif}
-- Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser.
+- Si l'élève parle français, réponds quand même dans la langue cible (simplement), sans le pénaliser — mais un message en français n'accomplit aucune mission.
 - Le message spécial "[START]" signifie que l'élève démarre la conversation : salue-le dans la langue cible et lance le scénario.
 - Note : l'historique ne contient que tes répliques dans la langue cible, sans les traductions ni corrections précédentes.`;
 }

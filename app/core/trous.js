@@ -53,11 +53,13 @@ const chaine = (v) => (typeof v === "string" ? v.trim() : "");
 const occurrences = (t, motif) => t.split(motif).length - 1;
 
 // L'indice contient-il la réponse ? (il la donnerait). Mot entier en écriture à espaces,
-// sous-chaîne sinon (japonais, arabe sans espaces entre particule et mot).
+// sous-chaîne sinon (japonais, arabe sans espaces entre particule et mot). Les chiffres
+// comptent dans le mot : « 2e personne » ne contient pas la réponse « é » (relecture de la
+// nuit du 13/10 : l'indice était retiré pour tout « é » portugais).
 function indiceDonneReponse(indice, reponse) {
   const i = normalise(indice, { sansAccents: true });
   return reponse.split("/").map(v => normalise(v, { sansAccents: true })).filter(Boolean).some(v => {
-    if (/[a-z]/.test(v)) return new RegExp(`(^|[^\\p{L}])${v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}])`, "u").test(i);
+    if (/[a-z]/.test(v)) return new RegExp(`(^|[^\\p{L}\\p{N}])${v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "u").test(i);
     return i.includes(v);
   });
 }
@@ -79,7 +81,9 @@ export function trousValides(data, { charBased = false, ecriture = null } = {}) 
   const ok = [];
   for (const p of brut) {
     if (!p || typeof p !== "object") continue;
-    const phrase = chaine(p.phrase).replace(/_{3,}/g, TROU);
+    // Trou noté « __ » ou en soulignés pleine chasse : ramené à TROU (relecture de la nuit du
+    // 13/10 : un exercice entier noté « __ » était écarté, l'élève lisait « réessaie »).
+    const phrase = chaine(p.phrase).replace(/[_＿]{2,}/g, TROU);
     const reponse = chaine(p.reponse);
     if (!reponse || occurrences(phrase, TROU) !== 1) continue;
     const [avant, apres] = phrase.split(TROU).map(t => t.trim());
@@ -87,10 +91,15 @@ export function trousValides(data, { charBased = false, ecriture = null } = {}) 
     if (charBased) {
       if (avant.endsWith(premiere) || apres.startsWith(premiere)) continue;
     } else {
-      const bord = (t) => normalise(t).split(" ").filter(Boolean);
-      const mots = normalise(premiere).split(" ");
-      const av = bord(avant), ap = bord(apres);
-      if (mots.length === 1 && (av[av.length - 1] === mots[0] || ap[0] === mots[0])) continue; // « es es »
+      // Voisin immédiat seulement : une ponctuation entre le trou et le mot les sépare
+      // (« wohnen ___, würde ich » / würde est correct). Comparaison sans voyellation arabe,
+      // facultative à l'écrit : elle masquait « طالِب طالب » (relecture de la nuit du 13/10).
+      // Les accents latins, eux, distinguent des mots : « ¿Dónde está esta calle? » est juste.
+      const sans = (t) => normalise(t).replace(/[\u064b-\u065f\u0670\u0640]/g, "");
+      const mot = sans(premiere);
+      const avN = /[\p{L}\p{M}\p{N}]$/u.test(avant) ? sans(avant).split(" ").at(-1) : null;
+      const ap0 = /^[\p{L}\p{M}\p{N}]/u.test(apres) ? sans(apres).split(" ")[0] : null;
+      if (!mot.includes(" ") && (avN === mot || ap0 === mot)) continue; // « es es »
     }
     if (ecriture && !ecritureConforme(phrase.replace(TROU, premiere), ecriture)) continue;
     let indice = chaine(p.indice);
