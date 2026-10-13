@@ -445,3 +445,12 @@ export function scoreTrous(resultats) {
   const justes = r.filter(estJuste).length;
   return { justes, total: r.length };
 }
+
+// Progression pendant la génération (#125) : phrases complètes reçues sur NB_PHRASES (une
+// phrase est complète quand son dernier champ, « traduction » ou « reading », est arrivé).
+export function progressionTrous(buffer, { lecture = true } = {}) {
+  const b = typeof buffer === "string" ? buffer : "";
+  const n = (b.match(lecture ? /"reading"\s*:/g : /"traduction"\s*:/g) || []).length;
+  const faites = Math.min(n, NB_PHRASES);
+  return { faites, part: Math.min(Math.round((faites / NB_PHRASES) * 100) / 100, 0.99) };
+}

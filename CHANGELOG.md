@@ -5,6 +5,29 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.45] — 2026-10-13
+
+### Changed
+- **Histoires avancées plus courtes, et une progression pendant l'attente** (#125, décision
+  par défaut du 13/10, sans changement de modèle). Une histoire intermédiaire ou avancée
+  en japonais, arabe ou tunisien prenait 55 à 111 s, sous un statut fixe « prépare une
+  histoire… », sans flux ni repère. Deux changements :
+  - **longueur bornée** : la consigne fixe un plafond de 40, 70 ou 100 mots selon le
+    niveau (250 caractères en japonais pour l'avancé), avec 6 à 7 phrases au lieu de 8 à
+    10 en avancé et des choix de réponse courts. L'avancé garde ses registres, ses
+    sous-entendus et son expression idiomatique ;
+  - **progression** : sur le moteur local, la réponse arrive désormais en flux. Une barre
+    affiche l'étape (« Yuki écrit l'histoire… », « écrit la transcription », « traduit
+    l'histoire », « prépare les questions »), une part estimée d'après le JSON reçu et les
+    secondes écoulées. Avec Claude, seules les secondes s'affichent. Le texte à trous, qui
+    prend 20 à 60 s, a la même barre (« écrit la phrase 3 sur 5 »).
+  Mesures réelles via gw. Avancé, un appel à la fois : japonais 76 → 35 s, arabe 98 → 54 s,
+  tunisien 95 → 68 s, soit 1 063 à 1 314 jetons avant et 469 à 753 après. Lot de 8
+  histoires (4 en parallèle, 5 langues) : médiane 74 → 37 s, maximum 100 → 57 s. Les 22
+  histoires générées sont valides, avec leurs 3 questions. Essai dans Chromium avec flux
+  réel : 78 états de progression, de 0 à 99 %, toujours croissants, à travers les cinq
+  étapes. L'histoire s'affiche masquée, avec ses 3 questions et son score.
+
 ## [2.0.0-beta.44] — 2026-10-13
 
 ### Changed

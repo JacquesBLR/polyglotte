@@ -51,6 +51,9 @@ complète mais l'oral est approximatif.
   sur les points étudiés.
 - 📖 **Histoires à écouter** : une courte histoire au niveau, ancrée dans la ville du tuteur,
   lue à voix haute avec le texte masqué, puis 3 questions de compréhension en français.
+  Sa longueur est bornée (40, 70 ou 100 mots selon le niveau). Pendant qu'elle s'écrit,
+  une barre montre l'étape (histoire, transcription, traduction, questions) et le temps
+  écoulé, comme pour le texte à trous.
   En conversation, le **mode écoute** masque le texte du tuteur jusqu'à ce que tu le demandes.
 - 🧩 **Texte à trous** : 5 phrases à compléter sur le point de grammaire de ton choix, avec
   un indice en français. La correction est locale et la phrase complète est lue à voix

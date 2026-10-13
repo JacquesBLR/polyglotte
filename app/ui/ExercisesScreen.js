@@ -6,10 +6,11 @@ import { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { callModel, hasCredentials } from "../core/api";
+import { streamOrCallLocal } from "../core/stream";
 import { gradeAttempt } from "../core/diff";
-import { demandeHistoire, histoireValide, schemaHistoire, scoreHistoire } from "../core/histoire";
+import { demandeHistoire, histoireValide, progressionHistoire, schemaHistoire, scoreHistoire } from "../core/histoire";
 import { exoSystemPrompt } from "../core/prompts";
-import { TROU, bilanTrous, corrigeTrou, demandeTrous, estJuste, phraseComplete, schemaTrous, scoreTrous } from "../core/trous";
+import { TROU, bilanTrous, corrigeTrou, demandeTrous, estJuste, phraseComplete, progressionTrous, schemaTrous, scoreTrous } from "../core/trous";
 import { EXO_SCHEMA } from "../core/schemas";
 import * as speech from "../speech/speech";
 import { C, Chip, ui } from "./common";
@@ -34,18 +35,35 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
   const [trous, setTrous] = useState(null);
   const [resultats, setResultats] = useState([]);
   const dire = (texte) => speech.speak(texte, { ttsPrefixes: cfg.ttsPrefixes, stt: cfg.stt, support: cfg.support, voixServeur: cfg.voixServeur, langue: cfg.label, rate: settings.rate });
+  // Progression d'une génération longue (#125) : { libelle, part (null sans flux), secondes }.
+  const [progression, setProgression] = useState(null);
+
+  // Appel du modèle avec progression : en flux sur le moteur local (étape et part estimée
+  // d'après le JSON reçu), sinon le seul temps écoulé. `etat(buffer)` rend { libelle, part }.
+  const appelSuivi = async (opts, etat, libelle) => {
+    const t0 = Date.now();
+    setProgression({ libelle, part: null, secondes: 0 });
+    const minuteur = setInterval(() => setProgression(p => p && { ...p, secondes: Math.round((Date.now() - t0) / 1000) }), 1000);
+    try {
+      if (settings.provider !== "local") return await callModel(settings, opts);
+      return await streamOrCallLocal(settings, { ...opts, onDelta: (buf) => setProgression(p => p && { ...p, ...etat(buf) }) });
+    } finally {
+      clearInterval(minuteur);
+      setProgression(null);
+    }
+  };
 
   const startHistoire = async () => {
     speech.primeSpeech();
     setBusy(true);
-    setStatus({ text: `${cfg.tutor.name} prépare une histoire…`, error: false });
+    setStatus({ text: "", error: false });
     try {
-      const raw = await callModel(settings, {
+      const raw = await appelSuivi({
         messages: [{ role: "user", content: demandeHistoire({ cfg, level }) }],
         system: exoSystemPrompt({ cfg, level }),
         schema: schemaHistoire({ lecture: !!cfg.reading }),
         maxTokens: 2000,
-      });
+      }, (buf) => progressionHistoire(buf, { lecture: !!cfg.reading, level, ecriture: cfg.ecriture }), "prépare une histoire");
       let h = null;
       try { h = histoireValide(JSON.parse(raw)); } catch (_) { h = null; }
       if (!h) throw new Error("Le tuteur n'a pas su écrire l'histoire — réessaie.");
@@ -66,17 +84,20 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
   const startTrous = async () => {
     speech.primeSpeech();
     setBusy(true);
-    setStatus({ text: "Préparation du texte à trous…", error: false });
+    setStatus({ text: "", error: false });
     try {
       let t = null;
       for (let essai = 1; essai <= 2 && !t; essai++) {
         if (essai > 1) setStatus({ text: `Série inutilisable écartée — ${cfg.tutor.name} en prépare une autre…`, error: false });
-        const raw = await callModel(settings, {
+        const raw = await appelSuivi({
           messages: [{ role: "user", content: demandeTrous({ cfg, point }) }],
           system: exoSystemPrompt({ cfg, level }),
           schema: schemaTrous({ lecture: !!cfg.reading }),
           maxTokens: 1500,
-        });
+        }, (buf) => {
+          const pr = progressionTrous(buf, { lecture: !!cfg.reading });
+          return { libelle: `écrit la phrase ${Math.min(pr.faites + 1, 5)} sur 5`, part: pr.part };
+        }, "prépare le texte à trous");
         let b = null;
         try { b = bilanTrous(JSON.parse(raw), { charBased: langId === "japonais", ecriture: cfg.ecriture, point }); } catch (_) { b = null; }
         t = b?.phrases || null;
@@ -215,6 +236,16 @@ export default function ExercisesScreen({ settings, cfg, langId, level, onOpenSe
         <Pressable onPress={() => start("trous")} disabled={busy} style={ui.secondaryBtn}>
           <Text style={ui.secondaryBtnText}>🧩 Texte à trous — complète la forme</Text>
         </Pressable>
+        {!!progression && (
+          <View style={st.progression} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progression.part === null ? undefined : Math.round(progression.part * 100) }}>
+            <Text style={ui.status}>
+              {cfg.tutor.name} {progression.libelle}…{progression.part === null ? "" : ` ${Math.round(progression.part * 100)} %`} · {progression.secondes} s
+            </Text>
+            {progression.part !== null && (
+              <View style={st.barre}><View style={[st.barrePleine, { width: `${Math.max(3, Math.round(progression.part * 100))}%` }]} /></View>
+            )}
+          </View>
+        )}
         {!!status.text && <Text style={[ui.status, status.error && ui.statusError]}>{status.text}</Text>}
         <Text style={{ color: C.faint, fontSize: 12, marginTop: 8 }}>
           Dictée et prononciation : 5 phrases adaptées à ton niveau, notées mot à mot (la
@@ -438,6 +469,9 @@ const st = StyleSheet.create({
   miss: { color: C.error, textDecorationLine: "underline" },
   scoreLine: { fontSize: 17, fontWeight: "700", color: C.primary },
   histoire: { fontSize: 17, color: C.text, lineHeight: 25 },
+  progression: { gap: 6, marginTop: 4 },
+  barre: { height: 6, borderRadius: 3, backgroundColor: C.border, overflow: "hidden" },
+  barrePleine: { height: 6, borderRadius: 3, backgroundColor: C.primary },
   traduction: { fontSize: 14, color: C.muted, lineHeight: 21 },
   question: { fontSize: 15, fontWeight: "600", color: C.text },
   choix: { borderWidth: 1, borderColor: C.border, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12 },
