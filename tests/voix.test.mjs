@@ -66,3 +66,36 @@ test("langue qui préfère le serveur, repli épuisé : le navigateur reprend la
     "local",
   );
 });
+
+test("iPhone : le serveur vocal passe devant la voix du navigateur, même en support full", () => {
+  // #129 : la voix de l'iPhone se tait en mode silencieux ; l'élément audio du serveur non.
+  // Constaté le 27/10 : séances en langue « full » sans aucun /tts côté serveur, et sans son.
+  assert.equal(
+    choisitVoix({ support: "full", appareilIos: true, voixNavigateur: true, distantDisponible: true }),
+    "distant",
+  );
+});
+
+test("iPhone sans serveur vocal (ou langue sans voix serveur) : la voix de l'iPhone", () => {
+  assert.equal(
+    choisitVoix({ support: "full", appareilIos: true, voixNavigateur: true, distantDisponible: false }),
+    "local",
+  );
+});
+
+test("iPhone, serveur en échec : repli sur la voix de l'iPhone, sans boucle", () => {
+  assert.equal(
+    choisitVoix({
+      support: "full", appareilIos: true, voixNavigateur: true,
+      distantDisponible: true, repliEpuise: true,
+    }),
+    "local",
+  );
+});
+
+test("hors iPhone, langue full : la voix du navigateur reste préférée", () => {
+  assert.equal(
+    choisitVoix({ support: "full", appareilIos: false, voixNavigateur: true, distantDisponible: true }),
+    "local",
+  );
+});

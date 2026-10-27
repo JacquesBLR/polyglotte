@@ -12,14 +12,21 @@
 // reconnaissance vocale parfaite dans le navigateur, mais une voix de synthèse médiocre sur
 // iOS (voix « compacte »). Il demande donc le serveur pour la synthèse seule, là où
 // `support: "partial"` dirait aussi « route le micro vers Whisper, et préviens l'élève ».
+//
+// `appareilIos` est une préférence d'appareil (#129) : sur iPhone, la voix du navigateur
+// (`speechSynthesis`) se tait en mode silencieux, alors que l'élément audio du serveur
+// vocal joue malgré l'interrupteur. Toute langue y passe donc par le serveur quand il est
+// là ; la voix de l'iPhone ne sert plus qu'en repli. Le japonais, sans voix sur le
+// serveur, y retombe : speech.web.js le retient et ne le renvoie plus au serveur.
 export function choisitVoix({
   support,
   voixServeur = false,
+  appareilIos = false,
   voixNavigateur = false,
   distantDisponible = false,
   repliEpuise = false,
 } = {}) {
-  const viseServeur = support === "partial" || voixServeur;
+  const viseServeur = support === "partial" || voixServeur || appareilIos;
   if (viseServeur && distantDisponible && !repliEpuise) return "distant";
   if (voixNavigateur) return "local";
   if (distantDisponible && !repliEpuise) return "distant";

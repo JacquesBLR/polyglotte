@@ -22,13 +22,38 @@ const remote = { url: "", onAvis: null };
 
 // Signalés une fois chacun, pas à chaque phrase : répéter le même avertissement à chaque
 // réplique noierait la conversation. Les drapeaux retombent à chaque changement de réglage.
-const avisDonnes = { muet: false, repli: false };
+const avisDonnes = { muet: false, repli: false, silencieux: false };
+
+// Langues pour lesquelles le serveur vocal a répondu 404 (pas de voix Piper : japonais).
+// Sur iPhone, où toute langue vise le serveur (#129), elles n'y sont plus renvoyées à
+// chaque phrase. Remis à zéro avec les réglages : le serveur a pu gagner une voix.
+const sansVoixServeur = new Set();
 
 export function configure({ voiceUrl, onAvis } = {}) {
   remote.url = (voiceUrl || "").trim().replace(/\/+$/, "");
   remote.onAvis = onAvis || null;
   avisDonnes.muet = false;
   avisDonnes.repli = false;
+  avisDonnes.silencieux = false;
+  sansVoixServeur.clear();
+}
+
+// iPhone ou iPad, app installée ou Safari. Un iPad récent se présente comme un Mac : on le
+// reconnaît à son écran tactile.
+function appareilIos() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent || "")
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+// La voix de l'iPhone se tait en mode silencieux, sans erreur ni événement (#129) : rien
+// ne permet de le détecter. Le dire une fois, quand c'est elle qui lit.
+function signaleSilencieux() {
+  avise(
+    "silencieux",
+    "La réponse est lue par la voix de l'iPhone : elle reste muette en mode silencieux. "
+    + "Si tu n'entends rien, désactive le mode silencieux.",
+  );
 }
 
 function avise(cle, texte) {
@@ -61,7 +86,8 @@ function signaleRepli(opts) {
   }
   // Langue qui préfère le serveur pour la seule qualité de la voix (#79) : le repli reste
   // dans la bonne langue, mais se reconnaît à l'oreille. Le dire évite de croire l'app cassée.
-  if (opts.voixServeur) {
+  // Sur iPhone (#129), le repli peut même être muet : signaleSilencieux() s'en charge.
+  if (opts.voixServeur && !appareilIos()) {
     avise(
       "repli",
       "Serveur vocal injoignable : la réponse est lue par la voix du navigateur, de moins "
@@ -106,24 +132,40 @@ async function pumpRemote() {
   rPlaying = true;
   const job = rQueue.shift();
   const gen = rGen;
+  let fini = false; // une phrase ne se termine qu'une fois (pause puis ended, erreur…)
+  // `fallback` : "panne" (serveur injoignable, à signaler), "sans-voix" (404 : le serveur
+  // n'a pas de voix pour cette langue) ou "refus" (l'audio est arrivé mais iOS en a refusé
+  // la lecture, app en arrière-plan par exemple). Seule la panne est signalée comme telle.
   const done = (fallback) => {
+    if (fini) return;
+    fini = true;
     if (gen !== rGen) return; // arrêté entre-temps : ne pas relancer la file
     rPlaying = false;
     // Repli voix du navigateur. `repliEpuise` interdit de revenir au serveur : sans lui,
     // un appareil sans voix renverrait la phrase au serveur qui vient d'échouer.
     if (fallback) {
-      signaleRepli(job.opts);
+      if (fallback === "panne") signaleRepli(job.opts);
       speak(job.text, { ...job.opts, queue: true, repliEpuise: true });
     }
     else if (job.opts.onEnd) job.opts.onEnd();
     pumpRemote();
   };
+  // Langue découverte sans voix serveur pendant que cette phrase attendait dans la file.
+  if (sansVoixServeur.has(job.opts.stt || "")) {
+    done("sans-voix");
+    return;
+  }
   try {
     const resp = await fetch(remote.url + "/tts", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ text: job.text, lang: job.opts.stt || "" }),
     });
+    if (resp.status === 404) {
+      sansVoixServeur.add(job.opts.stt || "");
+      done("sans-voix");
+      return;
+    }
     if (!resp.ok) throw new Error();
     const blob = await resp.blob();
     // stopSpeaking() a pu tomber pendant la requête : ne pas parler quand même.
@@ -134,12 +176,34 @@ async function pumpRemote() {
     audio.src = url;
     audio.playbackRate = job.opts.rate || 1;
     rCurrent = { audio, url };
-    audio.onended = () => { URL.revokeObjectURL(url); rCurrent = null; done(false); };
-    audio.onerror = () => { URL.revokeObjectURL(url); rCurrent = null; done(true); };
-    await audio.play();
+    const libere = () => {
+      if (rCurrent && rCurrent.url === url) rCurrent = null;
+      URL.revokeObjectURL(url);
+    };
+    audio.onended = () => { libere(); done(false); };
+    audio.onerror = () => { libere(); done("panne"); };
+    // Pause non demandée (#129) : iOS suspend la lecture quand l'écran se verrouille, que
+    // l'app passe en arrière-plan ou que le micro s'ouvre, et `ended` n'arrive alors
+    // jamais. La file restait bloquée sur cette phrase et toutes les suivantes attendaient
+    // en silence jusqu'à la fin de la séance. La pause vaut donc fin de phrase.
+    // L'événement est asynchrone, et l'élément est partagé : la pause demandée par
+    // stopSpeaking() peut n'arriver qu'une fois la phrase suivante lancée, et c'est alors
+    // ce gestionnaire-ci qui la reçoit. Un lecteur qui joue (`!paused`) la dément.
+    audio.onpause = () => {
+      if (audio.ended) return; // la pause qui précède `ended` : c'est lui qui conclut
+      if (!audio.paused) return; // pause périmée d'une phrase précédente
+      libere();
+      done(false);
+    };
+    try {
+      await audio.play();
+    } catch (_) {
+      libere();
+      done("refus");
+    }
   } catch (_) {
     if (rCurrent) { URL.revokeObjectURL(rCurrent.url); rCurrent = null; }
-    done(true); // serveur injoignable ou pas de voix : repli
+    done("panne"); // serveur injoignable : repli
   }
 }
 
@@ -151,6 +215,9 @@ function createRemoteRecognizer({ lang, onStart, onInterim, onResult, onError, o
     // Appuyer-parler-retoucher : start() enregistre, stop() envoie au serveur.
     async start() {
       if (rec) return;
+      // Comme le micro du navigateur : le tuteur se tait avant qu'on enregistre (#129).
+      // Sinon sa voix part dans l'enregistrement, et iOS suspend sa lecture.
+      stopSpeaking();
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -231,11 +298,13 @@ export function speak(text, opts = {}) {
   // l'aiguillage. Une liste de voix encore vide (iOS avant la première synthèse) donne
   // `null`, et la réplique part alors au serveur vocal au lieu de se perdre.
   const picked = ttsAvailable() ? pickVoice(opts.ttsPrefixes || []) : null;
+  const ios = appareilIos();
   const choix = choisitVoix({
     support: opts.support,
     voixServeur: !!opts.voixServeur,
+    appareilIos: ios,
     voixNavigateur: !!picked,
-    distantDisponible: !!remote.url,
+    distantDisponible: !!remote.url && !sansVoixServeur.has(opts.stt || ""),
     repliEpuise: !!opts.repliEpuise,
   });
   if (choix === "distant") {
@@ -248,6 +317,7 @@ export function speak(text, opts = {}) {
     return;
   }
   if (choix === "local") {
+    if (ios) signaleSilencieux();
     speakLocal(text, opts, picked);
     return;
   }
