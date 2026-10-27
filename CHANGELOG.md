@@ -5,6 +5,34 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) — versionnag
 [sémantique](https://semver.org/lang/fr/). Les tags git correspondants sont posés via les
 Releases GitHub (commit de chaque version indiqué ci-dessous).
 
+## [2.0.0-beta.46] — 2026-10-27
+
+### Fixed
+- **Sur iPhone, le tuteur ne parlait plus** (#129). Plusieurs conversations sont restées
+  muettes le 27/10. Le journal du serveur vocal montre des `/tts` après chaque réplique
+  jusqu'à 18:52, puis plus aucun, alors que le serveur répondait toujours. Trois causes :
+  - **voix de l'iPhone muette en mode silencieux** : une langue au support « full »
+    (espagnol, anglais, allemand, portugais, arabe) était lue par `speechSynthesis` dès que
+    l'iPhone avait une voix. Cette voix se tait en mode silencieux, sans erreur ni
+    événement. Sur iOS, toute langue passe désormais par le serveur vocal quand il est
+    configuré : son élément audio joue malgré l'interrupteur. La voix de l'iPhone ne sert
+    plus qu'en repli (japonais, sans voix Piper, ou serveur injoignable). Ce repli affiche
+    une fois un avis sur le mode silencieux. Une langue à laquelle le serveur a répondu 404
+    ne lui est plus renvoyée à chaque phrase ;
+  - **file de lecture bloquée** : la phrase suivante n'était lancée qu'à l'événement
+    `ended`. Quand iOS suspend la lecture (écran verrouillé, app en arrière-plan, micro
+    ouvert), seul `pause` arrive. Toutes les phrases suivantes attendaient alors en silence
+    jusqu'à la sortie de la séance. Une pause qui n'a pas été demandée vaut désormais fin
+    de phrase. Celle de `stopSpeaking()`, asynchrone, est écartée même quand elle tombe sur
+    la phrase suivante. Un `play()` refusé par iOS ne s'annonce plus comme « serveur
+    injoignable » ;
+  - **le micro du serveur vocal ne coupait pas la voix**, contrairement à celui du
+    navigateur. Le tuteur pouvait être enregistré, et sa lecture suspendue.
+  Vérifié avec `tests/voix-lecture.test.mjs` : 7 cas, avec navigateur simulé (Audio,
+  fetch, speechSynthesis, micro). Ils échouent sur l'ancien code (6 sur 7). Essai dans
+  Chromium avec un iPhone émulé, sur l'app construite et le vrai serveur : une séance en
+  espagnol envoie ses 4 phrases à `/tts` dans l'ordre, et aucune à la voix du navigateur.
+
 ## [2.0.0-beta.45] — 2026-10-13
 
 ### Changed
